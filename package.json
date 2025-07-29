@@ -3,16 +3,23 @@
   "version": "1.0.0",
   "description": "Sistema de gestión de cursos, estudiantes y profesores",
   "main": "app.js",
-"scripts": {
-  "start": "node app.js",
-  "dev": "nodemon app.js",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/JohanParadaC/educontrol-backend.git"
   },
-  "keywords": ["nodejs", "express", "mongodb", "mongoose", "cursos", "backend"],
+  "keywords": [
+    "nodejs",
+    "express",
+    "mongodb",
+    "mongoose",
+    "cursos",
+    "backend"
+  ],
   "author": "Johan Parada",
   "license": "ISC",
   "bugs": {
@@ -23,6 +30,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "express-validator": "^7.2.1",
     "mongoose": "^8.16.4"
   }
 }
