@@ -1,41 +1,44 @@
-// app.js
 require('dotenv').config();
-const express  = require('express');
-const mongoose = require('mongoose');
-const cors     = require('cors');
+const express      = require('express');
+const cors         = require('cors');
+const dbConnection = require('./config/db');
+
+const usuariosRoutes      = require('./routes/usuarios.routes');
+const authRoutes          = require('./routes/auth.routes');
+const cursosRoutes        = require('./routes/cursos.routes');
+const inscripcionesRoutes = require('./routes/inscripciones.routes');
+const adminRoutes         = require('./routes/admin.routes');
 
 const app = express();
 
-// Middlewares
+// 1) Middlewares globales
 app.use(cors());
 app.use(express.json());
 
-// Conexión a MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ Conectado a MongoDB');
+// 2) Rutas
+app.use('/api/usuarios',      usuariosRoutes);
+app.use('/api/auth',          authRoutes);
+app.use('/api/cursos',        cursosRoutes);
+app.use('/api/inscripciones', inscripcionesRoutes);
+app.use('/api/admin',         adminRoutes);
 
-    // Importar rutas (modelo REST plural)
-    const usuariosRoutes      = require('./routes/usuarios.routes');
-    const cursosRoutes        = require('./routes/cursos.routes');
-    const inscripcionesRoutes = require('./routes/inscripciones.routes');
-    const adminRoutes         = require('./routes/admin.routes');
+// 3) Health‑check
+app.get('/', (req, res) => {
+  res.json({ ok: true, msg: '🚀 API EduControl funcionando' });
+});
 
-    // Montar rutas
-    app.use('/usuarios',      usuariosRoutes);
-    app.use('/cursos',        cursosRoutes);
-    app.use('/inscripciones', inscripcionesRoutes);
-    app.use('/admin',         adminRoutes);
+// 4) Catch‑all 404
+app.use('*', (req, res) => {
+  res.status(404).json({ ok: false, msg: 'Recurso no encontrado' });
+});
 
-    // Ruta de bienvenida
-    app.get('/', (req, res) => {
-      res.send('🚀 Bienvenido a educontrol-backend');
-    });
+// 5) **Aquí coloca el middleware de manejo de errores**:
+const errorHandler = require('./middlewares/errorHandler');
+app.use(errorHandler);
 
-    // Iniciar servidor
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`🟢 Servidor corriendo en http://localhost:${PORT}`);
-    });
-  })
-  .catch(err => console.error('❌ Error de conexión a MongoDB:', err));
+// 6) **Al final, lee el PORT y arranca el listener**:
+const PORT = process.env.PORT || 3000;
+dbConnection();            // Conecta a MongoDB (si falla, sale del proceso)
+app.listen(PORT, () => {
+  console.log(`🟢 Servidor corriendo en http://localhost:${PORT}`);
+});

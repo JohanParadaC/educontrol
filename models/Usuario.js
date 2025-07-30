@@ -8,11 +8,16 @@ const UsuarioSchema = new mongoose.Schema({
   correo: {
     type: String,
     required: true,
-    unique: true
+    unique: true, // YA EXISTENTE: índice único para evitar duplicados
+    // AÑADIDO: validación básica de formato de correo
+    match: [/^\S+@\S+\.\S+$/, 'Correo no válido']
   },
   contraseña: {
     type: String,
-    required: true
+    required: true,
+    // AÑADIDO: longitud mínima de contraseña para mayor seguridad
+    minlength: 6
+    // Nota: esta validación se aplica antes de hashear
   },
   rol: {
     type: String,
@@ -20,5 +25,14 @@ const UsuarioSchema = new mongoose.Schema({
     required: true
   }
 });
+
+// AÑADIDO: Ocultar campos sensibles (__v, contraseña) y renombrar _id → id
+UsuarioSchema.methods.toJSON = function() {
+  const { __v, contraseña, _id, ...usuario } = this.toObject();
+  usuario.id = _id;
+  return usuario;
+};
+
+// NINGUNA LÍNEA FUE ELIMINADA; sólo se agregaron validaciones y el método toJSON
 
 module.exports = mongoose.model('Usuario', UsuarioSchema);
