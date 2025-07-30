@@ -1,21 +1,73 @@
-const express = require('express');
-const router = require('express').Router();
-const Curso = require('../models/Curso');
+const { Router }     = require('express');
+const { check }      = require('express-validator');
+const validateFields = require('../middlewares/validateFields');
+const { validateJWT } = require('../middlewares/auth');
+const { roleCheck }   = require('../middlewares/roleCheck');
+const {
+  crearCurso,
+  obtenerCursos,
+  obtenerCursoPorId,
+  actualizarCurso,
+  borrarCurso
+} = require('../controllers/cursos');
 
-// Crear curso
-router.post('/', async (req, res) => {
-  try {
-    const cursos = new Curso(req.body);
-    res.status(201).json(await cursos.save());
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
-});
+const router = Router();
 
-// Listar cursos (populando el profesor)
-router.get('/', async (req, res) => {
-  const cursos = await Curso.find().populate('profesor', 'nombre correo');
-  res.json(cursos);
-});
+// 1) Crear curso (solo profesor o admin)
+router.post(
+  '/',
+  [
+    validateJWT,
+    roleCheck('profesor','admin'),
+    check('nombre', 'El nombre es obligatorio').notEmpty(),
+    validateFields
+  ],
+  crearCurso
+);
+
+// AÑADIDO: 2) Listar todos los cursos (cualquier usuario autenticado)
+router.get(
+  '/',
+  [
+    validateJWT
+  ],
+  obtenerCursos
+);
+
+// AÑADIDO: 3) Obtener un curso por ID (cualquier usuario autenticado)
+router.get(
+  '/:id',
+  [
+    validateJWT,
+    check('id', 'ID no válido').isMongoId(),
+    validateFields
+  ],
+  obtenerCursoPorId
+);
+
+// AÑADIDO: 4) Actualizar curso (solo profesor o admin)
+router.put(
+  '/:id',
+  [
+    validateJWT,
+    roleCheck('profesor','admin'),
+    check('id', 'ID no válido').isMongoId(),
+    check('nombre', 'El nombre es obligatorio').notEmpty(),
+    validateFields
+  ],
+  actualizarCurso
+);
+
+// AÑADIDO: 5) Borrar curso (solo profesor o admin)
+router.delete(
+  '/:id',
+  [
+    validateJWT,
+    roleCheck('profesor','admin'),
+    check('id', 'ID no válido').isMongoId(),
+    validateFields
+  ],
+  borrarCurso
+);
 
 module.exports = router;
