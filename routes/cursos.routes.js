@@ -1,3 +1,9 @@
+// routes/cursos.routes.js
+// --------------------------------------------------
+// Cambios:
+// - Se ajusta el require para apuntar al controlador correcto
+// --------------------------------------------------
+
 const { Router }     = require('express');
 const { check }      = require('express-validator');
 const validateFields = require('../middlewares/validateFields');
@@ -9,7 +15,7 @@ const {
   obtenerCursoPorId,
   actualizarCurso,
   borrarCurso
-} = require('../controllers/cursos');
+} = require('../controllers/cursos.controller');  // <-- aquí cambiamos "cursos" por "cursos.controller"
 
 const router = Router();
 
@@ -25,16 +31,14 @@ router.post(
   crearCurso
 );
 
-// AÑADIDO: 2) Listar todos los cursos (cualquier usuario autenticado)
+// 2) Listar todos los cursos (cualquier usuario autenticado)
 router.get(
   '/',
-  [
-    validateJWT
-  ],
+  [ validateJWT ],
   obtenerCursos
 );
 
-// AÑADIDO: 3) Obtener un curso por ID (cualquier usuario autenticado)
+// 3) Obtener un curso por ID (cualquier usuario autenticado)
 router.get(
   '/:id',
   [
@@ -45,7 +49,7 @@ router.get(
   obtenerCursoPorId
 );
 
-// AÑADIDO: 4) Actualizar curso (solo profesor o admin)
+// 4) Actualizar curso (solo profesor o admin)
 router.put(
   '/:id',
   [
@@ -58,7 +62,7 @@ router.put(
   actualizarCurso
 );
 
-// AÑADIDO: 5) Borrar curso (solo profesor o admin)
+// 5) Borrar curso (solo profesor o admin)
 router.delete(
   '/:id',
   [
