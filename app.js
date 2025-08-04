@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express      = require('express');
 const cors         = require('cors');
-const dbConnection = require('./config/db');
+const dbConnection = require('./config/db')
 
 const usuariosRoutes      = require('./routes/usuarios.routes');
 const authRoutes          = require('./routes/auth.routes');
@@ -16,11 +16,11 @@ app.use(cors());
 app.use(express.json());
 
 // 2) Rutas
-app.use('/api/usuarios',      usuariosRoutes);
-app.use('/api/auth',          authRoutes);
-app.use('/api/cursos',        cursosRoutes);
-app.use('/api/inscripciones', inscripcionesRoutes);
-app.use('/api/admin',         adminRoutes);
+ app.use('/api/usuarios',      usuariosRoutes);
+ app.use('/api/auth',          authRoutes);
+ app.use('/api/cursos',        cursosRoutes);
+ app.use('/api/inscripciones', inscripcionesRoutes);
+ app.use('/api/admin',         adminRoutes);
 
 // 3) Health‑check
 app.get('/', (req, res) => {
@@ -28,15 +28,15 @@ app.get('/', (req, res) => {
 });
 
 // 4) Catch‑all 404
-app.use('*', (req, res) => {
-  res.status(404).json({ ok: false, msg: 'Recurso no encontrado' });
-});
+ app.use((req, res) => {
+   res.status(404).json({ ok: false, msg: 'Recurso no encontrado' });
+ });
 
-// 5) **Aquí coloca el middleware de manejo de errores**:
+// 5) **middleware para el  manejo de errores**:
 const errorHandler = require('./middlewares/errorHandler');
 app.use(errorHandler);
 
-// 6) **Al final, lee el PORT y arranca el listener**:
+// 6) **lee el PORT y arranca el listener**:
 const PORT = process.env.PORT || 3000;
 dbConnection();            // Conecta a MongoDB (si falla, sale del proceso)
 app.listen(PORT, () => {

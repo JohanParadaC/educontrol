@@ -1,24 +1,21 @@
 // routes/inscripciones.routes.js
 // --------------------------------------------------
 // Cambios:
-// - Se mantenían POST '/', GET '/' y GET '/:id'.
-// - SE AÑADIERON:
-//     • PUT '/:id' → Actualizar una inscripción.
-// - No se eliminaron rutas antiguas.
+// - Se ajusta el require para apuntar al controlador correcto
 // --------------------------------------------------
 
-const { Router }     = require('express');
-const { check }      = require('express-validator');
-const validateFields = require('../middlewares/validateFields');
-const { validateJWT } = require('../middlewares/auth');
-const { roleCheck }   = require('../middlewares/roleCheck');
+const { Router }       = require('express');
+const { check }        = require('express-validator');
+const validateFields   = require('../middlewares/validateFields');
+const { validateJWT }  = require('../middlewares/auth');
+const { roleCheck }    = require('../middlewares/roleCheck');
 const {
   inscribirEstudiante,
   obtenerInscripciones,
   obtenerInscripcionPorId,
-  actualizarInscripcion,   // IMPORTANTE: ruta añadida
+  actualizarInscripcion,
   borrarInscripcion
-} = require('../controllers/inscripciones');
+} = require('../controllers/inscripciones.controller');  // <-- aquí cambiamos "inscripciones" por "inscripciones.controller"
 
 const router = Router();
 
