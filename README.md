@@ -137,8 +137,8 @@ educontrol-backend/
 | ---------- | ------- | ---------------------------------------- |
 | `nombre`   | String  | Nombre completo (requerido)              |
 | `correo`   | String  | Email único con validación (requerido)   |
-| `password` | String  | Hasheada con bcryptjs (requerido)        |
-| `rol`      | String  | Enum(`estudiante`, `profesor`) (requerido) |
+| `contraseña` | String  | Hasheada con bcryptjs (requerido)        |
+| `rol`      | String  | Enum(`estudiante`, `profesor`,`admin`) (requerido) |
 
 ### Curso
 
