@@ -21,7 +21,7 @@ const UsuarioSchema = new mongoose.Schema({
   },
   rol: {
     type: String,
-    enum: ['estudiante', 'profesor'],
+    enum: ['estudiante', 'profesor', 'admin'],
     required: true
   }
 });
