@@ -23,7 +23,7 @@ router.post(
     check('nombre',     'El nombre es obligatorio').notEmpty(),
     check('correo',     'Correo no válido').isEmail(),
     check('contraseña', 'La contraseña debe tener 6 caracteres mínimo').isLength({ min: 6 }),
-    check('rol',        'Rol inválido').isIn(['estudiante', 'profesor']),
+    check('rol',        'Rol inválido').isIn(['estudiante', 'profesor', 'admin']),
     validateFields
   ],
   crearUsuario
