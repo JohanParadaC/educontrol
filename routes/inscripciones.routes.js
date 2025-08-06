@@ -1,8 +1,3 @@
-// routes/inscripciones.routes.js
-// --------------------------------------------------
-// Cambios:
-// - Se ajusta el require para apuntar al controlador correcto
-// --------------------------------------------------
 
 const { Router }       = require('express');
 const { check }        = require('express-validator');
@@ -15,7 +10,7 @@ const {
   obtenerInscripcionPorId,
   actualizarInscripcion,
   borrarInscripcion
-} = require('../controllers/inscripciones.controller');  // <-- aquí cambiamos "inscripciones" por "inscripciones.controller"
+} = require('../controllers/inscripciones.controller');  
 
 const router = Router();
 

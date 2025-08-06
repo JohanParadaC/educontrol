@@ -5,14 +5,13 @@ const validateFields   = require('../middlewares/validateFields');
 const { validateJWT }  = require('../middlewares/auth');
 const { roleCheck }    = require('../middlewares/roleCheck');
 
-// ← Aquí se corrigió el nombre: ahora coincide exactamente con 'usuarios.controller.js'
 const {
   crearUsuario,
   obtenerUsuarios,
   obtenerUsuarioPorId,
   actualizarUsuario,
   borrarUsuario
-} = require('../controllers/usuarios.controller');  // ← Require ajustado al nombre de fichero
+} = require('../controllers/usuarios.controller');  
 
 const router = Router();
 
