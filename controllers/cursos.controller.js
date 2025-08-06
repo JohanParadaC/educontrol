@@ -7,7 +7,7 @@ const crearCurso = async (req, res, next) => {
     const curso = new Curso({
       nombre,
       descripcion,
-      profesor: req.uid   // asumiendo que viene del middleware validateJWT
+      profesor: req.uid   
     });
     await curso.save();
     res.status(201).json({ ok: true, curso });

@@ -1,8 +1,3 @@
-// routes/cursos.routes.js
-// --------------------------------------------------
-// Cambios:
-// - Se ajusta el require para apuntar al controlador correcto
-// --------------------------------------------------
 
 const { Router }     = require('express');
 const { check }      = require('express-validator');
@@ -15,7 +10,7 @@ const {
   obtenerCursoPorId,
   actualizarCurso,
   borrarCurso
-} = require('../controllers/cursos.controller');  // <-- aquí cambiamos "cursos" por "cursos.controller"
+} = require('../controllers/cursos.controller'); 
 
 const router = Router();
 

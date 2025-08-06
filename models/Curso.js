@@ -16,10 +16,8 @@ const CursoSchema = new mongoose.Schema({
     required: true
   }
 },
-// OPCIONAL: si quieres guardar createdAt/updatedAt, descomenta la siguiente línea
-// { timestamps: true }
+
 );
 
-// NINGUNA LÍNEA FUE ELIMINADA; el esquema cumple con los requisitos actuales
 
 module.exports = mongoose.model('Curso', CursoSchema);
