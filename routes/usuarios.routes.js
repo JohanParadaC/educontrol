@@ -1,17 +1,18 @@
+// routes/usuarios.routes.js
+const { Router } = require('express');
+const { check }  = require('express-validator');
 
-const { Router }       = require('express');
-const { check }        = require('express-validator');
-const validateFields   = require('../middlewares/validateFields');
-const { validateJWT }  = require('../middlewares/auth');
-const { roleCheck }    = require('../middlewares/roleCheck');
+const validateFields = require('../middlewares/validateFields');
+const { validateJWT } = require('../middlewares/auth'); // tu middleware que mete req.usuario
+const { roleCheck }   = require('../middlewares/roleCheck');
 
 const {
   crearUsuario,
   obtenerUsuarios,
   obtenerUsuarioPorId,
-  actualizarUsuario,
+  updateUsuario,
   borrarUsuario
-} = require('../controllers/usuarios.controller');  
+} = require('../controllers/usuarios.controller');
 
 const router = Router();
 
@@ -28,48 +29,27 @@ router.post(
   crearUsuario
 );
 
-// 2) Listar usuarios (solo admin)
-router.get(
-  '/',
-  [ validateJWT, roleCheck('admin') ],
-  obtenerUsuarios
-);
+// 2) Listar (solo admin)
+router.get('/', [ validateJWT, roleCheck('admin') ], obtenerUsuarios);
 
-// 3) Obtener un usuario por ID (cualquier usuario autenticado)
-router.get(
-  '/:id',
-  [
-    validateJWT,
-    check('id', 'ID no válido').isMongoId(),
-    validateFields
-  ],
-  obtenerUsuarioPorId
-);
+// 3) Obtener por ID (cualquiera autenticado)
+router.get('/:id', [ validateJWT, check('id').isMongoId(), validateFields ], obtenerUsuarioPorId);
 
-// 4) Actualizar usuario (solo admin)
+// 4) ✅ Actualizar (self o admin). Nada de roleCheck aquí.
 router.put(
   '/:id',
   [
     validateJWT,
-    roleCheck('admin'),
-    check('id', 'ID no válido').isMongoId(),
-    check('nombre', 'El nombre es obligatorio').notEmpty(),
-    check('rol',    'Rol inválido').isIn(['estudiante', 'profesor']),
+    check('id').isMongoId(),
+    check('nombre').optional().notEmpty(),
+    check('correo').optional().isEmail(),
+    check('rol').optional().isIn(['estudiante', 'profesor']), // admin no se cambia aquí
     validateFields
   ],
-  actualizarUsuario
+  updateUsuario
 );
 
-// 5) Borrar usuario (solo admin)
-router.delete(
-  '/:id',
-  [
-    validateJWT,
-    roleCheck('admin'),
-    check('id', 'ID no válido').isMongoId(),
-    validateFields
-  ],
-  borrarUsuario
-);
+// 5) Borrar (solo admin)
+router.delete('/:id', [ validateJWT, roleCheck('admin'), check('id').isMongoId(), validateFields ], borrarUsuario);
 
 module.exports = router;
