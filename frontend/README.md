@@ -64,6 +64,7 @@ Interfaz web para EduControl que permite:
 
 # 1. Entrar al proyecto del frontend
 cd frontend
+```text
 
 # 2. Instalar dependencias
 npm install
@@ -82,8 +83,11 @@ Editar
 }
 Base URL del backend en producción: ajusta tu ApiService para usar
 una API_BASE_URL proveniente de environment.ts / variable de entorno al hacer build.
+```
 ---
+
 ## 🗂️ Estructura del proyecto
+```text
 
 src/
 ├── app/
@@ -117,7 +121,7 @@ src/
 │   └── app-routing-module.ts       # provideRouter(routes) (standalone)
 ├── assets/
 └── environments/                   # environments (si usas)
-
+```
 ---
 
 ## ⚡ Scripts disponibles
