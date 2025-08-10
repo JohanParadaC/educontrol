@@ -84,9 +84,7 @@ Base URL del backend en producción: ajusta tu ApiService para usar
 una API_BASE_URL proveniente de environment.ts / variable de entorno al hacer build.
 ---
 ## 🗂️ Estructura del proyecto
-text
-Copiar
-Editar
+
 src/
 ├── app/
 │   ├── core/
