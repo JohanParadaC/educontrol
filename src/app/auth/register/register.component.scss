@@ -1,0 +1,7 @@
+@use '../login/login.component' as login; /* opcional: reutiliza estilos */
+/* o copia los mismos estilos que en login */
+.auth-card { max-width: 520px; margin: 32px auto; padding: 16px; }
+.auth-form { display: grid; gap: 16px; }
+.full { width: 100%; }
+.links { margin-top: 4px; }
+.error { color: #b00020; margin-top: 8px; }

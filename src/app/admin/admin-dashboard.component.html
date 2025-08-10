@@ -1,0 +1,175 @@
+<div class="grid">
+  <mat-card class="brand">
+    <h1>EduControl</h1><span>Panel de administración</span>
+  </mat-card>
+
+  <!-- ===== USUARIOS ===== -->
+  <mat-card>
+    <div class="card-title">
+      <h2>Usuarios</h2>
+      <button mat-stroked-button color="primary"
+              [disabled]="!totalPendientes || savingBulk"
+              (click)="guardarTodos()">
+        <mat-icon>save</mat-icon>
+        Guardar cambios ({{ totalPendientes }})
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table mat-table [dataSource]="usuarios">
+        <ng-container matColumnDef="_id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let u">{{ u._id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef>Nombre</th>
+          <td mat-cell *matCellDef="let u">{{ u.nombre }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="correo">
+          <th mat-header-cell *matHeaderCellDef>Correo</th>
+          <td mat-cell *matCellDef="let u">{{ u.correo }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="rol">
+          <th mat-header-cell *matHeaderCellDef>Rol</th>
+          <td mat-cell *matCellDef="let u">
+            <span class="chip" [class.pro]="u.rol==='profesor'" [class.adm]="u.rol==='admin'">{{ u.rol }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Nuevo rol</th>
+          <td mat-cell *matCellDef="let u">
+            <ng-container *ngIf="u.rol !== 'admin'; else noedit">
+              <mat-form-field appearance="outline" style="width: 220px;">
+                <mat-label>Nuevo rol</mat-label>
+                <mat-select
+                  [ngModel]="pendingRoles[id(u)] || u.rol"
+                  (ngModelChange)="onRolChange(u, $event)">
+                  <mat-option value="estudiante">estudiante</mat-option>
+                  <mat-option value="profesor">profesor</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <span *ngIf="tieneCambio(u)" class="chip pending" style="margin-left:8px;">pendiente</span>
+            </ng-container>
+            <ng-template #noedit>—</ng-template>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedUserCols"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedUserCols;"></tr>
+      </table>
+    </div>
+  </mat-card>
+
+  <!-- ===== CURSOS ===== -->
+  <mat-card>
+    <div class="card-title">
+      <h2>Cursos</h2>
+      <button mat-flat-button color="primary" (click)="abrirDialogNuevoCurso()">
+        <mat-icon>add</mat-icon> Nuevo curso
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table mat-table [dataSource]="cursos">
+        <ng-container matColumnDef="_id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let c">{{ c._id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="titulo">
+          <th mat-header-cell *matHeaderCellDef>Título</th>
+          <td mat-cell *matCellDef="let c">{{ c.titulo }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef>Descripción</th>
+          <td mat-cell *matCellDef="let c">{{ c.descripcion }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="profesor">
+          <th mat-header-cell *matHeaderCellDef>Profesor</th>
+          <td mat-cell *matCellDef="let c">{{ c.profesor?.nombre || '—' }}</td>
+        </ng-container>
+
+        <!-- ===== Acciones por curso (solo esta columna está reemplazada) ===== -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+          <!-- 👇 NUEVO: cuando la descripción es larga o la pantalla es angosta,
+               usamos solo íconos; de lo contrario, botones con texto -->
+          <td mat-cell *matCellDef="let c" class="acciones-cell">
+            <!-- Versión con texto -->
+            <ng-container *ngIf="!accionesCompactas(c); else soloIconos">
+              <button mat-stroked-button (click)="abrirDialogEditarCurso(c)">
+                <mat-icon>edit</mat-icon>
+                <span>Editar</span>
+              </button>
+
+              <button mat-stroked-button color="primary" style="margin-left:8px"
+                      (click)="abrirDialogMatricular(c)">
+                <mat-icon>person_add</mat-icon>
+                <span>Matricular</span>
+              </button>
+
+              <button mat-stroked-button color="warn" style="margin-left:8px"
+                      (click)="eliminarCurso(c)"
+                      [disabled]="eliminandoId === c._id">
+                <mat-icon>delete</mat-icon>
+                <span>{{ eliminandoId === c._id ? 'Eliminando…' : 'Eliminar' }}</span>
+              </button>
+            </ng-container>
+
+            <!-- Versión solo íconos -->
+            <ng-template #soloIconos>
+              <button mat-icon-button (click)="abrirDialogEditarCurso(c)" matTooltip="Editar">
+                <mat-icon>edit</mat-icon>
+              </button>
+
+              <button mat-icon-button color="primary" (click)="abrirDialogMatricular(c)" matTooltip="Matricular">
+                <mat-icon>person_add</mat-icon>
+              </button>
+
+              <button mat-icon-button color="warn" (click)="eliminarCurso(c)"
+                      [disabled]="eliminandoId === c._id" matTooltip="Eliminar">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </ng-template>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedCourseCols"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedCourseCols;"></tr>
+      </table>
+    </div>
+
+    <!-- Acceso rápido: Asignar profesor -->
+    <h3>Asignar profesor</h3>
+    <div class="acciones">
+      <mat-form-field appearance="outline">
+        <mat-label>Curso</mat-label>
+        <mat-select [formControl]="cursoCtrl" (selectionChange)="onCursoSel($event)">
+          <mat-option *ngFor="let c of cursos" [value]="c._id">{{ c.titulo }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Profesor</mat-label>
+        <mat-select [formControl]="profeCtrl" (selectionChange)="onProfesorSel($event)">
+          <mat-option *ngFor="let p of profesoresOpt; trackBy: trackOpt" [value]="p._id">
+            {{ p.nombre }} ({{ p.correo }})
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button color="primary"
+              (click)="asignarProfesor()"
+              [disabled]="!cursoCtrl.value || !profeCtrl.value || isAssigning">
+        Asignar profesor
+      </button>
+    </div>
+  </mat-card>
+</div>
