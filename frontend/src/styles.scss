@@ -1,0 +1,77 @@
+/* ---------------------------------------------------------------------------
+   THEME  –  Angular Material (Material 3 preview)
+   --------------------------------------------------------------------------- */
+@use '@angular/material' as mat;
+
+/*
+   La macro `mat.theme()` se encarga de:
+   1. Construir el theme claro
+   2. Generar las CSS vars `--mat-sys-*`
+   3. Inyectarlas dentro del selector que indiquemos (html en este caso)
+*/
+html {
+  @include mat.theme((
+    color: (
+      primary : mat.$azure-palette,  // azul Azure que generó el schematic
+      accent  : mat.$blue-palette,   // añadir un acento distinto (opcional)
+      warn    : mat.$red-palette
+    ),
+    typography: Roboto,
+    density   : 0
+  ));
+}
+
+/* ---------------------------------------------------------------------------
+   RESET + helpers
+   --------------------------------------------------------------------------- */
+html, body { height: 100%; margin: 0; }
+
+body {
+  color-scheme: light;
+  background-color: var(--mat-sys-surface);
+  color:            var(--mat-sys-on-surface);
+  font:             var(--mat-sys-body-medium);
+}
+
+.full { width: 100%; }
+
+/* ---------------------------------------------------------------------------
+   Retoques visuales rápidos (compatibles con M3)
+   --------------------------------------------------------------------------- */
+
+/* Cards más redondeadas y con un pelín de transparencia (si usas dark, se notará más) */
+.mdc-card, .mat-mdc-card {
+  border-radius: 16px !important;
+  backdrop-filter: blur(2px);
+}
+
+/* Tablas limpias */
+.mat-mdc-table { background: transparent; }
+.mat-mdc-header-row { font-weight: 600; }
+
+/* Botones con bordes más suaves */
+.mdc-button,
+.mat-mdc-unelevated-button,
+.mat-mdc-raised-button,
+.mat-mdc-outlined-button {
+  border-radius: 10px !important;
+}
+
+/* Separadores sutiles entre secciones (opcional) */
+.section {
+  margin-block: 16px;
+  padding-block: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--mat-sys-outline) 30%, transparent);
+}
+
+/* Chips simples para roles */
+.role-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font: var(--mat-sys-label-medium);
+  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  color: var(--mat-sys-on-primary);
+}
+.role-chip.pro     { background: color-mix(in srgb, var(--mat-sys-tertiary) 22%, transparent); }
+.role-chip.admin   { background: color-mix(in srgb, var(--mat-sys-secondary) 22%, transparent); }

@@ -1,0 +1,24 @@
+<ng-container *ngIf="!loading; else load">
+  <mat-accordion *ngIf="misCursos.length; else noCursos">
+    <mat-expansion-panel *ngFor="let c of misCursos">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ c.nombre }}</mat-panel-title>
+        <mat-panel-description>Alumnos inscritos</mat-panel-description>
+      </mat-expansion-panel-header>
+
+      <mat-list>
+        <mat-list-item *ngFor="let a of alumnosDeCurso(c._id)">
+          {{ a.nombre }}
+        </mat-list-item>
+      </mat-list>
+    </mat-expansion-panel>
+  </mat-accordion>
+</ng-container>
+
+<ng-template #noCursos>
+  <mat-card>No tienes cursos asignados todavía.</mat-card>
+</ng-template>
+
+<ng-template #load>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-template>
