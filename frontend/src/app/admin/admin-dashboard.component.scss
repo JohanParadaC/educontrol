@@ -1,0 +1,38 @@
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+  margin-bottom: 32px;
+}
+.card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.table-wrap { overflow: auto; }
+
+.chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+}
+.chip.pro { background: #1b5e20; color: #fff; }
+.chip.adm { background: #283593; color: #fff; }
+
+.brand { display:flex; align-items:center; gap:12px; }
+.brand h1 { margin:0; }
+
+/* ✅ Alineación vertical centrada en toda la tabla (arregla descuadres) */
+.mat-mdc-table .mat-mdc-cell,
+.mat-mdc-table .mat-mdc-header-cell {
+  vertical-align: middle;
+}
+
+/* ✅ Celda de acciones: botones alineados y con separación */
+.acciones-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap; /* evita saltos raros en etiquetas de botones */
+}

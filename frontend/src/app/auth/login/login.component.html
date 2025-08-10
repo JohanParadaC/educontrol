@@ -1,0 +1,29 @@
+<mat-card class="auth-card">
+  <h2>Iniciar sesión</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Correo</mat-label>
+      <input matInput formControlName="correo" type="email" autocomplete="email">
+      <mat-error *ngIf="form.get('correo')?.hasError('required')">Campo obligatorio</mat-error>
+      <mat-error *ngIf="form.get('correo')?.hasError('email')">Formato de correo no válido</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Contraseña</mat-label>
+      <input matInput [type]="hide ? 'password' : 'text'" formControlName="password" autocomplete="current-password">
+      <button mat-icon-button matSuffix type="button" (click)="hide = !hide" [attr.aria-label]="'Mostrar/Ocultar'">
+        <mat-icon>{{ hide ? 'visibility' : 'visibility_off' }}</mat-icon>
+      </button>
+      <mat-error *ngIf="form.get('password')?.hasError('required')">Campo obligatorio</mat-error>
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">Entrar</button>
+
+    <div class="links">
+      <a routerLink="/register">¿No tienes cuenta? Crear cuenta</a>
+    </div>
+
+    <div class="error" *ngIf="msg">{{ msg }}</div>
+  </form>
+</mat-card>

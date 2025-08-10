@@ -1,0 +1,19 @@
+<mat-card>
+  <h2>Elige tu rol</h2>
+
+  <div class="role-grid">
+    <mat-card class="role" (click)="choose('estudiante')">
+      <mat-icon>school</mat-icon>
+      <h3>Estudiante</h3>
+      <p>Inscríbete y gestiona tus materias.</p>
+      <button mat-raised-button>Continuar</button>
+    </mat-card>
+
+    <mat-card class="role" (click)="choose('profesor')">
+      <mat-icon>person</mat-icon>
+      <h3>Profesor</h3>
+      <p>Gestiona los cursos que dictas.</p>
+      <button mat-raised-button>Continuar</button>
+    </mat-card>
+  </div>
+</mat-card>

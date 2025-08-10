@@ -1,0 +1,66 @@
+<mat-toolbar color="primary">
+  <!-- Marca -->
+  <!-- CAMBIO: si el usuario es profesor, la marca lo lleva a /profesor/dashboard.
+       Si no, al dashboard genérico. -->
+  <button
+    mat-button
+    class="brand"
+    [routerLink]="role === 'profesor' ? '/profesor/dashboard' : '/dashboard'">
+    EduControl
+  </button>
+
+  <span class="flex"></span>
+
+  <!-- Dashboard -->
+  <!-- CAMBIO: botón Dashboard también decide ruta según rol -->
+  <button
+    mat-button
+    [routerLink]="role === 'profesor' ? '/profesor/dashboard' : '/dashboard'"
+    routerLinkActive="active"
+    *ngIf="isLoggedIn">
+    Dashboard
+  </button>
+
+  <!-- Estudiante -->
+  <button
+    mat-button
+    [routerLink]="['/cursos']"
+    routerLinkActive="active"
+    *ngIf="isLoggedIn && role === 'estudiante'">
+    Cursos
+  </button>
+
+  <!-- Profesor -->
+  <!-- Sin cambios aquí: “Mis clases” va a la nueva ruta de profesor -->
+  <button
+    mat-button
+    [routerLink]="['/profesor/clases']"
+    routerLinkActive="active"
+    *ngIf="isLoggedIn && role === 'profesor'">
+    Mis clases
+  </button>
+
+  <!-- Admin -->
+  <button
+    mat-stroked-button
+    color="accent"
+    [routerLink]="['/admin']"
+    routerLinkActive="active"
+    *ngIf="isLoggedIn && role === 'admin'">
+    Admin
+  </button>
+
+  <!-- Elegir rol -->
+  <button
+    mat-button
+    [routerLink]="['/elige-rol']"
+    routerLinkActive="active"
+    *ngIf="isLoggedIn && role !== 'admin'">
+    Elegir rol
+  </button>
+
+  <!-- Auth -->
+  <button mat-button [routerLink]="['/login']" *ngIf="!isLoggedIn">Login</button>
+  <button mat-button [routerLink]="['/register']" *ngIf="!isLoggedIn">Crear cuenta</button>
+  <button mat-button (click)="logout()" *ngIf="isLoggedIn">Salir</button>
+</mat-toolbar>

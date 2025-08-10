@@ -1,0 +1,29 @@
+<h2 mat-dialog-title>Nuevo curso</h2>
+
+<div mat-dialog-content>
+  <form [formGroup]="form" class="form-col" style="display:grid;gap:12px;">
+
+    <mat-form-field appearance="outline">
+      <mat-label>Título</mat-label>
+      <input matInput formControlName="titulo" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descripción</mat-label>
+      <textarea matInput rows="3" formControlName="descripcion"></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Profesor</mat-label>
+      <mat-select formControlName="profesor">
+        <mat-option *ngFor="let p of data.profesores" [value]="p._id">{{ p.nombre }} ({{ p.correo }})</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+  </form>
+</div>
+
+<div mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancelar</button>
+  <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="submit()">Crear</button>
+</div>

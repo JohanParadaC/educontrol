@@ -1,0 +1,13 @@
+<ng-container *ngIf="!loading; else loadingTpl">
+  <div class="grid">
+    <mat-card *ngFor="let c of cursos">
+      <h3>{{ c.nombre }}</h3>
+      <p *ngIf="c.descripcion">{{ c.descripcion }}</p>
+      <button mat-stroked-button color="primary" (click)="inscribirme(c._id)">Inscribirme</button>
+    </mat-card>
+  </div>
+</ng-container>
+
+<ng-template #loadingTpl>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-template>

@@ -1,0 +1,10 @@
+<ng-container *ngIf="!loading; else load">
+  <mat-card *ngFor="let i of misInscripciones">
+    <h3>{{ nombreCurso(i) }}</h3>
+    <p>Estado: <strong>{{ i.estado || 'inscrito' }}</strong></p>
+  </mat-card>
+</ng-container>
+
+<ng-template #load>
+  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+</ng-template>
