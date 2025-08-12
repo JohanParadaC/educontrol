@@ -1,9 +1,8 @@
-// src/app/core/api.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Observable, forkJoin, of } from 'rxjs';                 // 👈 añadimos 'of'
-import { map, switchMap } from 'rxjs/operators';                 // 👈 añadimos 'switchMap'
+import { Observable, forkJoin, of } from 'rxjs';
+import { map, switchMap, catchError } from 'rxjs/operators';
 
 import { Usuario }     from '../models/usuario.model';
 import { Curso }       from '../models/curso.model';
@@ -18,7 +17,7 @@ export class ApiService {
   // ---------------- AUTH ----------------
   login(body: { correo: string; password: string })
   : Observable<{ token: string; usuario: Usuario }> {
-    // ✅ tu backend espera 'contraseña'
+    // ✅ backend espera 'contraseña'
     const payload = { correo: body.correo, ['contraseña']: body.password };
     return this.http.post<{ token: string; usuario: Usuario }>(
       `${this.base}/auth/login`,
@@ -34,11 +33,10 @@ export class ApiService {
 
   register(body: { nombre: string; correo: string; password: string; rol?: 'estudiante'|'profesor'|'admin' })
   : Observable<{ ok: boolean; usuario: Usuario }> {
-    // ✅ tu backend espera 'contraseña'
     const payload = {
       nombre: body.nombre,
       correo: body.correo,
-      ['contraseña']: body.password,
+      ['contraseña']: body.password, // ✅
       rol: body.rol ?? 'estudiante'
     };
     return this.http.post<{ ok: boolean; usuario: Usuario }>(
@@ -70,7 +68,7 @@ export class ApiService {
     return this.http.delete<void>(`${this.base}/usuarios/${id}`);
   }
 
-  // ✅ Versión tolerante ({ok, usuarios} o array directo)
+  // ✅ tolerante: {ok, usuarios} o array
   listUsuarios(): Observable<Usuario[]> {
     return this.http
       .get<{ ok: boolean; usuarios: Usuario[] } | Usuario[]>(`${this.base}/usuarios`)
@@ -80,7 +78,6 @@ export class ApiService {
   // ---------------- CURSOS ----------------
   getCursos(): Observable<Curso[]> {
     return this.http.get<Curso[]>(`${this.base}/cursos`).pipe(
-      // 👇 Compatibilidad: rellenamos titulo si el backend devuelve 'nombre'
       map((cs: any[]) => (cs || []).map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)))
     );
   }
@@ -90,13 +87,12 @@ export class ApiService {
     );
   }
 
-  /** Crear curso genérico (si viene 'titulo', lo mapeamos a 'nombre') */
+  /** Crear curso genérico: si viene 'titulo', lo mapeamos a 'nombre' (backend) */
   createCurso(
     body: Partial<Curso> & { nombre?: string; titulo?: string; descripcion?: string }
   ): Observable<Curso> {
-    // ✅ backend espera { nombre, descripcion }
     const payload: any = {
-      nombre: body.nombre ?? body.titulo,               // 👈 mapeo clave
+      nombre: body.nombre ?? body.titulo, // 👈 mapeo
       descripcion: body.descripcion
     };
     return this.http.post<Curso>(`${this.base}/cursos`, payload).pipe(
@@ -127,14 +123,14 @@ export class ApiService {
 
   /**
    * Admin crea cursos.
-   * - Mapea `titulo` -> `nombre` (lo que espera el backend).
-   * - Si viene `profesor`, tras crear hace un PUT para asignarlo.
+   * - Envía { nombre, descripcion } (no 'titulo').
+   * - Si se pasa 'profesor', intenta reasignarlo con PUT.
+   * - Si el PUT falla (400/403/etc), NO rompe el flujo: devolvemos el curso creado igual.
    */
   createCursoAdmin(
-    body: { titulo: string; descripcion: string; profesor?: string }
+    body: { titulo: string; descripcion: string; profesor?: string | Usuario }
   ): Observable<Curso> {
-    // 👇 payload que entiende el backend
-    const payload: any = { nombre: body.titulo, descripcion: body.descripcion };
+    const payload = { nombre: body.titulo, descripcion: body.descripcion };
 
     return this.http
       .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, payload)
@@ -142,23 +138,32 @@ export class ApiService {
         map((r: any) => r?.curso ?? r),
         switchMap((curso: any) => {
           const id = this.idOf(curso);
-          // 👇 si se envió profesor, lo reasignamos con PUT
-          if (id && body.profesor) {
+          const profesorId = body.profesor ? this.idOf(body.profesor as any) : '';
+
+          if (id && profesorId) {
             return this.http
-              .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${id}`, { profesor: body.profesor })
-              .pipe(map((r: any) => r?.curso ?? r));
+              .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${id}`, { profesor: profesorId })
+              .pipe(
+                map((r: any) => r?.curso ?? r),
+                // 👇 No fallar si la reasignación responde 400/403/etc.
+                catchError((err) => {
+                  console.warn('No se pudo asignar profesor al curso recién creado:', err);
+                  return of(curso);
+                })
+              );
           }
           return of(curso);
         }),
-        // 👇 normalizamos 'titulo' para el front
+        // Normalizamos 'titulo' para el front
         map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
       );
   }
 
-  /** Reasignar profesor (PUT /api/cursos/:id { profesor: ... }) */
-  asignarProfesor(cursoId: string, profesorId: string): Observable<Curso> {
+  /** Reasignar profesor manualmente (sección "Asignar profesor") */
+  asignarProfesor(cursoId: string, profesorId: string | Usuario): Observable<Curso> {
+    const pid = this.idOf(profesorId as any);
     return this.http
-      .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${cursoId}`, { profesor: profesorId })
+      .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${cursoId}`, { profesor: pid })
       .pipe(map((r: any) => (r?.curso ?? r) as Curso));
   }
 
@@ -188,7 +193,7 @@ export class ApiService {
   /** ✅ Auto-matricular al usuario actual en un curso */
   enrollMe(cursoId: string): Observable<Inscripcion> {
     const me = this.getLocalUser();
-    const estudianteId = this.idOf(me); // ← tolerante: _id | id | uid | string
+    const estudianteId = this.idOf(me);
     if (!estudianteId) {
       throw new Error('No hay usuario autenticado para matricular.');
     }
@@ -243,15 +248,8 @@ export class ApiService {
   }
 
   // -----------------------------------------------------------------
-  // ✅✅ Helpers para PROFESOR (dashboard/mis clases)
+  // Helpers para PROFESOR (dashboard/mis clases)
   // -----------------------------------------------------------------
-
-  /**
-   * Cursos del profesor logueado.
-   * **Tolerante**:
-   * - si `curso.profesor` es objeto → compara por `_id`
-   * - si es string → compara por **nombre normalizado** (sin acentos, minúsculas)
-   */
   listCursosDeProfesorMe(): Observable<Curso[]> {
     const me = this.getLocalUser();
     const myId = this.idOf(me);
@@ -260,11 +258,11 @@ export class ApiService {
     return this.listCursos().pipe(
       map((cs: Curso[]) => (cs || []).filter((c: any) => {
         const p = c?.profesor;
-        // 1) Coincidencia por ID
+        // 1) por ID
         const pid = this.idOf(p);
         if (pid && myId && String(pid) === String(myId)) return true;
 
-        // 2) Coincidencia por NOMBRE cuando el backend envía 'profesor' como string
+        // 2) por nombre (si viene string)
         const pname = typeof p === 'string' ? p : (p?.nombre || p?.name || '');
         if (pname && myNameNorm) {
           return this.normalize(String(pname)) === myNameNorm;
@@ -274,7 +272,7 @@ export class ApiService {
     );
   }
 
-  /** Inscripciones filtradas por curso (curso puede venir como id u objeto). */
+  /** Inscripciones filtradas por curso */
   listInscripcionesPorCurso(cursoId: string): Observable<Inscripcion[]> {
     return this.listInscripciones().pipe(
       map((ins: Inscripcion[]) => (ins || []).filter((i: any) => {
@@ -331,7 +329,7 @@ export class ApiService {
     return (s || '')
       .toString()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // quita diacríticos
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim();
   }
