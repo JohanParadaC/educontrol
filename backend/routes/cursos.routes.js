@@ -1,7 +1,6 @@
-
-const { Router }     = require('express');
-const { check }      = require('express-validator');
-const validateFields = require('../middlewares/validateFields');
+const { Router }      = require('express');
+const { check }       = require('express-validator');
+const validateFields  = require('../middlewares/validateFields');
 const { validateJWT } = require('../middlewares/auth');
 const { roleCheck }   = require('../middlewares/roleCheck');
 const {
@@ -10,30 +9,41 @@ const {
   obtenerCursoPorId,
   actualizarCurso,
   borrarCurso
-} = require('../controllers/cursos.controller'); 
+} = require('../controllers/cursos.controller');
 
 const router = Router();
 
-// 1) Crear curso (solo profesor o admin)
+/**
+ * Rutas:
+ * - POST   /api/cursos        (profesor|admin) crea curso
+ * - GET    /api/cursos        (auth) lista cursos
+ * - GET    /api/cursos/:id    (auth) curso por id
+ * - PUT    /api/cursos/:id    (profesor|admin) actualiza (incluye profesor opcional)
+ * - DELETE /api/cursos/:id    (profesor|admin) borra
+ */
+
+// Crear curso (profesor o admin)
+// CAMBIO: validamos opcionalmente que "profesor" sea ObjectId
 router.post(
   '/',
   [
     validateJWT,
-    roleCheck('profesor','admin'),
-    check('nombre', 'El nombre es obligatorio').notEmpty(),
+    roleCheck('profesor', 'admin'),
+    check('nombre', 'El nombre es obligatorio').not().isEmpty(),
+    check('profesor').optional().isMongoId(),
     validateFields
   ],
   crearCurso
 );
 
-// 2) Listar todos los cursos (cualquier usuario autenticado)
+// Listar cursos (cualquier usuario autenticado)
 router.get(
   '/',
   [ validateJWT ],
   obtenerCursos
 );
 
-// 3) Obtener un curso por ID (cualquier usuario autenticado)
+// Obtener un curso por ID (cualquier usuario autenticado)
 router.get(
   '/:id',
   [
@@ -44,20 +54,21 @@ router.get(
   obtenerCursoPorId
 );
 
-// 4) Actualizar curso (solo profesor o admin)
+// Actualizar curso (profesor o admin)
+// CAMBIO: permitimos pasar "profesor" (opcional) y lo validamos como ObjectId
 router.put(
   '/:id',
   [
     validateJWT,
-    roleCheck('profesor','admin'),
+    roleCheck('profesor', 'admin'),
     check('id', 'ID no válido').isMongoId(),
-    check('nombre', 'El nombre es obligatorio').notEmpty(),
+    check('profesor').optional().isMongoId(),
     validateFields
   ],
   actualizarCurso
 );
 
-// 5) Borrar curso (solo profesor o admin)
+// Borrar curso (profesor o admin)
 router.delete(
   '/:id',
   [
