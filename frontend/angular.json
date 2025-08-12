@@ -24,6 +24,7 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "outputPath": "dist/educontrol-frontend/browser",
             "browser": "src/main.ts",
             "polyfills": [
               "zone.js"
