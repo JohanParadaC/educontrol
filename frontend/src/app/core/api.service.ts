@@ -2,8 +2,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { Observable, forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';                 // 👈 añadimos 'of'
+import { map, switchMap } from 'rxjs/operators';                 // 👈 añadimos 'switchMap'
 
 import { Usuario }     from '../models/usuario.model';
 import { Curso }       from '../models/curso.model';
@@ -11,13 +11,14 @@ import { Inscripcion } from '../models/inscripcion.model';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-private readonly base = environment.apiBase;
+  private readonly base = environment.apiBase;
 
   constructor(private http: HttpClient) {}
 
   // ---------------- AUTH ----------------
   login(body: { correo: string; password: string })
   : Observable<{ token: string; usuario: Usuario }> {
+    // ✅ tu backend espera 'contraseña'
     const payload = { correo: body.correo, ['contraseña']: body.password };
     return this.http.post<{ token: string; usuario: Usuario }>(
       `${this.base}/auth/login`,
@@ -33,6 +34,7 @@ private readonly base = environment.apiBase;
 
   register(body: { nombre: string; correo: string; password: string; rol?: 'estudiante'|'profesor'|'admin' })
   : Observable<{ ok: boolean; usuario: Usuario }> {
+    // ✅ tu backend espera 'contraseña'
     const payload = {
       nombre: body.nombre,
       correo: body.correo,
@@ -77,16 +79,35 @@ private readonly base = environment.apiBase;
 
   // ---------------- CURSOS ----------------
   getCursos(): Observable<Curso[]> {
-    return this.http.get<Curso[]>(`${this.base}/cursos`);
+    return this.http.get<Curso[]>(`${this.base}/cursos`).pipe(
+      // 👇 Compatibilidad: rellenamos titulo si el backend devuelve 'nombre'
+      map((cs: any[]) => (cs || []).map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)))
+    );
   }
   getCurso(id: string): Observable<Curso> {
-    return this.http.get<Curso>(`${this.base}/cursos/${id}`);
+    return this.http.get<Curso>(`${this.base}/cursos/${id}`).pipe(
+      map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
+    );
   }
-  createCurso(body: Partial<Curso>): Observable<Curso> {
-    return this.http.post<Curso>(`${this.base}/cursos`, body);
+
+  /** Crear curso genérico (si viene 'titulo', lo mapeamos a 'nombre') */
+  createCurso(
+    body: Partial<Curso> & { nombre?: string; titulo?: string; descripcion?: string }
+  ): Observable<Curso> {
+    // ✅ backend espera { nombre, descripcion }
+    const payload: any = {
+      nombre: body.nombre ?? body.titulo,               // 👈 mapeo clave
+      descripcion: body.descripcion
+    };
+    return this.http.post<Curso>(`${this.base}/cursos`, payload).pipe(
+      map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
+    );
   }
+
   updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {
-    return this.http.put<Curso>(`${this.base}/cursos/${id}`, body);
+    return this.http.put<Curso>(`${this.base}/cursos/${id}`, body).pipe(
+      map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
+    );
   }
   deleteCurso(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/cursos/${id}`);
@@ -96,21 +117,49 @@ private readonly base = environment.apiBase;
   listCursos(): Observable<Curso[]> {
     return this.http
       .get<{ ok: boolean; cursos: Curso[] } | Curso[]>(`${this.base}/cursos`)
-      .pipe(map((r: any) => Array.isArray(r) ? r : (r?.cursos ?? [])));
+      .pipe(
+        map((r: any) => {
+          const arr = Array.isArray(r) ? r : (r?.cursos ?? []);
+          return (arr || []).map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso));
+        })
+      );
   }
 
-  /** Admin crea cursos */
-  createCursoAdmin(body: { titulo: string; descripcion: string; profesor: string }): Observable<Curso> {
+  /**
+   * Admin crea cursos.
+   * - Mapea `titulo` -> `nombre` (lo que espera el backend).
+   * - Si viene `profesor`, tras crear hace un PUT para asignarlo.
+   */
+  createCursoAdmin(
+    body: { titulo: string; descripcion: string; profesor?: string }
+  ): Observable<Curso> {
+    // 👇 payload que entiende el backend
+    const payload: any = { nombre: body.titulo, descripcion: body.descripcion };
+
     return this.http
-      .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, body)
-      .pipe(map((r: any) => r?.curso ?? r));
+      .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, payload)
+      .pipe(
+        map((r: any) => r?.curso ?? r),
+        switchMap((curso: any) => {
+          const id = this.idOf(curso);
+          // 👇 si se envió profesor, lo reasignamos con PUT
+          if (id && body.profesor) {
+            return this.http
+              .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${id}`, { profesor: body.profesor })
+              .pipe(map((r: any) => r?.curso ?? r));
+          }
+          return of(curso);
+        }),
+        // 👇 normalizamos 'titulo' para el front
+        map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
+      );
   }
 
-  /** Reasignar profesor */
+  /** Reasignar profesor (PUT /api/cursos/:id { profesor: ... }) */
   asignarProfesor(cursoId: string, profesorId: string): Observable<Curso> {
     return this.http
       .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${cursoId}`, { profesor: profesorId })
-      .pipe(map((r: any) => r?.curso ?? r));
+      .pipe(map((r: any) => (r?.curso ?? r) as Curso));
   }
 
   // ---------------- INSCRIPCIONES ----------------
@@ -194,7 +243,7 @@ private readonly base = environment.apiBase;
   }
 
   // -----------------------------------------------------------------
-  // ✅✅ NUEVO: Helpers para PROFESOR (dashboard/mis clases)
+  // ✅✅ Helpers para PROFESOR (dashboard/mis clases)
   // -----------------------------------------------------------------
 
   /**
