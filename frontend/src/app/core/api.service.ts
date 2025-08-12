@@ -1,3 +1,4 @@
+// src/app/core/api.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
@@ -17,8 +18,7 @@ export class ApiService {
   // ---------------- AUTH ----------------
   login(body: { correo: string; password: string })
   : Observable<{ token: string; usuario: Usuario }> {
-    // ✅ backend espera 'contraseña'
-    const payload = { correo: body.correo, ['contraseña']: body.password };
+    const payload = { correo: body.correo, ['contraseña']: body.password }; // 👈 el backend usa 'contraseña'
     return this.http.post<{ token: string; usuario: Usuario }>(
       `${this.base}/auth/login`,
       payload
@@ -36,7 +36,7 @@ export class ApiService {
     const payload = {
       nombre: body.nombre,
       correo: body.correo,
-      ['contraseña']: body.password, // ✅
+      ['contraseña']: body.password,   // 👈 idem
       rol: body.rol ?? 'estudiante'
     };
     return this.http.post<{ ok: boolean; usuario: Usuario }>(
@@ -68,7 +68,7 @@ export class ApiService {
     return this.http.delete<void>(`${this.base}/usuarios/${id}`);
   }
 
-  // ✅ tolerante: {ok, usuarios} o array
+  // ✅ tolerante ({ok, usuarios} o array)
   listUsuarios(): Observable<Usuario[]> {
     return this.http
       .get<{ ok: boolean; usuarios: Usuario[] } | Usuario[]>(`${this.base}/usuarios`)
@@ -78,6 +78,7 @@ export class ApiService {
   // ---------------- CURSOS ----------------
   getCursos(): Observable<Curso[]> {
     return this.http.get<Curso[]>(`${this.base}/cursos`).pipe(
+      // 👇 si el backend devuelve 'nombre', rellenamos 'titulo' para el front
       map((cs: any[]) => (cs || []).map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)))
     );
   }
@@ -87,12 +88,12 @@ export class ApiService {
     );
   }
 
-  /** Crear curso genérico: si viene 'titulo', lo mapeamos a 'nombre' (backend) */
+  /** Crear curso: mapea 'titulo' -> 'nombre' (lo que espera el backend) */
   createCurso(
     body: Partial<Curso> & { nombre?: string; titulo?: string; descripcion?: string }
   ): Observable<Curso> {
     const payload: any = {
-      nombre: body.nombre ?? body.titulo, // 👈 mapeo
+      nombre: body.nombre ?? body.titulo,  // 👈 mapeo clave
       descripcion: body.descripcion
     };
     return this.http.post<Curso>(`${this.base}/cursos`, payload).pipe(
@@ -109,7 +110,7 @@ export class ApiService {
     return this.http.delete<void>(`${this.base}/cursos/${id}`);
   }
 
-  // ✅ versiones mapeadas para admin/listado general
+  // ✅ listado tolerante
   listCursos(): Observable<Curso[]> {
     return this.http
       .get<{ ok: boolean; cursos: Curso[] } | Curso[]>(`${this.base}/cursos`)
@@ -122,10 +123,10 @@ export class ApiService {
   }
 
   /**
-   * Admin crea cursos.
-   * - Envía { nombre, descripcion } (no 'titulo').
-   * - Si se pasa 'profesor', intenta reasignarlo con PUT.
-   * - Si el PUT falla (400/403/etc), NO rompe el flujo: devolvemos el curso creado igual.
+   * Admin crea cursos:
+   * - Envia { nombre, descripcion }.
+   * - Si viene 'profesor', intenta asignarlo con varias formas.
+   * - Si la asignación falla (400/403/etc), NO rompe el flujo.
    */
   createCursoAdmin(
     body: { titulo: string; descripcion: string; profesor?: string | Usuario }
@@ -141,30 +142,50 @@ export class ApiService {
           const profesorId = body.profesor ? this.idOf(body.profesor as any) : '';
 
           if (id && profesorId) {
-            return this.http
-              .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${id}`, { profesor: profesorId })
-              .pipe(
-                map((r: any) => r?.curso ?? r),
-                // 👇 No fallar si la reasignación responde 400/403/etc.
-                catchError((err) => {
-                  console.warn('No se pudo asignar profesor al curso recién creado:', err);
-                  return of(curso);
-                })
-              );
+            // 👇 Reutilizamos el método robusto de asignación
+            return this.asignarProfesor(id, profesorId).pipe(
+              catchError(err => {
+                console.warn('No se pudo asignar profesor al curso recién creado:', err);
+                return of(curso); // devolvemos el curso creado igual
+              })
+            );
           }
           return of(curso);
         }),
-        // Normalizamos 'titulo' para el front
         map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
       );
   }
 
-  /** Reasignar profesor manualmente (sección "Asignar profesor") */
-  asignarProfesor(cursoId: string, profesorId: string | Usuario): Observable<Curso> {
-    const pid = this.idOf(profesorId as any);
-    return this.http
-      .put<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos/${cursoId}`, { profesor: pid })
-      .pipe(map((r: any) => (r?.curso ?? r) as Curso));
+  /**
+   * Reasignar profesor (robusto):
+   * 1) PUT /api/cursos/:id { profesor }
+   * 2) PUT /api/cursos/:id { profesorId }
+   * 3) PATCH /api/cursos/:id { profesor }
+   * 4) POST /api/cursos/:id/asignar-profesor { profesorId }
+   * 5) POST /api/cursos/asignar-profesor { cursoId, profesorId }
+   * Devuelve el primer intento exitoso con la respuesta normalizada.
+   */
+  asignarProfesor(cursoId: string, profesor: string | Usuario): Observable<Curso> {
+    const pid = this.idOf(profesor as any);
+    const url = `${this.base}/cursos/${cursoId}`;
+    const norm = (r: any) => (r?.curso ?? r) as Curso;
+
+    // Cadena de intentos; si uno falla, probamos el siguiente
+    return this.http.put(url, { profesor: pid }).pipe(
+      map(norm),
+      catchError(() => this.http.put(url, { profesorId: pid }).pipe(
+        map(norm),
+        catchError(() => this.http.patch(url, { profesor: pid }).pipe(
+          map(norm),
+          catchError(() => this.http.post(`${this.base}/cursos/${cursoId}/asignar-profesor`, { profesorId: pid }).pipe(
+            map(norm),
+            catchError(() => this.http.post(`${this.base}/cursos/asignar-profesor`, { cursoId, profesorId: pid }).pipe(
+              map(norm)
+            ))
+          ))
+        ))
+      ))
+    );
   }
 
   // ---------------- INSCRIPCIONES ----------------
@@ -193,7 +214,7 @@ export class ApiService {
   /** ✅ Auto-matricular al usuario actual en un curso */
   enrollMe(cursoId: string): Observable<Inscripcion> {
     const me = this.getLocalUser();
-    const estudianteId = this.idOf(me);
+    const estudianteId = this.idOf(me); // ← tolerante: _id | id | uid | string
     if (!estudianteId) {
       throw new Error('No hay usuario autenticado para matricular.');
     }
