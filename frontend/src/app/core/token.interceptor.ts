@@ -6,7 +6,6 @@ import {
   HttpEvent
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
 import { AuthService } from '../core/auth.service';
 import { environment } from '../../environments/environment';
 
@@ -19,16 +18,23 @@ export class TokenInterceptor implements HttpInterceptor {
     const token =
       this.auth?.token ||
       localStorage.getItem('token') ||
-      localStorage.getItem('jwt') || '';
+      localStorage.getItem('jwt') ||
+      '';
 
-    // Solo adjuntamos token a llamadas contra la API del backend
+    // Considera API si:
+    // - es absoluta y empieza por environment.apiBase
+    // - o es relativa que contenga "/api"
     const isApi = this.isApiUrl(req.url);
 
     if (token && isApi) {
-      // No pisar headers si el caller ya los envió
       const setHeaders: Record<string, string> = {};
+
+      // No pisar si ya vienen
       if (!req.headers.has('Authorization')) setHeaders['Authorization'] = `Bearer ${token}`;
       if (!req.headers.has('x-token'))        setHeaders['x-token'] = token;
+
+      // 🔎 log (puedes quitarlo luego)
+      // console.debug('[TokenInterceptor]', { url: req.url, headers: setHeaders });
 
       const authReq = req.clone({ setHeaders });
       return next.handle(authReq);
@@ -37,14 +43,12 @@ export class TokenInterceptor implements HttpInterceptor {
     return next.handle(req);
   }
 
-  /** Detecta si la URL apunta a la API (absoluta o relativa) */
   private isApiUrl(url: string): boolean {
-    // absoluta hacia nuestro backend
     if (url.startsWith('http')) {
-      // si tu environment.apiBase termina en /api, esto cubre todo
-      return url.startsWith(environment.apiBase);
+      // Permite pequeñas diferencias de slash final
+      const base = environment.apiBase.replace(/\/+$/, '');
+      return url.startsWith(base);
     }
-    // relativa en el front
-    return url.startsWith('/api') || url.includes('/api/');
+    return url.includes('/api');
   }
 }
