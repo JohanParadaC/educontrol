@@ -3,19 +3,24 @@ const express = require('express');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 8080;
 
-// carpeta correcta del build de Angular:
-const distDir = path.join(__dirname, 'dist', 'educontrol-frontend', 'browser');
+// carpeta generada por: ng build --configuration production
+const DIST_DIR = path.join(__dirname, 'dist', 'educontrol-frontend', 'browser');
 
-// archivos estáticos con cache razonable
-app.use(express.static(distDir, { maxAge: '1h' }));
+// servir archivos estáticos
+app.use(express.static(DIST_DIR, {
+  maxAge: '1d', // opcional: cache estática
+}));
 
-// fallback SPA: cualquier ruta devuelve index.html
+// Fallback SPA: cualquier ruta devuelve index.html
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(distDir, 'index.html'));
+  res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Frontend sirviendo ${distDir} en puerto ${PORT}`);
+// DO expone PORT; local usa 8080
+const PORT = process.env.PORT || 8080;
+const HOST = '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`✅ Frontend servido en http://${HOST}:${PORT}`);
 });
