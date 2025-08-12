@@ -4,7 +4,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-// 🚀 Conexión a BD (asegúrate de que config/db exporte { connectDB } y no se auto-conecte)
 const { connectDB } = require('./config/db');
 
 const usuariosRoutes = require('./routes/usuarios.routes');
@@ -17,114 +16,95 @@ const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
 
-// ---------- 1) Middlewares globales ----------
+/* ===========================
+ * 1) Middlewares globales
+ * =========================== */
 app.disable('x-powered-by'); // opcional: pequeña mejora de seguridad
 app.use(cors());
 app.use(express.json());
 
-// ---------- 2) Rutas ----------
+/* ===========================
+ * 2) Rutas de la API
+ * =========================== */
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/cursos', cursosRoutes);
 app.use('/api/inscripciones', inscripcionesRoutes);
-app.use('/api/admin', adminRoutes); // ✅ una sola definición
+app.use('/api/admin', adminRoutes); // ✅ una sola definición de /api/admin
 
-// ---------- 3) Health-check ----------
+/* ===========================
+ * 3) Health-check
+ * =========================== */
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ ok: true, status: 'up' });
 });
 
-// ---------- 4) 404 ----------
+/* ===========================
+ * 4) 404 (no encontrado)
+ * =========================== */
 app.use((req, res) => {
   res.status(404).json({ ok: false, msg: 'Recurso no encontrado' });
 });
 
-// ---------- 5) Manejo de errores ----------
+/* ===========================
+ * 5) Manejo de errores
+ * =========================== */
 app.use(errorHandler);
 
-// ---------- EXTRA: utilidades para seed de admin ----------
-/**
- * Carga "tolerante" del modelo de Usuario, probando varias rutas comunes.
- * Ajusta si tu modelo tiene otro nombre/ruta.
- */
-function loadUserModel() {
-  const candidates = [
-    './models/Usuario',
-    './models/usuario',
-    './models/User',
-    './models/user',
-    './models/usuario.model',
-    './models/user.model',
-    './models/Usuario.model',
-  ];
+/* =========================================================
+ * 6) 🌱 Seed de ADMIN (ajustado a tu schema con tilde)
+ *    - Tu modelo se llama ./models/Usuario
+ *    - Campos requeridos: nombre, correo, contraseña, rol
+ *    - Hasheamos la contraseña con bcryptjs
+ * ========================================================= */
+const bcrypt = require('bcryptjs');
+const Usuario = require('./models/Usuario'); // <- usa tu modelo real
 
-  for (const p of candidates) {
-    try {
-      // eslint-disable-next-line import/no-dynamic-require, global-require
-      const Model = require(p);
-      if (Model) {
-        console.log(`👤 Modelo de usuario cargado desde: ${p}`);
-        return Model;
-      }
-    } catch (e) {
-      // intentar siguiente
-    }
-  }
-  console.warn('⚠️  No se pudo cargar el modelo de Usuario con las rutas conocidas.');
-  return null;
-}
-
-/**
- * Crea un usuario admin si no existe.
- * Usa email y contraseña desde variables de entorno (con defaults).
- * Asigna role: 'admin'.
- */
 async function ensureAdminSeed() {
-  const User = loadUserModel();
-  if (!User) {
-    console.warn('⚠️  Seed de admin omitido: no se pudo cargar el modelo de Usuario.');
-    return;
-  }
-
-  // Lee credenciales de admin desde env
-  const email = process.env.ADMIN_EMAIL || 'admin@educontrol.com';
-  const password = process.env.ADMIN_PASSWORD || 'Admin123*';
-
   try {
-    const existing = await User.findOne({ email }).lean();
-    if (existing) {
-      console.log(`ℹ️  Admin ya existe: ${email}`);
+    // Se leen de env; si no están, usamos valores por defecto
+    const correo = process.env.ADMIN_EMAIL || 'admin@educontrol.com';
+    const plainPassword = process.env.ADMIN_PASSWORD || 'Admin123*';
+
+    // Si ya existe un usuario con ese correo, no hacemos nada
+    const exists = await Usuario.findOne({ correo }).lean();
+    if (exists) {
+      console.log(`ℹ️  Admin ya existe: ${correo}`);
       return;
     }
 
-    // Nota: asumimos que el modelo maneja el hash via middleware (pre('save')).
-    // Si no fuera así en tu proyecto, puedes hashear aquí con bcryptjs.
-    const admin = new User({
-      name: 'Admin',
-      email,
-      password,
-      role: 'admin',
-      active: true,
+    // Hash de contraseña (si tu modelo no lo hace en un pre-save)
+    const hash = await bcrypt.hash(plainPassword, 10);
+
+    // ⚠️  OJO: usamos exactamente los nombres de tu schema.
+    // Usamos bracket-notation para el campo "contraseña" (con tilde).
+    await Usuario.create({
+      nombre: 'Admin',
+      correo,
+      ['contraseña']: hash,
+      rol: 'admin',
+      // 👉 Si tu schema exige más campos (p.ej. "estado" o "activo"),
+      // añádelos aquí. Ejemplo:
+      // estado: true,
     });
 
-    await admin.save();
-    console.log(`✅ Admin creado: ${email}`);
+    console.log(`✅ Admin creado: ${correo}`);
   } catch (err) {
     console.error('❌ Error creando admin:', err);
   }
 }
 
-// ---------- 6) Start del servidor ----------
-// En test (NODE_ENV === 'test') NO conectamos ni levantamos servidor.
+/* ===========================
+ * 7) Inicio del servidor
+ *    - En test NO levantamos ni nos conectamos
+ * =========================== */
 if (process.env.NODE_ENV !== 'test') {
   (async () => {
     try {
-      await connectDB(); // conecta a la DB (producción/desarrollo)
+      await connectDB();        // Conecta a MongoDB
+      await ensureAdminSeed();  // 🌱 Crea admin si no existe (idempotente)
 
-      // 🌱 Semilla de administrador (idempotente)
-      await ensureAdminSeed();
-
-      const PORT = process.env.PORT || 3000;
+      const PORT = process.env.PORT || 3000; // DO inyecta PORT automáticamente
       app.listen(PORT, () => {
         console.log(`🟢 Servidor corriendo en http://localhost:${PORT}`);
       });
