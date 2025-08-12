@@ -11,7 +11,7 @@ import { Inscripcion } from '../models/inscripcion.model';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private base = environment.baseUrl;
+private readonly base = environment.apiBase;
 
   constructor(private http: HttpClient) {}
 
