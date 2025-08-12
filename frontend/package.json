@@ -1,6 +1,7 @@
 {
   "name": "educontrol-frontend",
   "version": "0.0.0",
+  "private": true,
   "scripts": {
     "ng": "ng",
     "start": "node server.js",
@@ -18,7 +19,6 @@
       }
     ]
   },
-  "private": true,
   "dependencies": {
     "@angular-devkit/build-angular": "^20.1.5",
     "@angular/animations": "^20.1.6",
