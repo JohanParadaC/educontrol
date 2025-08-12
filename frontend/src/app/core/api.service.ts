@@ -23,6 +23,7 @@ export class ApiService {
       `${this.base}/auth/login`,
       payload
     ).pipe(
+      // guarda token/usuario para el interceptor
       tap(res => {
         try {
           localStorage.setItem('token', res.token);
@@ -96,11 +97,11 @@ export class ApiService {
     );
   }
 
-  // CAMBIO: ahora es tolerante a { ok, curso } | Curso
+  // ⇨ tolerante a { ok, curso } | Curso
   getCurso(id: string): Observable<Curso> {
     return this.http.get<any>(`${this.base}/cursos/${id}`).pipe(
       map((res: any) => {
-        const c = res?.curso ?? res; // 👈 desenvuelve si viene con 'curso'
+        const c = res?.curso ?? res;
         return { ...c, titulo: c?.titulo ?? c?.nombre } as Curso;
       })
     );
@@ -118,20 +119,19 @@ export class ApiService {
     );
   }
 
-  // CAMBIO: si faltan campos requeridos, los completa con el estado actual del curso
+  // ⇨ si faltan 'nombre'/'descripcion', los completa leyendo el curso
   updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {
-    const needsFetch = (body as any).nombre === undefined &&
-                       (body as any).titulo === undefined ||
-                       body.descripcion === undefined;
+    const needsFetch =
+      ((body as any).nombre === undefined && (body as any).titulo === undefined) ||
+      body.descripcion === undefined;
 
     const buildPayload = (base: any) => {
       const nombre = (body as any).nombre ?? (body as any).titulo ?? base?.nombre ?? base?.titulo ?? '';
       const descripcion = body.descripcion ?? base?.descripcion ?? '';
       const payload: any = { nombre, descripcion };
-      if ((body as any).profesor !== undefined) {
-        const pid = this.idOf((body as any).profesor);
-        payload.profesor   = pid;
-        payload.profesorId = pid; // compat
+      // OJO: no enviamos id aquí; el backend parece esperar string en 'profesor'
+      if ((body as any).profesor && typeof (body as any).profesor === 'string') {
+        payload.profesor = (body as any).profesor;
       }
       return payload;
     };
@@ -161,55 +161,46 @@ export class ApiService {
       );
   }
 
+  /**
+   * ⇨ Crea curso y, si se pasa profesor, lo envía COMO NOMBRE (string).
+   */
   createCursoAdmin(
     body: { titulo: string; descripcion: string; profesor?: string | Usuario }
   ): Observable<Curso> {
-    const payload: any = {
-      nombre: body.titulo,
-      descripcion: body.descripcion,
-    };
-    if (body.profesor) {
-      const pid = this.idOf(body.profesor as any);
-      payload.profesor   = pid; // por si el backend lo acepta en POST
-      payload.profesorId = pid;
-    }
-
-    return this.http
-      .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, payload, this.authOpts())
-      .pipe(
-        map((r: any) => r?.curso ?? r),
-        switchMap((curso: any) => {
-          const id = this.idOf(curso);
-          const profesorId = body.profesor ? this.idOf(body.profesor as any) : '';
-          // si no quedó asignado, reintenta con PUT completo
-          if (id && profesorId && !this.idOf((curso as any).profesor)) {
-            return this.asignarProfesor(id, profesorId).pipe(
-              catchError(err => {
-                console.warn('No se pudo asignar profesor al curso recién creado:', err);
-                return of(curso);
-              })
-            );
-          }
-          return of(curso);
-        }),
-        map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
-      );
+    return this.resolveProfesorNombre(body.profesor).pipe(
+      switchMap((profNombre) => {
+        const payload: any = {
+          nombre: body.titulo,
+          descripcion: body.descripcion,
+        };
+        if (profNombre) payload.profesor = profNombre; // <<<< string
+        return this.http
+          .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, payload, this.authOpts());
+      }),
+      map((r: any) => r?.curso ?? r),
+      map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
+    );
   }
 
-  // CAMBIO: lee el curso y hace PUT con payload completo (evita 400 por required)
+  /**
+   * ⇨ Reasignar profesor:
+   *    1) Lee curso + resuelve profesor a NOMBRE (string).
+   *    2) PUT /cursos/:id con { nombre, descripcion, profesor: '<nombre>' }.
+   *    (el backend actual guarda 'profesor' como string)
+   */
   asignarProfesor(cursoId: string, profesor: string | Usuario): Observable<Curso> {
-    const pid = this.idOf(profesor as any);
-
-    return this.getCurso(cursoId).pipe(
-      map((c: any) => ({
-        nombre: c?.nombre ?? c?.titulo ?? '',
-        descripcion: c?.descripcion ?? '',
-        profesor: pid,
-        profesorId: pid // compat
-      })),
-      switchMap(payload =>
-        this.http.put<Curso>(`${this.base}/cursos/${cursoId}`, payload, this.authOpts())
-      ),
+    return forkJoin({
+      curso: this.getCurso(cursoId),
+      profNombre: this.resolveProfesorNombre(profesor)
+    }).pipe(
+      switchMap(({ curso, profNombre }) => {
+        const payload: any = {
+          nombre:      (curso as any)?.nombre ?? (curso as any)?.titulo ?? '',
+          descripcion: (curso as any)?.descripcion ?? '',
+          profesor:    profNombre || '' // <<<< string requerido por el backend
+        };
+        return this.http.put<Curso>(`${this.base}/cursos/${cursoId}`, payload, this.authOpts());
+      }),
       map((r: any) => (r?.curso ?? r) as Curso),
       map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
     );
@@ -348,6 +339,30 @@ export class ApiService {
   }
 
   // ---------------- privados ----------------
+
+  // Resuelve nombre del profesor (si le pasas objeto/ID/string)
+  private resolveProfesorNombre(prof?: string | Usuario): Observable<string> {
+    if (!prof) return of('');
+    // si ya viene objeto con nombre
+    if (typeof prof !== 'string') {
+      const n = (prof as any)?.nombre || (prof as any)?.name || '';
+      if (n) return of(String(n));
+      const id = this.idOf(prof);
+      if (!id) return of('');
+      return this.getUsuario(id).pipe(map(u => String((u as any)?.nombre || (u as any)?.name || '')));
+    }
+    // si viene string, puede ser id o ya el nombre
+    const maybeId = prof.trim();
+    if (maybeId.length >= 12 && !maybeId.includes(' ')) {
+      // parece ObjectId → buscamos usuario
+      return this.getUsuario(maybeId).pipe(
+        map(u => String((u as any)?.nombre || (u as any)?.name || ''))
+      );
+    }
+    // es un nombre ya formateado
+    return of(maybeId);
+  }
+
   private getLocalUser(): any | null {
     try { return JSON.parse(localStorage.getItem('usuario') || 'null'); }
     catch { return null; }
@@ -370,7 +385,7 @@ export class ApiService {
     const headers: Record<string,string> = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      headers['x-token'] = token; // compat si el backend lo acepta
+      headers['x-token'] = token; // compat
     }
     return { headers: new HttpHeaders(headers) };
   }
