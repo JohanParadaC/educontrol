@@ -107,13 +107,19 @@ export class ApiService {
     );
   }
 
+  // CAMBIO: acepta profesor y lo envía como _id (string), no como nombre.
   createCurso(
-    body: Partial<Curso> & { nombre?: string; titulo?: string; descripcion?: string }
+    body: Partial<Curso> & { nombre?: string; titulo?: string; descripcion?: string; profesor?: string | Usuario }
   ): Observable<Curso> {
     const payload: any = {
       nombre: body.nombre ?? body.titulo,
       descripcion: body.descripcion
     };
+    if ((body as any).profesor !== undefined && (body as any).profesor !== null) {
+      payload.profesor = typeof (body as any).profesor === 'string'
+        ? (body as any).profesor
+        : this.idOf((body as any).profesor);
+    }
     return this.http.post<Curso>(`${this.base}/cursos`, payload).pipe(
       map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
     );
@@ -129,9 +135,12 @@ export class ApiService {
       const nombre = (body as any).nombre ?? (body as any).titulo ?? base?.nombre ?? base?.titulo ?? '';
       const descripcion = body.descripcion ?? base?.descripcion ?? '';
       const payload: any = { nombre, descripcion };
-      // OJO: no enviamos id aquí; el backend parece esperar string en 'profesor'
-      if ((body as any).profesor && typeof (body as any).profesor === 'string') {
-        payload.profesor = (body as any).profesor;
+
+      // CAMBIO: si viene 'profesor', lo mandamos como _id (string) siempre.
+      if ((body as any).profesor !== undefined && (body as any).profesor !== null) {
+        payload.profesor = typeof (body as any).profesor === 'string'
+          ? (body as any).profesor
+          : this.idOf((body as any).profesor);
       }
       return payload;
     };
@@ -162,42 +171,38 @@ export class ApiService {
   }
 
   /**
-   * ⇨ Crea curso y, si se pasa profesor, lo envía COMO NOMBRE (string).
+   * CAMBIO: Crea curso (admin) y, si se pasa profesor, lo envía como _id.
    */
   createCursoAdmin(
     body: { titulo: string; descripcion: string; profesor?: string | Usuario }
   ): Observable<Curso> {
-    return this.resolveProfesorNombre(body.profesor).pipe(
-      switchMap((profNombre) => {
-        const payload: any = {
-          nombre: body.titulo,
-          descripcion: body.descripcion,
-        };
-        if (profNombre) payload.profesor = profNombre; // <<<< string
-        return this.http
-          .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, payload, this.authOpts());
-      }),
-      map((r: any) => r?.curso ?? r),
-      map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
-    );
+    const payload: any = {
+      nombre: body.titulo,
+      descripcion: body.descripcion
+    };
+    if (body.profesor !== undefined && body.profesor !== null) {
+      payload.profesor = typeof body.profesor === 'string' ? body.profesor : this.idOf(body.profesor);
+    }
+    return this.http
+      .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, payload, this.authOpts())
+      .pipe(
+        map((r: any) => r?.curso ?? r),
+        map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
+      );
   }
 
   /**
-   * ⇨ Reasignar profesor:
-   *    1) Lee curso + resuelve profesor a NOMBRE (string).
-   *    2) PUT /cursos/:id con { nombre, descripcion, profesor: '<nombre>' }.
-   *    (el backend actual guarda 'profesor' como string)
+   * CAMBIO: Reasignar profesor enviando el _id (string), no el nombre.
+   * Lee el curso para completar nombre/descripcion si el backend los requiere en el PUT.
    */
   asignarProfesor(cursoId: string, profesor: string | Usuario): Observable<Curso> {
-    return forkJoin({
-      curso: this.getCurso(cursoId),
-      profNombre: this.resolveProfesorNombre(profesor)
-    }).pipe(
-      switchMap(({ curso, profNombre }) => {
+    const profId = (typeof profesor === 'string') ? profesor : this.idOf(profesor);
+    return this.getCurso(cursoId).pipe(
+      switchMap((curso) => {
         const payload: any = {
           nombre:      (curso as any)?.nombre ?? (curso as any)?.titulo ?? '',
           descripcion: (curso as any)?.descripcion ?? '',
-          profesor:    profNombre || '' // <<<< string requerido por el backend
+          profesor:    profId
         };
         return this.http.put<Curso>(`${this.base}/cursos/${cursoId}`, payload, this.authOpts());
       }),
@@ -291,6 +296,7 @@ export class ApiService {
         const pid = this.idOf(p);
         if (pid && myId && String(pid) === String(myId)) return true;
 
+        // fallback por compatibilidad con datos antiguos que tengan nombre
         const pname = typeof p === 'string' ? p : (p?.nombre || p?.name || '');
         if (pname && myNameNorm) {
           return this.normalize(String(pname)) === myNameNorm;
@@ -340,10 +346,9 @@ export class ApiService {
 
   // ---------------- privados ----------------
 
-  // Resuelve nombre del profesor (si le pasas objeto/ID/string)
+  // DEPRECADO para cursos: ya no se usa para crear/asignar (conservado por si algo externo lo llama)
   private resolveProfesorNombre(prof?: string | Usuario): Observable<string> {
     if (!prof) return of('');
-    // si ya viene objeto con nombre
     if (typeof prof !== 'string') {
       const n = (prof as any)?.nombre || (prof as any)?.name || '';
       if (n) return of(String(n));
@@ -351,15 +356,12 @@ export class ApiService {
       if (!id) return of('');
       return this.getUsuario(id).pipe(map(u => String((u as any)?.nombre || (u as any)?.name || '')));
     }
-    // si viene string, puede ser id o ya el nombre
     const maybeId = prof.trim();
     if (maybeId.length >= 12 && !maybeId.includes(' ')) {
-      // parece ObjectId → buscamos usuario
       return this.getUsuario(maybeId).pipe(
         map(u => String((u as any)?.nombre || (u as any)?.name || ''))
       );
     }
-    // es un nombre ya formateado
     return of(maybeId);
   }
 
