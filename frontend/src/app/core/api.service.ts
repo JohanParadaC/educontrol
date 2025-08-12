@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable, forkJoin, of } from 'rxjs';
-import { map, switchMap, catchError } from 'rxjs/operators';
+import { map, switchMap, catchError, tap } from 'rxjs/operators';
 
 import { Usuario }     from '../models/usuario.model';
 import { Curso }       from '../models/curso.model';
@@ -18,16 +18,32 @@ export class ApiService {
   // ---------------- AUTH ----------------
   login(body: { correo: string; password: string })
   : Observable<{ token: string; usuario: Usuario }> {
-    const payload = { correo: body.correo, ['contraseña']: body.password }; // 👈 el backend usa 'contraseña'
+    const payload = { correo: body.correo, ['contraseña']: body.password }; // backend usa 'contraseña'
     return this.http.post<{ token: string; usuario: Usuario }>(
       `${this.base}/auth/login`,
       payload
+    ).pipe(
+      // 👇 Guardamos token y usuario para que el interceptor lo tome
+      tap(res => {
+        try {
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('usuario', JSON.stringify(res.usuario));
+        } catch {}
+      })
     );
   }
 
   renew(): Observable<{ token: string; usuario: Usuario }> {
     return this.http.get<{ token: string; usuario: Usuario }>(
       `${this.base}/auth/renew`
+    ).pipe(
+      // 👇 Actualizamos token por si el backend lo renueva
+      tap(res => {
+        try {
+          if (res?.token) localStorage.setItem('token', res.token);
+          if (res?.usuario) localStorage.setItem('usuario', JSON.stringify(res.usuario));
+        } catch {}
+      })
     );
   }
 
@@ -36,7 +52,7 @@ export class ApiService {
     const payload = {
       nombre: body.nombre,
       correo: body.correo,
-      ['contraseña']: body.password,   // 👈 idem
+      ['contraseña']: body.password,   // idem
       rol: body.rol ?? 'estudiante'
     };
     return this.http.post<{ ok: boolean; usuario: Usuario }>(
@@ -78,7 +94,7 @@ export class ApiService {
   // ---------------- CURSOS ----------------
   getCursos(): Observable<Curso[]> {
     return this.http.get<Curso[]>(`${this.base}/cursos`).pipe(
-      // 👇 si el backend devuelve 'nombre', rellenamos 'titulo' para el front
+      // si el backend devuelve 'nombre', rellenamos 'titulo' para el front
       map((cs: any[]) => (cs || []).map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)))
     );
   }
@@ -88,12 +104,12 @@ export class ApiService {
     );
   }
 
-  /** Crear curso: mapea 'titulo' -> 'nombre' (lo que espera el backend) */
+  /** Crear curso: mapea 'titulo' -> 'nombre' */
   createCurso(
     body: Partial<Curso> & { nombre?: string; titulo?: string; descripcion?: string }
   ): Observable<Curso> {
     const payload: any = {
-      nombre: body.nombre ?? body.titulo,  // 👈 mapeo clave
+      nombre: body.nombre ?? body.titulo,
       descripcion: body.descripcion
     };
     return this.http.post<Curso>(`${this.base}/cursos`, payload).pipe(
@@ -123,10 +139,8 @@ export class ApiService {
   }
 
   /**
-   * Admin crea cursos:
-   * - Envia { nombre, descripcion }.
-   * - Si viene 'profesor', intenta asignarlo con varias formas.
-   * - Si la asignación falla (400/403/etc), NO rompe el flujo.
+   * Admin crea cursos y, si se envía profesor, intenta asignarlo.
+   * Si la asignación falla, NO rompe el flujo.
    */
   createCursoAdmin(
     body: { titulo: string; descripcion: string; profesor?: string | Usuario }
@@ -142,11 +156,10 @@ export class ApiService {
           const profesorId = body.profesor ? this.idOf(body.profesor as any) : '';
 
           if (id && profesorId) {
-            // 👇 Reutilizamos el método robusto de asignación
             return this.asignarProfesor(id, profesorId).pipe(
               catchError(err => {
                 console.warn('No se pudo asignar profesor al curso recién creado:', err);
-                return of(curso); // devolvemos el curso creado igual
+                return of(curso);
               })
             );
           }
@@ -157,20 +170,13 @@ export class ApiService {
   }
 
   /**
-   * Reasignar profesor (robusto):
-   * 1) PUT /api/cursos/:id { profesor }
-   * 2) PUT /api/cursos/:id { profesorId }
-   * 3) PATCH /api/cursos/:id { profesor }
-   * 4) POST /api/cursos/:id/asignar-profesor { profesorId }
-   * 5) POST /api/cursos/asignar-profesor { cursoId, profesorId }
-   * Devuelve el primer intento exitoso con la respuesta normalizada.
+   * Reasignar profesor (intentos encadenados, devuelve el primero exitoso)
    */
   asignarProfesor(cursoId: string, profesor: string | Usuario): Observable<Curso> {
     const pid = this.idOf(profesor as any);
     const url = `${this.base}/cursos/${cursoId}`;
     const norm = (r: any) => (r?.curso ?? r) as Curso;
 
-    // Cadena de intentos; si uno falla, probamos el siguiente
     return this.http.put(url, { profesor: pid }).pipe(
       map(norm),
       catchError(() => this.http.put(url, { profesorId: pid }).pipe(
@@ -214,10 +220,8 @@ export class ApiService {
   /** ✅ Auto-matricular al usuario actual en un curso */
   enrollMe(cursoId: string): Observable<Inscripcion> {
     const me = this.getLocalUser();
-    const estudianteId = this.idOf(me); // ← tolerante: _id | id | uid | string
-    if (!estudianteId) {
-      throw new Error('No hay usuario autenticado para matricular.');
-    }
+    const estudianteId = this.idOf(me);
+    if (!estudianteId) throw new Error('No hay usuario autenticado para matricular.');
     return this.createInscripcion({ curso: cursoId, estudiante: estudianteId });
   }
 

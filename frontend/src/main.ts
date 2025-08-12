@@ -10,8 +10,6 @@ import {
 } from '@angular/common/http';
 
 import { environment } from './environments/environment';
-
-// ✅ Solo UNA importación de `routes`
 import { routes } from './app/app-routing-module';
 
 import { TokenInterceptor } from './app/core/token.interceptor';
@@ -26,20 +24,18 @@ if (environment.production) {
 
 bootstrapApplication(AppComponent, {
   providers: [
-    // Rutas raíz (standalone)
     provideRouter(routes),
 
-    // HttpClient + soporte para interceptores DI
+    // Importante: habilitar interceptores via DI
     provideHttpClient(withInterceptorsFromDi()),
 
-    // Animaciones (no-op). CAMBIO: si usas animaciones reales, cambia a `provideAnimations()`
     provideNoopAnimations(),
 
-    // Interceptor Bearer para todas las llamadas a /api
+    // Registrar el interceptor
     {
-      provide : HTTP_INTERCEPTORS,
+      provide: HTTP_INTERCEPTORS,
       useClass: TokenInterceptor,
-      multi   : true
+      multi: true
     }
   ]
 }).catch(err => console.error(err));
