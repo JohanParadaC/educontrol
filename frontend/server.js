@@ -8,26 +8,38 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 
+// Permite forzar la ruta del build si hiciera falta
+const ENV_DIST = process.env.FRONTEND_DIST_DIR;
+
 /** Candidatos donde podría quedar el build de Angular */
 const candidates = [
-  // típico cuando el working dir es /workspace/frontend
+  // 👉 override por env
+  ...(ENV_DIST ? [ENV_DIST] : []),
+
+  // Angular 17/18 (a veces aparece browser/browser)
+  path.join(__dirname, 'dist', 'educontrol-frontend', 'browser', 'browser'),
+  path.join(process.cwd(), 'dist', 'educontrol-frontend', 'browser', 'browser'),
+  path.join(__dirname, '..', 'dist', 'educontrol-frontend', 'browser', 'browser'),
+
+  // ruta "normal" (browser)
   path.join(__dirname, 'dist', 'educontrol-frontend', 'browser'),
-  // si lo empaquetan un nivel arriba
-  path.join(__dirname, '..', 'dist', 'educontrol-frontend', 'browser'),
-  // por si el cwd cambia
   path.join(process.cwd(), 'dist', 'educontrol-frontend', 'browser'),
-  // por si DO cambia la raíz
-  path.resolve('dist/educontrol-frontend/browser'),
+  path.join(__dirname, '..', 'dist', 'educontrol-frontend', 'browser'),
+
   // variantes con “frontend/” duplicado
+  path.join(__dirname, 'frontend', 'dist', 'educontrol-frontend', 'browser', 'browser'),
   path.join(__dirname, 'frontend', 'dist', 'educontrol-frontend', 'browser'),
+  path.join(process.cwd(), 'frontend', 'dist', 'educontrol-frontend', 'browser', 'browser'),
   path.join(process.cwd(), 'frontend', 'dist', 'educontrol-frontend', 'browser'),
 ];
 
 /** Revisa si existe un index.html en los candidatos */
 function findDist() {
   for (const p of candidates) {
-    const idx = path.join(p, 'index.html');
-    if (fs.existsSync(idx)) return p;
+    try {
+      const idx = path.join(p, 'index.html');
+      if (fs.existsSync(idx)) return p;
+    } catch (_) {}
   }
   return null;
 }
@@ -37,24 +49,21 @@ function tryRuntimeBuild() {
   console.warn('⚠️  No se encontró build. Intentando construir en runtime...');
   const ngBin = path.join(__dirname, 'node_modules', '@angular', 'cli', 'bin', 'ng');
 
-  // Si no existe el binario local del CLI, no intentamos
-  if (!fs.existsSync(ngBin)) {
-    console.error('❌ No está @angular/cli en node_modules. No puedo construir en runtime.');
-    return;
-  }
-
-  const result = spawnSync('node', [ngBin, 'build', '--configuration', 'production'], {
-    cwd: __dirname,
-    stdio: 'inherit',
-    env: { ...process.env, CI: 'false' }, // evita comportamientos estrictos en CI
-  });
-
-  if (result.error) {
-    console.error('❌ Error lanzando build runtime:', result.error);
-  } else if (result.status !== 0) {
-    console.error('❌ El build runtime devolvió código', result.status);
+  // Si no existe el binario local del CLI, intentamos con npx como último recurso
+  if (fs.existsSync(ngBin)) {
+    const result = spawnSync('node', [ngBin, 'build', '--configuration', 'production'], {
+      cwd: __dirname,
+      stdio: 'inherit',
+      env: { ...process.env, CI: 'false' },
+    });
+    return result.status === 0;
   } else {
-    console.log('✅ Build runtime completado.');
+    const result = spawnSync('npx', ['-y', '@angular/cli', 'build', '--configuration', 'production'], {
+      cwd: __dirname,
+      stdio: 'inherit',
+      env: { ...process.env, CI: 'false' },
+    });
+    return result.status === 0;
   }
 }
 
@@ -64,8 +73,10 @@ let DIST_DIR = findDist();
 // 2) Si no existe, intentar construir y volver a buscar
 if (!DIST_DIR) {
   console.error('❌ No se encontró index.html en:', JSON.stringify(candidates, null, 2));
-  tryRuntimeBuild();
-  DIST_DIR = findDist();
+  const built = tryRuntimeBuild();
+  if (built) {
+    DIST_DIR = findDist();
+  }
 }
 
 // 3) Si aún no existe, montar handlers seguros y avisar
@@ -76,7 +87,7 @@ if (!DIST_DIR) {
   app.get('*', (_req, res) => {
     res
       .status(503)
-      .send('No se encontró el build de Angular. Revisa el proceso de compilación en App Platform.');
+      .send('No se encontró el build de Angular (index.html). Revisa el proceso de compilación en App Platform.');
   });
 
   app.listen(PORT, HOST, () => {
@@ -90,20 +101,18 @@ console.log('📁 Usando DIST_DIR:', DIST_DIR);
 
 app.use(
   express.static(DIST_DIR, {
-    index: false,    // muy importante para que el fallback funcione
+    index: false,    // importante para que el fallback funcione
     maxAge: '1d',    // cache opcional
   })
 );
 
-// health check
+// Health check
 app.get('/healthz', (_req, res) => res.json({ ok: true, distFound: true }));
 
-// raíz explícita
+// Servir index en / y fallback SPA
 app.get('/', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
-
-// SPA fallback
 app.get('*', (_req, res) => {
   res.sendFile(path.join(DIST_DIR, 'index.html'));
 });
