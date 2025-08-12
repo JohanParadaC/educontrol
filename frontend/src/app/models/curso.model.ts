@@ -1,9 +1,11 @@
+// src/app/models/curso.model.ts
 import { Usuario } from './usuario.model';
 
 export interface Curso {
   _id: string;
-  titulo: string;        // Asegúrate que coincide con el backend
+  // 👇 compat: algunos endpoints/backends devuelven 'nombre'
+  nombre?: string;                // ← backend
+  titulo?: string;                // ← usado en el front / compat
   descripcion: string;
-  // CAMBIO: puede venir como id (string) o como objeto Usuario
-  profesor?: string | Usuario;
+  profesor?: string | Usuario;    // puede llegar como id o como objeto
 }
