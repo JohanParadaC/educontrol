@@ -1,37 +1,44 @@
 <mat-card class="auth-card">
-  <h2>Crear cuenta</h2>
+  <h1>Crear cuenta</h1>
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form" novalidate>
     <mat-form-field appearance="outline" class="full">
       <mat-label>Nombre</mat-label>
       <input matInput formControlName="nombre" autocomplete="name">
-      <mat-error *ngIf="form.get('nombre')?.hasError('required')">Campo obligatorio</mat-error>
+      <mat-error *ngIf="form.get('nombre')?.hasError('required')">Escribe tu nombre</mat-error>
       <mat-error *ngIf="form.get('nombre')?.hasError('minlength')">Mínimo 2 caracteres</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full">
       <mat-label>Correo</mat-label>
       <input matInput formControlName="correo" type="email" autocomplete="email">
-      <mat-error *ngIf="form.get('correo')?.hasError('required')">Campo obligatorio</mat-error>
-      <mat-error *ngIf="form.get('correo')?.hasError('email')">Formato de correo no válido</mat-error>
+      <mat-error *ngIf="form.get('correo')?.hasError('required')">Escribe tu correo</mat-error>
+      <mat-error *ngIf="form.get('correo')?.hasError('email')">Ese correo no tiene un formato válido</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full">
       <mat-label>Contraseña</mat-label>
       <input matInput [type]="hide ? 'password' : 'text'" formControlName="password" autocomplete="new-password">
-      <button mat-icon-button matSuffix type="button" (click)="hide = !hide">
+      <!-- Antes este botón no tenía nombre accesible: para un lector de pantalla
+           era un icono mudo. -->
+      <button mat-icon-button matSuffix type="button" (click)="hide = !hide"
+              [attr.aria-label]="hide ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+              [attr.aria-pressed]="!hide">
         <mat-icon>{{ hide ? 'visibility' : 'visibility_off' }}</mat-icon>
       </button>
-      <mat-error *ngIf="form.get('password')?.hasError('required')">Campo obligatorio</mat-error>
+      <mat-hint>Mínimo 6 caracteres</mat-hint>
+      <mat-error *ngIf="form.get('password')?.hasError('required')">Escribe una contraseña</mat-error>
       <mat-error *ngIf="form.get('password')?.hasError('minlength')">Mínimo 6 caracteres</mat-error>
     </mat-form-field>
 
-    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">Crear cuenta</button>
+    <button mat-flat-button color="primary" type="submit" class="cta">
+      {{ enviando ? 'Creando cuenta…' : 'Crear cuenta' }}
+    </button>
 
-    <div class="links">
-      <a routerLink="/login">¿Ya tienes cuenta? Inicia sesión</a>
-    </div>
+    <div class="error" *ngIf="msg" role="alert">{{ msg }}</div>
 
-    <div class="error" *ngIf="msg">{{ msg }}</div>
+    <p class="links">
+      ¿Ya tienes cuenta? <a routerLink="/login">Inicia sesión</a>
+    </p>
   </form>
 </mat-card>

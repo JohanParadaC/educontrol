@@ -30,6 +30,7 @@ import { ApiService } from '../../core/api.service';
 export class RegisterComponent {
   hide = true;
   msg  = '';
+  enviando = false;
 
   // Declaramos el tipo y lo inicializamos en el constructor
   form!: FormGroup;
@@ -51,7 +52,18 @@ export class RegisterComponent {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) return;
+    this.msg = '';
+
+    // Igual que en login: el botón siempre está activo y es el envío el que
+    // señala qué falta y lleva el foco al primer campo con error.
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.enfocarPrimerCampoInvalido();
+      return;
+    }
+
+    if (this.enviando) return;
+    this.enviando = true;
 
     // CAMBIO: ApiService.register ya mapea password -> 'contraseña'
     this.api.register(this.form.value as any).subscribe({
@@ -60,8 +72,18 @@ export class RegisterComponent {
         this.router.navigateByUrl('/login'); // ruta real en tu router
       },
       error: err => {
+        this.enviando = false;
         this.msg = err?.error?.msg || 'No se pudo crear la cuenta';
       }
     });
+  }
+
+  /** Lleva el foco al primer control con error, para no obligar a buscarlo. */
+  private enfocarPrimerCampoInvalido(): void {
+    const primero = Object.keys(this.form.controls)
+      .find(nombre => this.form.get(nombre)?.invalid);
+    if (!primero) return;
+
+    document.querySelector<HTMLElement>(`[formControlName="${primero}"]`)?.focus();
   }
 }

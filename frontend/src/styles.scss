@@ -56,9 +56,15 @@ body {
    navega prácticamente a ciegas. Un contorno real, y solo con :focus-visible
    para no molestar a quien usa el ratón.
    --------------------------------------------------------------------------- */
-:focus-visible {
-  outline: 2px solid var(--mat-sys-primary);
-  outline-offset: 2px;
+/* !important a propósito: Material aplica `outline: none` a sus propios
+   controles con más especificidad que cualquier selector razonable. Un
+   indicador de foco no debe poder desactivarse por accidente. */
+:focus-visible,
+.mat-mdc-button-base:focus-visible,
+.mat-mdc-select:focus-visible .mat-mdc-select-trigger,
+.mdc-text-field:focus-within {
+  outline: 2px solid var(--mat-sys-primary) !important;
+  outline-offset: 2px !important;
   border-radius: 4px;
 }
 
@@ -80,7 +86,8 @@ mat-toolbar.mat-toolbar {
     background: color-mix(in srgb, var(--mat-sys-on-primary) 18%, transparent);
   }
 
-  :focus-visible { outline-color: var(--mat-sys-on-primary); }
+  /* Sobre el azul de la barra, el contorno azul sería invisible. */
+  :focus-visible { outline-color: var(--mat-sys-on-primary) !important; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -114,6 +121,16 @@ a:not(.mat-mdc-button-base) {
 .mat-mdc-raised-button,
 .mat-mdc-outlined-button {
   border-radius: 10px !important;
+}
+
+/* En pantallas táctiles los botones suben a 48px (el objetivo recomendado por
+   Material). Por defecto miden 40, que se queda corto para el dedo. */
+@media (pointer: coarse) {
+  .mat-mdc-button-base { min-height: 48px; }
+  .mat-mdc-icon-button {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 /* Separadores sutiles entre secciones (opcional) */
