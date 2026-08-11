@@ -1,6 +1,7 @@
 // __tests__/inscripciones.flow.spec.js
 const request = require('supertest');
 const app = require('../app');
+const { crearUsuario } = require('./helpers');
 
 // --- helpers comunes ---
 async function tokenAdmin() {
@@ -22,10 +23,13 @@ function uniqueMail() {
 }
 
 async function crearCurso(adminToken) {
+  // El admin no imparte: el curso necesita un profesor real.
+  const profesor = await crearUsuario({ rol: 'profesor' });
+
   const { body, status } = await request(app)
     .post('/api/cursos')
     .set('Authorization', `Bearer ${adminToken}`)
-    .send({ nombre: 'Curso Jest', descripcion: 'tmp' });
+    .send({ nombre: 'Curso Jest', descripcion: 'tmp', profesor: profesor.id });
 
   if (![200, 201].includes(status)) throw new Error('No se pudo crear curso');
   const curso = body.curso || body;

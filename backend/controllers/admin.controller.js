@@ -2,50 +2,48 @@
 const bcrypt  = require('bcryptjs');
 const Usuario = require('../models/Usuario');
 
+/**
+ * POST /api/admin/seed-admin
+ *
+ * Crea el admin inicial. Es idempotente en el sentido estricto: si el correo
+ * ya está registrado NO se toca el documento.
+ *
+ * Antes, si el correo existía, se forzaba `rol: 'admin'` y se reseteaba la
+ * contraseña. Eso convertía el endpoint en una toma de control de cualquier
+ * cuenta: bastaba con enviar el correo de la víctima. Ahora un usuario
+ * existente solo se informa, nunca se modifica.
+ */
 exports.seedAdmin = async (req, res) => {
   try {
-    // ⚠️ En producción podrías bloquear esto:
-    // if (process.env.NODE_ENV === 'production') { ... }
-
-    // Defaults; puedes override por body si quieres
     const defaults = {
-      correo  : 'admin@educontrol.com',
-      password: 'admin123',        // ← esta usarás en el login
+      correo  : process.env.ADMIN_EMAIL    || 'admin@educontrol.com',
+      password: process.env.ADMIN_PASSWORD || 'admin123',
       nombre  : 'Administrador'
     };
     const { correo, password, nombre } = { ...defaults, ...(req.body || {}) };
 
-    let user = await Usuario.findOne({ correo });
-    const hash = await bcrypt.hash(password, 10);
-
-    if (user) {
-      // ✅ si ya existe, lo fuerzo a admin y reseteo la contraseña
-      user.nombre = nombre;
-      user.rol    = 'admin';
-
-      // ⚠️ Usa el nombre de campo REAL de tu schema:
-      //   - si en tu modelo se llama "contraseña", deja la siguiente línea:
-      user.contraseña = hash;
-      //   - si fuera "password", usa en cambio:
-      // user.password = hash;
-
-      await user.save();
-      return res.status(200).json({ ok: true, msg: 'Admin actualizado', id: user._id });
+    const existente = await Usuario.findOne({ correo });
+    if (existente) {
+      // Nada que hacer: no tocamos rol ni contraseña de una cuenta ya creada.
+      return res.status(200).json({
+        ok: true,
+        msg: 'El usuario ya existe; no se ha modificado',
+        id: existente._id,
+        rol: existente.rol
+      });
     }
 
-    // ✅ crear nuevo
-    user = await Usuario.create({
+    const hash = await bcrypt.hash(password, 10);
+    const user = await Usuario.create({
       nombre,
       correo,
-      // idem: respeta el campo del schema
       contraseña: hash,
-      // password: hash,
       rol: 'admin'
     });
 
-    res.status(201).json({ ok: true, msg: 'Admin creado', id: user._id, correo: user.correo });
+    return res.status(201).json({ ok: true, msg: 'Admin creado', id: user._id, correo: user.correo });
   } catch (err) {
     console.error('seedAdmin error', err);
-    res.status(500).json({ ok: false, msg: 'Error creando/actualizando admin' });
+    return res.status(500).json({ ok: false, msg: 'Error creando el admin' });
   }
 };

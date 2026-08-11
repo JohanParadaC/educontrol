@@ -20,25 +20,47 @@ function resolveUri(paramUri) {
   throw new Error('No hay URI de Mongo definida (MONGO_CNN/MONGO_URI/MONGODB_URI).');
 }
 
+function conectar(uri, timeoutMs) {
+  return mongoose.connect(uri, {
+    dbName: process.env.DB_NAME || 'educontrol',
+    serverSelectionTimeoutMS: timeoutMs,
+  });
+}
+
 async function connectDB(uri) {
   const finalUri = resolveUri(uri);
+  const uriExplicita = Boolean(uri || process.env.MONGO_CNN || process.env.MONGO_URI || process.env.MONGODB_URI);
 
   // Evita reconectar si ya está conectado
   if (mongoose.connection.readyState === 1) return mongoose.connection;
   if (connecting) return connecting;
 
-  // (opcional) log para verificar que NO sea 127.0.0.1 en DO
   try {
     const { hostname } = new URL(finalUri);
     console.log('🔎 Mongo host ->', hostname);
   } catch {}
 
-  connecting = mongoose.connect(finalUri, {
-    dbName: process.env.DB_NAME || 'educontrol',
-    serverSelectionTimeoutMS: 10000,
-  });
+  // Si la URI es la de por defecto (localhost) esperamos poco: o hay un mongod
+  // escuchando o no lo hay, y no tiene sentido bloquear el arranque 10 s.
+  try {
+    connecting = conectar(finalUri, uriExplicita ? 10000 : 3000);
+    await connecting;
+  } catch (err) {
+    connecting = null;
 
-  await connecting;
+    // Sin URI configurada y sin mongod local: levantamos uno en memoria para
+    // que el proyecto se pueda arrancar sin instalar MongoDB.
+    if (uriExplicita || process.env.NODE_ENV === 'production') throw err;
+
+    const { iniciarMongoEnMemoria } = require('./memoryDb');
+    const uriMemoria = await iniciarMongoEnMemoria();
+    if (!uriMemoria) throw err;
+
+    console.warn('⚠️  No hay MongoDB local ni MONGO_URI: usando Mongo en memoria (datos efímeros).');
+    connecting = conectar(uriMemoria, 10000);
+    await connecting;
+  }
+
   console.log('✅ MongoDB conectado');
   return mongoose.connection;
 }
@@ -48,6 +70,7 @@ async function disconnectDB() {
     await mongoose.disconnect();
   }
   connecting = null;
+  await require('./memoryDb').detenerMongoEnMemoria();
 }
 
 module.exports = { connectDB, disconnectDB, mongoose };

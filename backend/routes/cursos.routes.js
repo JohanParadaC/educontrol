@@ -62,6 +62,8 @@ router.put(
     validateJWT,
     roleCheck('profesor', 'admin'),
     check('id', 'ID no válido').isMongoId(),
+    // Sin esto, un nombre vacío llegaba al modelo y reventaba en 500 en vez de 400.
+    check('nombre', 'El nombre no puede estar vacío').optional().notEmpty(),
     check('profesor').optional().isMongoId(),
     validateFields
   ],

@@ -1,6 +1,7 @@
 // __tests__/cursos.spec.js
 const request = require('supertest');
 const app = require('../app');
+const { crearUsuario } = require('./helpers');
 
 async function seedAdminYToken() {
   await request(app)
@@ -39,11 +40,13 @@ describe('Cursos', () => {
 
   it('POST /api/cursos crea curso (201/200) [admin]', async () => {
     const token = await seedAdminYToken();
+    // Un admin no imparte clases: al crear un curso debe indicar el profesor.
+    const profesor = await crearUsuario({ rol: 'profesor' });
 
     const res = await request(app)
       .post('/api/cursos')
       .set('Authorization', `Bearer ${token}`)
-      .send({ nombre: 'Angular Básico', descripcion: 'Intro' });
+      .send({ nombre: 'Angular Básico', descripcion: 'Intro', profesor: profesor.id });
 
     expect([200, 201]).toContain(res.status);
     expect(res.body).toHaveProperty('curso');
