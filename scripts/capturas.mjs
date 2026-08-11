@@ -63,6 +63,13 @@ const PANTALLAS = [
     titulo: 'Login en móvil',
     ruta: '/login',
     ancho: 390, alto: 844
+  },
+  {
+    fichero: '06-movil-admin.png',
+    titulo: 'Panel de administración en móvil (tarjetas)',
+    ruta: '/login',
+    ancho: 390, alto: 844,
+    preparar: entrarComo('admin@educontrol.com', 'Admin123*')
   }
 ];
 
