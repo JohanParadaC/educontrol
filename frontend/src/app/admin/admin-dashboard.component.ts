@@ -13,6 +13,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ NUEVO: tooltips para íconos
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { EstadoVistaComponent } from '../shared/estado-vista.component';
+import { mensajeDeError } from '../core/http-error';
 
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
@@ -39,7 +41,7 @@ type Rol = 'estudiante' | 'profesor';
     ReactiveFormsModule,
     MatCardModule, MatTableModule, MatSelectModule, MatFormFieldModule,
     MatButtonModule, MatIconModule, MatTooltipModule, // ✅ NUEVO
-    MatPaginatorModule
+    MatPaginatorModule, EstadoVistaComponent
   ]
 })
 export class AdminDashboardComponent implements OnInit {
@@ -69,6 +71,12 @@ export class AdminDashboardComponent implements OnInit {
   // Tampoco columna 'rol': el select de "Nuevo rol" ya muestra el rol actual.
   displayedUserCols = ['nombre', 'correo', 'acciones'];
   displayedCourseCols = ['titulo', 'descripcion', 'profesor', 'acciones'];
+
+  // Estado de cada tabla por separado: que falle una no debe borrar la otra.
+  cargandoUsuarios = false;
+  cargandoCursos = false;
+  errorUsuarios = '';
+  errorCursos = '';
 
   // Paginación de las dos tablas
   tamPagina = 20;
@@ -135,27 +143,41 @@ export class AdminDashboardComponent implements OnInit {
   /** Tabla de usuarios: solo la página que se está mirando. */
   cargarUsuarios(pagina: number) {
     this.pagUsuarios = pagina;
+    this.cargandoUsuarios = true;
+    this.errorUsuarios = '';
+
     this.api.listUsuariosPaginado(pagina, this.tamPagina).subscribe({
       next: (p) => {
         this.usuarios = p.items;
         this.totalUsuarios = p.total;
+        this.cargandoUsuarios = false;
       },
-      error: () => this.snack.open('No se pudieron cargar usuarios', 'Cerrar', { duration: 2500 })
+      error: (err) => {
+        // Un snackbar se va solo a los 2,5 s y deja una tabla vacía que parece
+        // "no hay usuarios". El error tiene que quedarse en pantalla.
+        this.cargandoUsuarios = false;
+        this.errorUsuarios = mensajeDeError(err, 'No se pudieron cargar los usuarios');
+      }
     });
   }
 
   /** Tabla de cursos: ídem. */
   cargarCursos(pagina: number) {
     this.pagCursos = pagina;
+    this.cargandoCursos = true;
+    this.errorCursos = '';
+
     this.api.listCursosPaginado(pagina, this.tamPagina).subscribe({
       next: (p) => {
         this.cursos = p.items;
         this.totalCursos = p.total;
+        this.cargandoCursos = false;
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
+        this.cargandoCursos = false;
         this.loading = false;
-        this.snack.open('No se pudieron cargar cursos', 'Cerrar', { duration: 2500 });
+        this.errorCursos = mensajeDeError(err, 'No se pudieron cargar los cursos');
       }
     });
   }

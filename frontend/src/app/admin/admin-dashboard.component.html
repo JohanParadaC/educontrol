@@ -18,9 +18,18 @@
       </button>
     </div>
 
+    <app-estado-vista
+      *ngIf="cargandoUsuarios || errorUsuarios || !usuarios.length"
+      [cargando]="cargandoUsuarios"
+      [error]="errorUsuarios"
+      mensajeVacio="No hay usuarios registrados."
+      iconoVacio="group_off"
+      (reintentar)="cargarUsuarios(pagUsuarios)">
+    </app-estado-vista>
+
     <!-- Móvil: una tarjeta por usuario. Una tabla de tres columnas en 375px es
          ilegible, y ocultar columnas perdería información. -->
-    <ul class="lista-tarjetas">
+    <ul class="lista-tarjetas" *ngIf="!cargandoUsuarios && !errorUsuarios && usuarios.length">
       <li *ngFor="let u of usuarios" class="tarjeta-fila">
         <div class="tarjeta-datos">
           <strong>{{ u.nombre }}</strong>
@@ -44,7 +53,7 @@
       </li>
     </ul>
 
-    <div class="table-wrap">
+    <div class="table-wrap" *ngIf="!cargandoUsuarios && !errorUsuarios && usuarios.length">
       <table mat-table [dataSource]="usuarios">
         <ng-container matColumnDef="nombre">
           <th mat-header-cell *matHeaderCellDef>Nombre</th>
@@ -107,8 +116,17 @@
       </button>
     </div>
 
+    <app-estado-vista
+      *ngIf="cargandoCursos || errorCursos || !cursos.length"
+      [cargando]="cargandoCursos"
+      [error]="errorCursos"
+      mensajeVacio="Todavía no hay cursos. Crea el primero con «Nuevo curso»."
+      iconoVacio="menu_book"
+      (reintentar)="cargarCursos(pagCursos)">
+    </app-estado-vista>
+
     <!-- Móvil: una tarjeta por curso, con las acciones a ancho completo. -->
-    <ul class="lista-tarjetas">
+    <ul class="lista-tarjetas" *ngIf="!cargandoCursos && !errorCursos && cursos.length">
       <li *ngFor="let c of cursos" class="tarjeta-fila tarjeta-curso">
         <div class="tarjeta-datos">
           <strong>{{ c.titulo }}</strong>
@@ -132,7 +150,7 @@
       </li>
     </ul>
 
-    <div class="table-wrap">
+    <div class="table-wrap" *ngIf="!cargandoCursos && !errorCursos && cursos.length">
       <table mat-table [dataSource]="cursos">
         <ng-container matColumnDef="titulo">
           <th mat-header-cell *matHeaderCellDef>Título</th>

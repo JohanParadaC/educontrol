@@ -32,6 +32,12 @@ const CHROME = [
 /** Pantallas a capturar. `preparar` deja la app en el estado que queremos. */
 const PANTALLAS = [
   {
+    fichero: '00-portada.png',
+    titulo: 'Portada pública',
+    ruta: '/',
+    ancho: 1280, alto: 900
+  },
+  {
     fichero: '01-login.png',
     titulo: 'Inicio de sesión',
     ruta: '/login',

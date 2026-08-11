@@ -2,6 +2,8 @@
 
 Plataforma de gestión de cursos, estudiantes y profesores. Angular 20 en el frontend, Express y MongoDB en el backend, con autenticación JWT y autorización por roles.
 
+![Portada de EduControl](docs/00-portada.png)
+
 ![Panel de administración](docs/02-admin.png)
 
 <p align="center">
@@ -140,7 +142,7 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 - **La búsqueda del catálogo filtra en cliente** sobre los cursos cargados (hasta 100). Con catálogos mayores hay que mover el filtro al servidor.
 - **Queda código muerto** de iteraciones anteriores (`cursos/`, `mis-cursos/`, `dashboard/home/`).
 - **El bundle inicial pesa ~800 kB** frente a un presupuesto de 500 kB, sobre todo por importar Angular Material completo.
-- **Solo el catálogo del estudiante tiene estados de carga, vacío y error** diferenciados; el resto de vistas todavía no.
+- **No hay pantalla de detalle de un curso:** desde las tarjetas se navega al listado, no a una ficha propia.
 
 ## Licencia
 
