@@ -9,6 +9,13 @@ Plataforma de gestión de cursos, estudiantes y profesores. Angular 20 en el fro
   <img src="docs/04-estudiante.png" width="49%" alt="Panel del estudiante con sus cursos">
 </p>
 
+En móvil las tablas se convierten en tarjetas y la navegación pasa a un menú desplegable, en vez de encoger el diseño de escritorio:
+
+<p align="center">
+  <img src="docs/05-movil-login.png" width="32%" alt="Inicio de sesión en móvil">
+  <img src="docs/06-movil-admin.png" width="32%" alt="Panel de administración en móvil, con una tarjeta por usuario">
+</p>
+
 ---
 
 ## Arrancarlo
@@ -123,7 +130,7 @@ Copia `backend/.env.example` a `backend/.env`. En desarrollo todas tienen valor 
 
 Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 
-- **La interfaz en móvil no está terminada.** Las tablas conservan el diseño de escritorio y la barra de navegación no colapsa en menú. Es el siguiente trabajo pendiente.
+- **El catálogo del estudiante no distingue "cargando" de "vacío":** mientras llegan los datos muestra el mensaje de que no hay cursos.
 - **No hay confirmación de contraseña** en el registro, ni recuperación de contraseña.
 - **No se pide la contraseña actual** para cambiarla. Un administrador puede cambiar la de cualquiera, lo cual es intencionado, pero un usuario debería reautenticarse para cambiar la suya.
 - **Queda código muerto** de iteraciones anteriores (`cursos/`, `mis-cursos/`, `dashboard/home/`).
