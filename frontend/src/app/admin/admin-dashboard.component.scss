@@ -10,7 +10,72 @@
   align-items: center;
   margin-bottom: 8px;
 }
-.table-wrap { overflow: auto; }
+/* ---------------------------------------------------------------------------
+   Tabla en escritorio, tarjetas en móvil.
+   Los mismos datos con dos presentaciones: una tabla encogida a 375px no se
+   lee, y recortar columnas escondería información que sí hace falta.
+   --------------------------------------------------------------------------- */
+$movil: 767px;
+
+.table-wrap {
+  overflow: auto;
+  @media (max-width: $movil) { display: none; }
+}
+
+.lista-tarjetas {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  @media (max-width: $movil) {
+    display: grid;
+    gap: var(--sp-3);
+  }
+}
+
+.tarjeta-fila {
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline) 30%, transparent);
+  border-radius: 12px;
+
+  /* Los chips son etiquetas, no barras: sin esto el grid los estira a lo ancho. */
+  > .chip { justify-self: start; }
+}
+
+.tarjeta-datos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;              /* permite que el texto largo se ajuste */
+
+  strong { font: var(--mat-sys-title-small); }
+
+  .secundario {
+    color: var(--mat-sys-on-surface-variant);
+    font: var(--mat-sys-body-small);
+    overflow-wrap: anywhere; /* los correos largos no desbordan la tarjeta */
+  }
+
+  .descripcion {
+    margin-top: var(--sp-1);
+    font: var(--mat-sys-body-small);
+  }
+}
+
+/* Acciones a ancho completo y 48px de alto: pensadas para el dedo, no para
+   apretarse en una celda. */
+.tarjeta-acciones {
+  display: grid;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+
+  button {
+    width: 100%;
+    min-height: 48px;
+  }
+}
 
 /* Los tres roles llevan píldora. El fondo anterior era blanco al 5 %:
    invisible sobre claro, así que "estudiante" quedaba como texto suelto. */

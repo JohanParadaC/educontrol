@@ -18,6 +18,32 @@
       </button>
     </div>
 
+    <!-- Móvil: una tarjeta por usuario. Una tabla de tres columnas en 375px es
+         ilegible, y ocultar columnas perdería información. -->
+    <ul class="lista-tarjetas">
+      <li *ngFor="let u of usuarios" class="tarjeta-fila">
+        <div class="tarjeta-datos">
+          <strong>{{ u.nombre }}</strong>
+          <span class="secundario">{{ u.correo }}</span>
+        </div>
+
+        <ng-container *ngIf="u.rol !== 'admin'; else esAdminMovil">
+          <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
+            <mat-label>Rol</mat-label>
+            <mat-select
+              [ngModel]="pendingRoles[id(u)] || u.rol"
+              (ngModelChange)="onRolChange(u, $event)"
+              [attr.aria-label]="'Cambiar rol de ' + u.nombre">
+              <mat-option value="estudiante">Estudiante</mat-option>
+              <mat-option value="profesor">Profesor</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <span *ngIf="tieneCambio(u)" class="chip pending">Sin guardar</span>
+        </ng-container>
+        <ng-template #esAdminMovil><span class="chip adm">admin</span></ng-template>
+      </li>
+    </ul>
+
     <div class="table-wrap">
       <table mat-table [dataSource]="usuarios">
         <ng-container matColumnDef="nombre">
@@ -71,6 +97,31 @@
         <mat-icon>add</mat-icon> Nuevo curso
       </button>
     </div>
+
+    <!-- Móvil: una tarjeta por curso, con las acciones a ancho completo. -->
+    <ul class="lista-tarjetas">
+      <li *ngFor="let c of cursos" class="tarjeta-fila tarjeta-curso">
+        <div class="tarjeta-datos">
+          <strong>{{ c.titulo }}</strong>
+          <span class="secundario">{{ nombreProfesor(c) }}</span>
+          <span class="descripcion">{{ c.descripcion }}</span>
+        </div>
+
+        <div class="tarjeta-acciones">
+          <button mat-stroked-button (click)="abrirDialogEditarCurso(c)">
+            <mat-icon>edit</mat-icon><span>Editar</span>
+          </button>
+          <button mat-stroked-button color="primary" (click)="abrirDialogMatricular(c)">
+            <mat-icon>person_add</mat-icon><span>Matricular</span>
+          </button>
+          <button mat-stroked-button color="warn" (click)="eliminarCurso(c)"
+                  [disabled]="eliminandoId === c._id">
+            <mat-icon>delete</mat-icon>
+            <span>{{ eliminandoId === c._id ? 'Eliminando…' : 'Eliminar' }}</span>
+          </button>
+        </div>
+      </li>
+    </ul>
 
     <div class="table-wrap">
       <table mat-table [dataSource]="cursos">

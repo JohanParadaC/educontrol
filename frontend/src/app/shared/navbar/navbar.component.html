@@ -1,66 +1,50 @@
-<mat-toolbar color="primary">
-  <!-- Marca -->
-  <!-- CAMBIO: si el usuario es profesor, la marca lo lleva a /profesor/dashboard.
-       Si no, al dashboard genérico. -->
-  <button
-    mat-button
-    class="brand"
-    [routerLink]="role === 'profesor' ? '/profesor/dashboard' : '/dashboard'">
-    EduControl
-  </button>
+<mat-toolbar>
+  <!-- Marca: lleva a la pantalla de inicio que corresponda al rol -->
+  <a class="brand" [routerLink]="rutaInicio">EduControl</a>
 
   <span class="flex"></span>
 
-  <!-- Dashboard -->
-  <!-- CAMBIO: botón Dashboard también decide ruta según rol -->
-  <button
-    mat-button
-    [routerLink]="role === 'profesor' ? '/profesor/dashboard' : '/dashboard'"
-    routerLinkActive="active"
-    *ngIf="isLoggedIn">
-    Dashboard
-  </button>
+  <!-- Enlaces en línea (solo escritorio) -->
+  <nav class="enlaces-escritorio" aria-label="Navegación principal">
+    <a mat-button *ngFor="let e of enlacesVisibles"
+       [routerLink]="e.ruta"
+       routerLinkActive="active">
+      {{ e.etiqueta }}
+    </a>
+    <button mat-button *ngIf="isLoggedIn" (click)="logout()">Salir</button>
+  </nav>
 
-  <!-- Estudiante -->
-  <button
-    mat-button
-    [routerLink]="['/cursos']"
-    routerLinkActive="active"
-    *ngIf="isLoggedIn && role === 'estudiante'">
-    Cursos
+  <!-- Botón de menú (solo móvil) -->
+  <button mat-icon-button class="boton-menu"
+          (click)="alternarMenu()"
+          [attr.aria-expanded]="menuAbierto"
+          aria-controls="menu-movil"
+          [attr.aria-label]="menuAbierto ? 'Cerrar menú' : 'Abrir menú'">
+    <mat-icon>{{ menuAbierto ? 'close' : 'menu' }}</mat-icon>
   </button>
-
-  <!-- Profesor -->
-  <!-- Sin cambios aquí: “Mis clases” va a la nueva ruta de profesor -->
-  <button
-    mat-button
-    [routerLink]="['/profesor/clases']"
-    routerLinkActive="active"
-    *ngIf="isLoggedIn && role === 'profesor'">
-    Mis clases
-  </button>
-
-  <!-- Admin -->
-  <button
-    mat-stroked-button
-    color="accent"
-    [routerLink]="['/admin']"
-    routerLinkActive="active"
-    *ngIf="isLoggedIn && role === 'admin'">
-    Admin
-  </button>
-
-  <!-- Elegir rol -->
-  <button
-    mat-button
-    [routerLink]="['/elige-rol']"
-    routerLinkActive="active"
-    *ngIf="isLoggedIn && role !== 'admin'">
-    Elegir rol
-  </button>
-
-  <!-- Auth -->
-  <button mat-button [routerLink]="['/login']" *ngIf="!isLoggedIn">Login</button>
-  <button mat-button [routerLink]="['/register']" *ngIf="!isLoggedIn">Crear cuenta</button>
-  <button mat-button (click)="logout()" *ngIf="isLoggedIn">Salir</button>
 </mat-toolbar>
+
+<!-- Panel desplegable en móvil.
+     Los enlaces salen de la misma lista que en escritorio, así que no pueden
+     desincronizarse. -->
+<div class="menu-movil" id="menu-movil" *ngIf="menuAbierto">
+  <nav aria-label="Navegación principal">
+    <!-- (click) además de la suscripción a NavigationEnd: si tocas el enlace de
+         la página en la que ya estás no hay navegación, y el menú se quedaba
+         abierto tapando el contenido. -->
+    <a mat-button *ngFor="let e of enlacesVisibles"
+       [routerLink]="e.ruta"
+       routerLinkActive="active"
+       (click)="cerrarMenu()">
+      <mat-icon>{{ e.icono }}</mat-icon>
+      <span>{{ e.etiqueta }}</span>
+    </a>
+    <button mat-button *ngIf="isLoggedIn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Salir</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Capa que atenúa el fondo y cierra el menú al tocar fuera -->
+<div class="fondo-menu" *ngIf="menuAbierto" (click)="cerrarMenu()"></div>

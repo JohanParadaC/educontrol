@@ -14,6 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSelectModule }     from '@angular/material/select';
 
 import { ApiService } from '../../core/api.service';
+import { mensajeDeError } from '../../core/http-error';
 
 @Component({
   selector: 'app-register',
@@ -73,7 +74,7 @@ export class RegisterComponent {
       },
       error: err => {
         this.enviando = false;
-        this.msg = err?.error?.msg || 'No se pudo crear la cuenta';
+        this.msg = mensajeDeError(err, 'No se pudo crear la cuenta');
       }
     });
   }
