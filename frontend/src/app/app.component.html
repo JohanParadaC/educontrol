@@ -1,4 +1,8 @@
 <app-navbar></app-navbar>
 
-<!-- Aquí Angular dibuja la vista según la URL -->
-<router-outlet></router-outlet>
+<!-- Contenedor único de página: ancho máximo, centrado y con aire lateral.
+     Antes el router-outlet colgaba del body sin envoltorio, así que el
+     contenido de todas las vistas chocaba contra el borde de la ventana. -->
+<main class="page">
+  <router-outlet></router-outlet>
+</main>
