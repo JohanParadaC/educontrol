@@ -1,7 +1,37 @@
-@use '../login/login.component' as login; /* opcional: reutiliza estilos */
-/* o copia los mismos estilos que en login */
-.auth-card { max-width: 520px; margin: 32px auto; padding: 16px; }
-.auth-form { display: grid; gap: 16px; }
+/* Mismos estilos que login: las dos pantallas de auth deben ser idénticas.
+   El @use anterior no compartía nada (importaba el fichero sin aplicarlo). */
+.auth-card {
+  max-width: 440px;
+  margin: var(--sp-6) auto;
+  padding: var(--sp-5);
+}
+
+.auth-card h1 {
+  font: var(--mat-sys-headline-small);
+  margin: 0 0 var(--sp-5);
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--sp-4);
+}
+
 .full { width: 100%; }
-.links { margin-top: 4px; }
-.error { color: #b00020; margin-top: 8px; }
+
+.cta {
+  height: 48px;
+  font-weight: 600;
+}
+
+.links {
+  margin: 0;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.error {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}

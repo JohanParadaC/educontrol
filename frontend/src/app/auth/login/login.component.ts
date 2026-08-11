@@ -39,6 +39,7 @@ export class LoginComponent {
   msg = '';                       // mensaje de error para el template
   form: UntypedFormGroup;         // formulario reactivo
   hide = true;                    // 👈 ahora sí existe la propiedad del template
+  enviando = false;               // bloquea el doble envío y alimenta el spinner
 
   constructor(private fb: FormBuilder,
               private auth: AuthService,
@@ -55,7 +56,19 @@ export class LoginComponent {
      Envía credenciales y navega al dashboard según ROL
      -------------------------------------------------------------------- */
   onSubmit(): void {
-    if (this.form.invalid) { return; }
+    this.msg = '';
+
+    // El botón nunca está deshabilitado: es al pulsar cuando se marcan los
+    // errores y se lleva el foco al primer campo inválido. Un CTA gris de
+    // entrada no previene errores, solo esconde qué falta.
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.enfocarPrimerCampoInvalido();
+      return;
+    }
+
+    if (this.enviando) return;
+    this.enviando = true;
 
     this.auth
       .login(this.form.value as { correo: string; password: string })
@@ -66,9 +79,20 @@ export class LoginComponent {
           this.router.navigateByUrl(rol === 'profesor' ? '/profesor/dashboard' : '/dashboard');
         },
         error: err => {
+          this.enviando = false;
           this.msg = err?.error?.msg || 'Credenciales inválidas';
         }
       });
+  }
+
+  /** Lleva el foco al primer control con error, para no obligar a buscarlo. */
+  private enfocarPrimerCampoInvalido(): void {
+    const primero = Object.keys(this.form.controls)
+      .find(nombre => this.form.get(nombre)?.invalid);
+    if (!primero) return;
+
+    const campo = document.querySelector<HTMLElement>(`[formControlName="${primero}"]`);
+    campo?.focus();
   }
 
   /** Lee el rol de forma robusta: primero del AuthService, si no desde localStorage */

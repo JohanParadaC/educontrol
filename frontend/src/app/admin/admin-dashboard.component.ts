@@ -61,8 +61,12 @@ export class AdminDashboardComponent implements OnInit {
   pendingRoles: Record<string, Rol> = {};
   savingBulk = false;
 
-  displayedUserCols = ['_id', 'nombre', 'correo', 'rol', 'acciones'];
-  displayedCourseCols = ['_id', 'titulo', 'descripcion', 'profesor', 'acciones'];
+  // Sin columna de ID: en usuarios salía vacía (el backend serializa `id`, no
+  // `_id`) y en cursos mostraba el ObjectId crudo, que no le sirve a nadie y en
+  // móvil se comía un cuarto del ancho.
+  // Tampoco columna 'rol': el select de "Nuevo rol" ya muestra el rol actual.
+  displayedUserCols = ['nombre', 'correo', 'acciones'];
+  displayedCourseCols = ['titulo', 'descripcion', 'profesor', 'acciones'];
 
   loading = false;
 

@@ -43,6 +43,13 @@
 .acciones-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   white-space: nowrap; /* evita saltos raros en etiquetas de botones */
 }
+
+/* Select de rol dentro de la tabla */
+.rol-select {
+  width: 180px;
+  vertical-align: middle;
+}
+.rol-select + .chip { margin-left: var(--sp-2); }

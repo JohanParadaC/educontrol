@@ -1,29 +1,37 @@
 <mat-card class="auth-card">
-  <h2>Iniciar sesión</h2>
+  <h1>Iniciar sesión</h1>
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+  <!-- novalidate: la validación la muestra Angular, no el navegador -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form" novalidate>
     <mat-form-field appearance="outline" class="full">
       <mat-label>Correo</mat-label>
       <input matInput formControlName="correo" type="email" autocomplete="email">
-      <mat-error *ngIf="form.get('correo')?.hasError('required')">Campo obligatorio</mat-error>
-      <mat-error *ngIf="form.get('correo')?.hasError('email')">Formato de correo no válido</mat-error>
+      <mat-error *ngIf="form.get('correo')?.hasError('required')">Escribe tu correo</mat-error>
+      <mat-error *ngIf="form.get('correo')?.hasError('email')">Ese correo no tiene un formato válido</mat-error>
     </mat-form-field>
 
     <mat-form-field appearance="outline" class="full">
       <mat-label>Contraseña</mat-label>
       <input matInput [type]="hide ? 'password' : 'text'" formControlName="password" autocomplete="current-password">
-      <button mat-icon-button matSuffix type="button" (click)="hide = !hide" [attr.aria-label]="'Mostrar/Ocultar'">
+      <!-- aria-label dinámico: antes decía siempre "Mostrar/Ocultar", sin reflejar el estado -->
+      <button mat-icon-button matSuffix type="button" (click)="hide = !hide"
+              [attr.aria-label]="hide ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+              [attr.aria-pressed]="!hide">
         <mat-icon>{{ hide ? 'visibility' : 'visibility_off' }}</mat-icon>
       </button>
-      <mat-error *ngIf="form.get('password')?.hasError('required')">Campo obligatorio</mat-error>
+      <mat-error *ngIf="form.get('password')?.hasError('required')">Escribe tu contraseña</mat-error>
     </mat-form-field>
 
-    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">Entrar</button>
+    <!-- Sin [disabled]: siempre pulsable, valida al enviar -->
+    <button mat-flat-button color="primary" type="submit" class="cta" [class.cargando]="enviando">
+      {{ enviando ? 'Entrando…' : 'Entrar' }}
+    </button>
 
-    <div class="links">
-      <a routerLink="/register">¿No tienes cuenta? Crear cuenta</a>
-    </div>
+    <!-- role="alert" para que el lector de pantalla anuncie el fallo -->
+    <div class="error" *ngIf="msg" role="alert">{{ msg }}</div>
 
-    <div class="error" *ngIf="msg">{{ msg }}</div>
+    <p class="links">
+      ¿No tienes cuenta? <a routerLink="/register">Crear cuenta</a>
+    </p>
   </form>
 </mat-card>
