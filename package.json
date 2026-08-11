@@ -10,7 +10,9 @@
     "serve": "npm run build && npm start",
     "dev:api": "npm run dev --prefix backend",
     "dev:web": "npm start --prefix frontend",
-    "test": "npm test --prefix backend"
+    "test": "npm test --prefix backend",
+    "test:web": "npm test --prefix frontend -- --watch=false --browsers=ChromeHeadless",
+    "capturas": "node scripts/capturas.mjs"
   },
   "license": "ISC"
 }

@@ -35,3 +35,16 @@
     </p>
   </form>
 </mat-card>
+
+<!-- Acceso de demostración: este es un proyecto de portfolio y quien lo abre no
+     va a registrarse. Un clic rellena el formulario con cada rol. -->
+<mat-card class="demo-card">
+  <h2>Probar sin registrarse</h2>
+  <p class="demo-hint">Elige un rol y entra directamente:</p>
+
+  <div class="demo-roles">
+    <button type="button" mat-stroked-button *ngFor="let d of demos" (click)="usarDemo(d)">
+      {{ d.etiqueta }}
+    </button>
+  </div>
+</mat-card>

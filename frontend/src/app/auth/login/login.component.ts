@@ -41,6 +41,13 @@ export class LoginComponent {
   hide = true;                    // 👈 ahora sí existe la propiedad del template
   enviando = false;               // bloquea el doble envío y alimenta el spinner
 
+  /** Cuentas sembradas por backend/scripts/seedDemo.js */
+  readonly demos = [
+    { etiqueta: 'Administrador', correo: 'admin@educontrol.com',  password: 'Admin123*' },
+    { etiqueta: 'Profesora',     correo: 'lucia@educontrol.com',  password: 'Demo1234' },
+    { etiqueta: 'Estudiante',    correo: 'ana@educontrol.com',    password: 'Demo1234' }
+  ];
+
   constructor(private fb: FormBuilder,
               private auth: AuthService,
               private router: Router) {
@@ -83,6 +90,12 @@ export class LoginComponent {
           this.msg = err?.error?.msg || 'Credenciales inválidas';
         }
       });
+  }
+
+  /** Rellena el formulario con una cuenta de demo y entra. */
+  usarDemo(demo: { correo: string; password: string }): void {
+    this.form.patchValue({ correo: demo.correo, password: demo.password });
+    this.onSubmit();
   }
 
   /** Lleva el foco al primer control con error, para no obligar a buscarlo. */

@@ -91,9 +91,13 @@ export class ApiService {
   }
 
   // ---------------- CURSOS ----------------
+  // ✅ tolerante ({ok, cursos} o array), igual que listUsuarios.
+  // Antes asumía un array pelado y reventaba con la respuesta real del backend,
+  // que envuelve la lista en { ok, cursos }.
   getCursos(): Observable<Curso[]> {
-    return this.http.get<Curso[]>(`${this.base}/cursos`).pipe(
-      map((cs: any[]) => (cs || []).map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)))
+    return this.http.get<{ ok: boolean; cursos: Curso[] } | Curso[]>(`${this.base}/cursos`).pipe(
+      map((r: any) => (Array.isArray(r) ? r : (r?.cursos ?? [])) as any[]),
+      map(cs => cs.map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)))
     );
   }
 

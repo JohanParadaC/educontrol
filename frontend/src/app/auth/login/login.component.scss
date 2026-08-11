@@ -35,3 +35,30 @@
   background: var(--mat-sys-error-container);
   color: var(--mat-sys-on-error-container);
 }
+
+/* Bloque de acceso rápido para la demo */
+.demo-card {
+  max-width: 440px;
+  margin: 0 auto var(--sp-6);
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  background: var(--mat-sys-surface-container-low);
+}
+
+.demo-card h2 {
+  font: var(--mat-sys-title-small);
+  margin: 0 0 var(--sp-1);
+}
+
+.demo-hint {
+  margin: 0 0 var(--sp-3);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-body-small);
+}
+
+.demo-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+
+  button { flex: 1 1 auto; }
+}
