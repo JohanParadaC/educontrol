@@ -7,6 +7,9 @@ const path = require('path');
 const fs = require('fs');
 
 const { connectDB } = require('./config/db');
+const { verificarEntorno } = require('./config/env');
+
+if (process.env.NODE_ENV !== 'test') verificarEntorno();
 
 const usuariosRoutes = require('./routes/usuarios.routes');
 const authRoutes = require('./routes/auth.routes');
@@ -123,6 +126,9 @@ async function ensureAdminSeed() {
     });
 
     console.log(`✅ Admin creado: ${correo}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`   contraseña: ${plainPassword}`);
+    }
   } catch (err) {
     console.error('❌ Error creando admin:', err);
   }
