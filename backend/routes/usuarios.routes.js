@@ -49,6 +49,10 @@ router.put(
     check('id').isMongoId(),
     check('nombre').optional().notEmpty(),
     check('correo').optional().isEmail(),
+    // El minlength del modelo no sirve de guardia: el controlador hashea antes
+    // de guardar, y el hash siempre mide 60 caracteres. Sin este validador se
+    // podían poner contraseñas de un carácter desde el PUT.
+    check('contraseña', 'La contraseña debe tener 6 caracteres mínimo').optional().isLength({ min: 6 }),
     check('rol').optional().isIn(['estudiante', 'profesor']), // admin no se cambia aquí
     validateFields
   ],

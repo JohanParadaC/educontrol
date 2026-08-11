@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, Validators, ReactiveFormsModule, FormGroup } from '@angular/forms';
+import { FormBuilder, Validators, ReactiveFormsModule, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 
 /* Angular Material */
@@ -15,6 +15,29 @@ import { MatSelectModule }     from '@angular/material/select';
 
 import { ApiService } from '../../core/api.service';
 import { mensajeDeError } from '../../core/http-error';
+
+/**
+ * Validador de grupo: marca el error en el propio control de confirmación para
+ * que `mat-error` lo pueda mostrar debajo del campo que falla, y no en un aviso
+ * suelto al final del formulario.
+ */
+function coincidenLasContrasenas(grupo: AbstractControl): ValidationErrors | null {
+  const password = grupo.get('password');
+  const repetida = grupo.get('password2');
+  if (!password || !repetida) return null;
+
+  if (repetida.value && password.value !== repetida.value) {
+    repetida.setErrors({ ...(repetida.errors ?? {}), noCoincide: true });
+    return { noCoincide: true };
+  }
+
+  // Limpiamos solo nuestro error: los demás (required) siguen siendo válidos.
+  if (repetida.hasError('noCoincide')) {
+    const { noCoincide, ...resto } = repetida.errors ?? {};
+    repetida.setErrors(Object.keys(resto).length ? resto : null);
+  }
+  return null;
+}
 
 @Component({
   selector: 'app-register',
@@ -47,9 +70,12 @@ export class RegisterComponent {
       nombre  : ['', [Validators.required, Validators.minLength(2)]],
       correo  : ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
+      // Sin confirmación, una errata al teclear deja la cuenta inaccesible para
+      // siempre: no hay recuperación de contraseña.
+      password2: ['', [Validators.required]],
       // CAMBIO: rol con valor por defecto (aunque no se muestre)
       rol     : ['estudiante', [Validators.required]]
-    });
+    }, { validators: coincidenLasContrasenas });
   }
 
   onSubmit(): void {

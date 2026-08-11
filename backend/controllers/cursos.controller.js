@@ -1,5 +1,6 @@
 const Curso = require('../models/Curso');
 const Usuario = require('../models/Usuario'); // CAMBIO: lo usamos para validar el profesor
+const { leerPaginacion, metadatos } = require('../utils/paginacion');
 
 // Crear un curso
 const crearCurso = async (req, res, next) => {
@@ -39,11 +40,17 @@ const crearCurso = async (req, res, next) => {
   }
 };
 
-// Obtener todos los cursos
+// Obtener todos los cursos (paginado)
 const obtenerCursos = async (req, res, next) => {
   try {
-    const cursos = await Curso.find().populate('profesor', 'nombre correo');
-    return res.json({ ok: true, cursos });
+    const { pagina, limite, saltar } = leerPaginacion(req.query);
+
+    const [cursos, total] = await Promise.all([
+      Curso.find().populate('profesor', 'nombre correo').sort({ nombre: 1 }).skip(saltar).limit(limite),
+      Curso.countDocuments()
+    ]);
+
+    return res.json({ ok: true, cursos, ...metadatos({ total, pagina, limite }) });
   } catch (err) {
     next(err);
   }

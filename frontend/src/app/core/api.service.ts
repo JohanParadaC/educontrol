@@ -1,6 +1,6 @@
 // src/app/core/api.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable, forkJoin, of } from 'rxjs';
 import { map, switchMap, catchError, tap } from 'rxjs/operators';
@@ -8,6 +8,35 @@ import { map, switchMap, catchError, tap } from 'rxjs/operators';
 import { Usuario }     from '../models/usuario.model';
 import { Curso }       from '../models/curso.model';
 import { Inscripcion } from '../models/inscripcion.model';
+
+/** Tamaño de página por defecto y tope que aplica el backend. */
+export const LIMITE_PAGINA = 20;
+export const LIMITE_MAXIMO_PAGINA = 100;
+
+/** Una página de resultados con lo que necesita un paginador. */
+export interface Pagina<T> {
+  items: T[];
+  total: number;
+  pagina: number;
+  limite: number;
+  paginas: number;
+}
+
+/**
+ * Normaliza la respuesta del backend a una Pagina.
+ * Tolera que llegue un array pelado (sin metadatos), para no romper si algún
+ * endpoint todavía no pagina.
+ */
+function aPagina<T>(respuesta: any, clave: string, pagina: number, limite: number): Pagina<T> {
+  const items: T[] = Array.isArray(respuesta) ? respuesta : (respuesta?.[clave] ?? []);
+  return {
+    items,
+    total  : respuesta?.total   ?? items.length,
+    pagina : respuesta?.pagina  ?? pagina,
+    limite : respuesta?.limite  ?? limite,
+    paginas: respuesta?.paginas ?? 1
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -85,9 +114,32 @@ export class ApiService {
 
   // ✅ tolerante ({ok, usuarios} o array)
   listUsuarios(): Observable<Usuario[]> {
+    return this.listUsuariosPaginado().pipe(map(p => p.items));
+  }
+
+  /**
+   * Igual que listUsuarios pero conservando los metadatos de paginación, que es
+   * lo que necesita un paginador para saber cuántas páginas hay.
+   */
+  listUsuariosPaginado(pagina = 1, limite = LIMITE_PAGINA): Observable<Pagina<Usuario>> {
+    const params = new HttpParams().set('page', pagina).set('limit', limite);
     return this.http
-      .get<{ ok: boolean; usuarios: Usuario[] } | Usuario[]>(`${this.base}/usuarios`)
-      .pipe(map((r: any) => Array.isArray(r) ? r : (r?.usuarios ?? [])));
+      .get<any>(`${this.base}/usuarios`, { params })
+      .pipe(map(r => aPagina<Usuario>(r, 'usuarios', pagina, limite)));
+  }
+
+  /**
+   * Usuarios de un rol concreto, para poblar desplegables.
+   * Filtra en el servidor: traerse la tabla entera para quedarse con los
+   * profesores es justo lo que la paginación viene a evitar.
+   */
+  listUsuariosPorRol(rol: 'estudiante' | 'profesor' | 'admin'): Observable<Usuario[]> {
+    const params = new HttpParams()
+      .set('rol', rol)
+      .set('limit', LIMITE_MAXIMO_PAGINA);
+    return this.http
+      .get<any>(`${this.base}/usuarios`, { params })
+      .pipe(map(r => aPagina<Usuario>(r, 'usuarios', 1, LIMITE_MAXIMO_PAGINA).items));
   }
 
   // ---------------- CURSOS ----------------
@@ -163,15 +215,23 @@ export class ApiService {
   }
 
   // ✅ listado tolerante
+  //
+  // Pide el máximo que permite el backend porque el catálogo del estudiante
+  // filtra en cliente: si trajera solo la primera página, la búsqueda mentiría
+  // sin decirlo. Con catálogos mayores hay que mover el filtro al servidor.
   listCursos(): Observable<Curso[]> {
+    return this.listCursosPaginado(1, LIMITE_MAXIMO_PAGINA).pipe(map(p => p.items));
+  }
+
+  /** Igual que listCursos, conservando los metadatos de paginación. */
+  listCursosPaginado(pagina = 1, limite = LIMITE_PAGINA): Observable<Pagina<Curso>> {
+    const params = new HttpParams().set('page', pagina).set('limit', limite);
     return this.http
-      .get<{ ok: boolean; cursos: Curso[] } | Curso[]>(`${this.base}/cursos`)
-      .pipe(
-        map((r: any) => {
-          const arr = Array.isArray(r) ? r : (r?.cursos ?? []);
-          return (arr || []).map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso));
-        })
-      );
+      .get<any>(`${this.base}/cursos`, { params })
+      .pipe(map(r => {
+        const p = aPagina<any>(r, 'cursos', pagina, limite);
+        return { ...p, items: p.items.map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)) };
+      }));
   }
 
   /**

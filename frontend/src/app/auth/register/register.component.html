@@ -31,6 +31,15 @@
       <mat-error *ngIf="form.get('password')?.hasError('minlength')">Mínimo 6 caracteres</mat-error>
     </mat-form-field>
 
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Repite la contraseña</mat-label>
+      <!-- Mismo type que el campo anterior: si el usuario decide ver lo que
+           escribe, no tiene sentido ocultárselo solo aquí. -->
+      <input matInput [type]="hide ? 'password' : 'text'" formControlName="password2" autocomplete="new-password">
+      <mat-error *ngIf="form.get('password2')?.hasError('required')">Repite la contraseña</mat-error>
+      <mat-error *ngIf="form.get('password2')?.hasError('noCoincide')">Las contraseñas no coinciden</mat-error>
+    </mat-form-field>
+
     <button mat-flat-button color="primary" type="submit" class="cta">
       {{ enviando ? 'Creando cuenta…' : 'Crear cuenta' }}
     </button>

@@ -98,6 +98,9 @@ El backend cubre el CRUD completo, la validación de payloads, el manejo de erro
 | `POST /api/usuarios` con `rol: admin` | 400 |
 | `PUT /api/usuarios/:id` de un tercero | 403, sin efecto |
 | Auto-ascenso a profesor sin clave | 403 |
+| Cambiar la propia contraseña sin indicar la actual | 400 |
+| Cambiarla con una contraseña actual equivocada | 403, la antigua sigue valiendo |
+| `?limit=999999` en un listado | recortado al máximo permitido |
 
 Los tests no solo comprueban el código de estado: verifican también que el efecto no ocurrió. Tras un 403 al intentar cambiar la contraseña del administrador, la contraseña original sigue siendo válida y la del atacante no.
 
@@ -112,6 +115,8 @@ Decisiones que conviene conocer si vas a desplegarlo:
 - **Ascender a profesor exige `PROFESOR_CLAVE`.** Si la variable no está configurada, nadie puede auto-asignarse el rol: solo lo concede un administrador.
 - **La autorización lee el rol de la base de datos, no del token.** Un usuario degradado pierde el acceso de inmediato en lugar de conservarlo hasta que caduque su JWT.
 - **Sin `ADMIN_PASSWORD` no se siembra el administrador en producción**, para no crear una cuenta con contraseña conocida.
+- **Cambiar la propia contraseña exige la actual.** Una sesión olvidada abierta no basta para quedarse la cuenta. Un administrador sí puede restablecer la de otra persona: eso es una acción administrativa, no un cambio propio.
+- **Los listados están paginados y con un tope duro** (100 por página). Sin ese tope, `?limit=999999` reintroduce desde fuera el problema que la paginación viene a evitar.
 
 ### Variables de entorno
 
@@ -130,12 +135,12 @@ Copia `backend/.env.example` a `backend/.env`. En desarrollo todas tienen valor 
 
 Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 
-- **El catálogo del estudiante no distingue "cargando" de "vacío":** mientras llegan los datos muestra el mensaje de que no hay cursos.
-- **No hay confirmación de contraseña** en el registro, ni recuperación de contraseña.
-- **No se pide la contraseña actual** para cambiarla. Un administrador puede cambiar la de cualquiera, lo cual es intencionado, pero un usuario debería reautenticarse para cambiar la suya.
+- **No hay recuperación de contraseña.** Si un usuario la olvida, solo un administrador puede restablecérsela.
+- **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
+- **La búsqueda del catálogo filtra en cliente** sobre los cursos cargados (hasta 100). Con catálogos mayores hay que mover el filtro al servidor.
 - **Queda código muerto** de iteraciones anteriores (`cursos/`, `mis-cursos/`, `dashboard/home/`).
-- **El bundle inicial pesa 795 kB** frente a un presupuesto de 500 kB, sobre todo por importar Angular Material completo.
-- **Sin paginación** en los listados de usuarios y cursos.
+- **El bundle inicial pesa ~800 kB** frente a un presupuesto de 500 kB, sobre todo por importar Angular Material completo.
+- **Solo el catálogo del estudiante tiene estados de carga, vacío y error** diferenciados; el resto de vistas todavía no.
 
 ## Licencia
 
