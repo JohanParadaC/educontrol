@@ -9,6 +9,14 @@ import { AdminGuard } from './core/admin.guard';
 export const routes: Routes = [
   // ===== Públicas =====
   {
+    // Portada: explica qué es esto antes de pedir credenciales. Con sesión
+    // iniciada el propio componente redirige al panel que toca.
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./landing/landing.component').then(m => m.LandingComponent),
+  },
+  {
     path: 'login',
     loadComponent: () =>
       import('./auth/login/login.component').then(m => m.LoginComponent),
@@ -68,17 +76,25 @@ export const routes: Routes = [
       import('./student/student-my-courses.component').then(m => m.StudentMyCoursesComponent),
   },
 
-  // ===== Elegir rol =====
+  // ===== Mi cuenta =====
+  // Sustituye a 'elige-rol': datos, contraseña y activación del perfil de
+  // profesor. Cambiar de rol es una acción puntual, no un destino permanente.
   {
-    path: 'elige-rol',
+    path: 'cuenta',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./role-select/role-select.component').then(m => m.RoleSelectComponent),
+      import('./cuenta/mi-cuenta.component').then(m => m.MiCuentaComponent),
   },
+  // Alias: los enlaces antiguos siguen funcionando.
+  { path: 'elige-rol', redirectTo: 'cuenta', pathMatch: 'full' },
 
-  // ===== Redirecciones =====
-  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-  { path: '**', redirectTo: 'dashboard' },
+  // ===== 404 =====
+  // Comodín real, no una redirección silenciosa a /dashboard.
+  {
+    path: '**',
+    loadComponent: () =>
+      import('./shared/not-found.component').then(m => m.NotFoundComponent),
+  },
 ];
 
 // ⚠️ Nada más. No exportes AppRoutingModule (no hay NgModule).

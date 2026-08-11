@@ -25,6 +25,8 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../core/auth.service';
 import { ApiService } from '../core/api.service';
 import { Curso } from '../models/curso.model';
+import { EstadoVistaComponent } from '../shared/estado-vista.component';
+import { mensajeDeError } from '../core/http-error';
 
 @Component({
   standalone: true,
@@ -34,7 +36,8 @@ import { Curso } from '../models/curso.model';
     RouterModule,
     MatCardModule, MatIconModule, MatButtonModule,
     MatDividerModule, MatProgressBarModule,
-    MatTooltipModule // ✅ CAMBIO: necesario para matTooltip
+    MatTooltipModule, // ✅ CAMBIO: necesario para matTooltip
+    EstadoVistaComponent
   ],
   template: `
   <div class="wrap">
@@ -52,13 +55,18 @@ import { Curso } from '../models/curso.model';
 
     <mat-divider></mat-divider>
 
-    <!-- ===== KPIs ===== -->
-    <div *ngIf="loading" class="mt-2">
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-    </div>
+    <!-- Carga, error y vacío: los tres, y distinguibles entre sí -->
+    <app-estado-vista
+      *ngIf="loading || error || !cursos.length"
+      [cargando]="loading"
+      [error]="error"
+      mensajeVacio="Todavía no tienes cursos asignados. Administración te los asigna."
+      iconoVacio="menu_book"
+      (reintentar)="cargar()">
+    </app-estado-vista>
 
-    <div *ngIf="!loading">
-      <div class="kpis" *ngIf="cursos.length; else noCursos">
+    <div *ngIf="!loading && !error && cursos.length">
+      <div class="kpis">
         <div class="kpi">
           <div class="num">{{ cursos.length }}</div>
           <div class="lbl">Cursos activos</div>
@@ -74,7 +82,7 @@ import { Curso } from '../models/curso.model';
         <mat-icon>menu_book</mat-icon>&nbsp;Tus clases
       </h3>
 
-      <div class="cards" *ngIf="cursos.length; else noCursos">
+      <div class="cards">
         <mat-card class="course" *ngFor="let c of cursos; trackBy: trackById">
           <mat-card-title>{{ courseTitle(c) }}</mat-card-title>
           <mat-card-subtitle>{{ courseDesc(c) || '—' }}</mat-card-subtitle>
@@ -94,12 +102,6 @@ import { Curso } from '../models/curso.model';
         </mat-card>
       </div>
 
-      <ng-template #noCursos>
-        <div class="empty">
-          <mat-icon>info</mat-icon>
-          Aún no tienes cursos asignados.
-        </div>
-      </ng-template>
     </div>
   </div>
   `,
@@ -128,6 +130,7 @@ export class ProfessorDashboardComponent implements OnInit {
 
   // Estado
   loading = false;
+  error = '';
   cursos: Curso[] = [];
   inscritosPorCurso = new Map<string, number>();
   totalEstudiantes = 0;
@@ -140,12 +143,16 @@ export class ProfessorDashboardComponent implements OnInit {
   }
 
   /** Carga cursos del profesor + inscripciones y calcula KPIs */
-  private cargar(): void {
+  cargar(): void {
     this.loading = true;
+    this.error = '';
 
     forkJoin({
-      cursos: this.api.listCursosDeProfesorMe().pipe(catchError(() => of([] as Curso[]))),
-      ins: this.api.listInscripciones().pipe(catchError(() => of([] as any[]))),
+      // Sin catchError en los internos: antes un fallo se convertía en `[]` y
+      // la pantalla decía "no tienes cursos" cuando en realidad no se habían
+      // podido pedir. Ahora el error llega al subscribe y se muestra.
+      cursos: this.api.listCursosDeProfesorMe(),
+      ins: this.api.listInscripciones(),
     }).subscribe({
       next: ({ cursos, ins }) => {
         this.cursos = cursos || [];
@@ -167,11 +174,12 @@ export class ProfessorDashboardComponent implements OnInit {
 
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
         this.cursos = [];
         this.inscritosPorCurso.clear();
         this.totalEstudiantes = 0;
         this.loading = false;
+        this.error = mensajeDeError(err, 'No se pudieron cargar tus clases');
       }
     });
   }

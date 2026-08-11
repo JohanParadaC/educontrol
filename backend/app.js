@@ -58,11 +58,24 @@ const FRONTEND_DIST =
 const hayBuildFrontend = fs.existsSync(path.join(FRONTEND_DIST, 'index.html'));
 
 if (hayBuildFrontend) {
-  // Los ficheros con hash en el nombre pueden cachearse fuerte; index.html no.
-  app.use(express.static(FRONTEND_DIST, { index: false, maxAge: '1h' }));
+  // Los ficheros llevan hash en el nombre: son inmutables y se pueden cachear
+  // a lo bruto. Cambiar el contenido cambia el nombre.
+  app.use(express.static(FRONTEND_DIST, {
+    index: false,
+    maxAge: '1y',
+    immutable: true,
+    // ⚠️ index.html es la excepción: es quien apunta a los ficheros con hash.
+    // Si se cachea, tras un despliegue el navegador sigue pidiendo los chunks
+    // de la versión anterior, que ya no existen, y la aplicación se rompe con
+    // "Failed to fetch dynamically imported module".
+    setHeaders: (res, ruta) => {
+      if (ruta.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+    }
+  }));
 
   app.get(/.*/, (req, res, next) => {
     if (req.path.startsWith('/api')) return next(); // deja pasar los 404 de API
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
   });
 } else if (process.env.NODE_ENV !== 'test') {

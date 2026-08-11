@@ -56,9 +56,12 @@ export class NavbarComponent {
       etiqueta: 'Administración', ruta: '/admin', icono: 'admin_panel_settings',
       visible: () => this.isLoggedIn && this.role === 'admin'
     },
+    // "Elegir rol" ya no está: era una acción puntual —activar el perfil de
+    // profesor con una clave— ocupando un sitio fijo en la navegación y
+    // compitiendo con los destinos reales. Ahora vive dentro de Mi cuenta.
     {
-      etiqueta: 'Elegir rol', ruta: '/elige-rol', icono: 'swap_horiz',
-      visible: () => this.isLoggedIn && this.role !== 'admin'
+      etiqueta: 'Mi cuenta', ruta: '/cuenta', icono: 'account_circle',
+      visible: () => this.isLoggedIn
     },
     { etiqueta: 'Entrar',       ruta: '/login',    icono: 'login',        visible: () => !this.isLoggedIn },
     { etiqueta: 'Crear cuenta', ruta: '/register', icono: 'person_add',   visible: () => !this.isLoggedIn }
@@ -90,9 +93,9 @@ export class NavbarComponent {
     return this.auth.isLoggedIn;
   }
 
-  /** Ruta de la marca: cada rol tiene su propia pantalla de inicio. */
+  /** Ruta de la marca: sin sesión, la portada; con sesión, tu panel. */
   get rutaInicio(): string {
-    if (!this.isLoggedIn) return '/login';
+    if (!this.isLoggedIn) return '/';
     return this.role === 'profesor' ? '/profesor/dashboard' : '/dashboard';
   }
 

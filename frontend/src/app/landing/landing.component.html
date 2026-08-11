@@ -1,0 +1,36 @@
+<section class="hero">
+  <h1>Gestiona cursos, profesores y matrículas en un solo sitio</h1>
+  <p class="entradilla">
+    EduControl es una plataforma académica con tres perfiles: los estudiantes se
+    matriculan, los profesores ven sus clases y administración lo coordina todo.
+  </p>
+
+  <div class="acciones">
+    <a mat-flat-button color="primary" routerLink="/login" class="cta">Entrar</a>
+    <a mat-stroked-button routerLink="/register" class="cta">Crear cuenta</a>
+  </div>
+
+  <!-- Quien viene a mirar el proyecto no se va a registrar: hay que dejarle
+       entrar en un clic o cierra la pestaña. -->
+  <p class="demo">
+    ¿Solo quieres echar un vistazo?
+    <a routerLink="/login">Entra con una cuenta de demostración</a> — hay una por rol.
+  </p>
+</section>
+
+<section class="perfiles" aria-label="Para quién es">
+  <mat-card *ngFor="let p of perfiles" class="perfil">
+    <mat-icon aria-hidden="true">{{ p.icono }}</mat-icon>
+    <h2>{{ p.titulo }}</h2>
+    <p>{{ p.texto }}</p>
+  </mat-card>
+</section>
+
+<section class="detalle">
+  <h2>Cómo funciona</h2>
+  <ol>
+    <li><strong>Te registras</strong> como estudiante, o activas tu cuenta de profesor con la clave del centro.</li>
+    <li><strong>Administración</strong> crea los cursos y asigna a cada profesor los suyos.</li>
+    <li><strong>Los estudiantes</strong> buscan en el catálogo y se matriculan.</li>
+  </ol>
+</section>

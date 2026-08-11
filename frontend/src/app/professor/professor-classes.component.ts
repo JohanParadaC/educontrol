@@ -33,6 +33,8 @@ import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { Curso } from '../models/curso.model';
 import { Usuario } from '../models/usuario.model';
+import { EstadoVistaComponent } from '../shared/estado-vista.component';
+import { mensajeDeError } from '../core/http-error';
 
 @Component({
   standalone: true,
@@ -41,7 +43,8 @@ import { Usuario } from '../models/usuario.model';
     CommonModule,
     HttpClientModule, // ✅ para fallbacks con HttpClient
     MatCardModule, MatIconModule, MatButtonModule, MatDividerModule,
-    MatProgressBarModule, MatTableModule
+    MatProgressBarModule, MatTableModule,
+    EstadoVistaComponent
   ],
   template: `
   <div class="wrap">
@@ -55,12 +58,17 @@ import { Usuario } from '../models/usuario.model';
       </div>
     </mat-card>
 
-    <ng-container *ngIf="loading; else loaded">
-      <mat-card><mat-progress-bar mode="indeterminate"></mat-progress-bar></mat-card>
-    </ng-container>
+    <app-estado-vista
+      *ngIf="loading || error || !cursos.length"
+      [cargando]="loading"
+      [error]="error"
+      mensajeVacio="Todavía no tienes cursos asignados. Administración te los asigna."
+      iconoVacio="menu_book"
+      (reintentar)="cargar()">
+    </app-estado-vista>
 
-    <ng-template #loaded>
-      <ng-container *ngIf="cursos.length; else empty">
+    <ng-template [ngIf]="!loading && !error">
+      <ng-container *ngIf="cursos.length">
         <div class="cards">
           <mat-card class="course" *ngFor="let c of cursos; trackBy: trackCurso">
             <!-- Título/desc tolerantes (nombre|titulo, descripcion|desc) -->
@@ -96,12 +104,6 @@ import { Usuario } from '../models/usuario.model';
           </mat-card>
         </div>
       </ng-container>
-
-      <ng-template #empty>
-        <mat-card>
-          <div class="empty"><mat-icon>info</mat-icon> No tienes cursos asignados todavía.</div>
-        </mat-card>
-      </ng-template>
     </ng-template>
 
   </div>
@@ -123,6 +125,7 @@ export class ProfessorClassesComponent implements OnInit {
   public auth  = inject(AuthService);
 
   loading = false;
+  error = '';
   cursos: Curso[] = [];
   alumnos = new Map<string, Usuario[]>(); // cursoId -> lista de alumnos
   cols = ['nombre','correo'];
@@ -132,11 +135,16 @@ export class ProfessorClassesComponent implements OnInit {
   }
 
   /** Carga cursos del profe + usuarios + inscripciones y arma el mapa de alumnos por curso */
-  private cargar(): void {
+  cargar(): void {
     this.loading = true;
+    this.error = '';
 
     forkJoin({
-      cursos   : this.api.listCursosDeProfesorMe().pipe(catchError(() => of([] as any))),
+      // Los cursos son el dato esencial: si esa llamada falla hay que decirlo,
+      // no fingir una lista vacía.
+      cursos   : this.api.listCursosDeProfesorMe(),
+      // Estas dos sí toleran fallo: sin ellas se ven los cursos pero sin alumnos,
+      // que es peor que nada pero mejor que una pantalla en blanco.
       usuarios : this.api.getUsuarios().pipe(catchError(() => of([] as any))),
       ins      : this.api.listInscripciones().pipe(catchError(() => of([] as any))),
     }).subscribe({
@@ -179,7 +187,11 @@ export class ProfessorClassesComponent implements OnInit {
           error: () => { this.loading = false; }
         });
       },
-      error: () => { this.loading = false; }
+      error: (err) => {
+        this.loading = false;
+        this.cursos = [];
+        this.error = mensajeDeError(err, 'No se pudieron cargar tus clases');
+      }
     });
   }
 

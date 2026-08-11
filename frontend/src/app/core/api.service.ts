@@ -101,7 +101,12 @@ export class ApiService {
   }
   updateUsuario(
     id: string,
-    body: Partial<Usuario> & { profesorClave?: string }
+    // `contraseñaActual` es obligatoria cuando cambias TU propia contraseña.
+    body: Partial<Usuario> & {
+      profesorClave?: string;
+      'contraseña'?: string;
+      'contraseñaActual'?: string;
+    }
   ): Observable<{ ok: boolean; usuario: Usuario }> {
     return this.http.put<{ ok: boolean; usuario: Usuario }>(
       `${this.base}/usuarios/${id}`,

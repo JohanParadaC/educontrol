@@ -86,9 +86,26 @@ export class AuthService {
   }
 
   private validateToken(): void {
+    // Guardamos con qué token salimos: la respuesta puede tardar y, mientras,
+    // el usuario puede haber iniciado sesión de nuevo.
+    const tokenValidado = localStorage.getItem(this.TOKEN_KEY);
+
     this.api.renew().subscribe({
-      next : ({ token, usuario }) => this.setSession(token, usuario),
-      error: () => this.logout()
+      next: ({ token, usuario }) => {
+        // Si la sesión ya cambió, no pisamos la nueva con una respuesta vieja.
+        if (localStorage.getItem(this.TOKEN_KEY) !== tokenValidado) return;
+        this.setSession(token, usuario);
+      },
+      error: () => {
+        // 🔒 Solo cerramos sesión si seguimos hablando del MISMO token.
+        //
+        // Sin esta comprobación, un token caducado producía esto: arrancas la
+        // app, la renovación falla de fondo, mientras tanto inicias sesión bien
+        // y, un instante después, el logout de la renovación borra la sesión
+        // recién creada. Se veía como "he entrado y me ha echado al login".
+        if (localStorage.getItem(this.TOKEN_KEY) !== tokenValidado) return;
+        this.logout();
+      }
     });
   }
 }
