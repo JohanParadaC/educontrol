@@ -3,6 +3,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
 const { connectDB } = require('./config/db');
 
@@ -39,20 +41,45 @@ app.get('/api/health', (_req, res) => {
   res.status(200).json({ ok: true, status: 'up' });
 });
 
+/* ===========================================================
+ * 4) Frontend (SPA)
+ *    Si existe el build de Angular, lo servimos desde aquí. Un solo proceso y
+ *    un solo origen: por eso `apiBase: '/api'` (relativo) es correcto y no hace
+ *    falta CORS ni una URL absoluta del backend.
+ *    Si no hay build, la API funciona igual y estas rutas no se montan.
+ * =========================================================== */
+const FRONTEND_DIST =
+  process.env.FRONTEND_DIST ||
+  path.join(__dirname, '..', 'frontend', 'dist', 'educontrol-frontend', 'browser');
+
+const hayBuildFrontend = fs.existsSync(path.join(FRONTEND_DIST, 'index.html'));
+
+if (hayBuildFrontend) {
+  // Los ficheros con hash en el nombre pueden cachearse fuerte; index.html no.
+  app.use(express.static(FRONTEND_DIST, { index: false, maxAge: '1h' }));
+
+  app.get(/.*/, (req, res, next) => {
+    if (req.path.startsWith('/api')) return next(); // deja pasar los 404 de API
+    res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
+  });
+} else if (process.env.NODE_ENV !== 'test') {
+  console.log('ℹ️  Sin build de frontend; solo se sirve la API. Ejecuta "npm run build" en frontend/.');
+}
+
 /* ===========================
- * 4) 404 (no encontrado)
+ * 5) 404 (no encontrado)
  * =========================== */
 app.use((req, res) => {
   res.status(404).json({ ok: false, msg: 'Recurso no encontrado' });
 });
 
 /* ===========================
- * 5) Manejo de errores
+ * 6) Manejo de errores
  * =========================== */
 app.use(errorHandler);
 
 /* =========================================================
- * 6) 🌱 Seed de ADMIN (ajustado a tu schema con tilde)
+ * 7) 🌱 Seed de ADMIN (ajustado a tu schema con tilde)
  *    - Tu modelo se llama ./models/Usuario
  *    - Campos requeridos: nombre, correo, contraseña, rol
  *    - Hasheamos la contraseña con bcryptjs
@@ -65,6 +92,13 @@ async function ensureAdminSeed() {
     // Se leen de env; si no están, usamos valores por defecto
     const correo = process.env.ADMIN_EMAIL || 'admin@educontrol.com';
     const plainPassword = process.env.ADMIN_PASSWORD || 'Admin123*';
+
+    // ⚠️ Una contraseña por defecto conocida en producción equivale a no tener
+    // contraseña: el repo es público. Si no está configurada, no sembramos.
+    if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
+      console.warn('⚠️  ADMIN_PASSWORD no configurada: se omite el seed del admin.');
+      return;
+    }
 
     // Si ya existe un usuario con ese correo, no hacemos nada
     const exists = await Usuario.findOne({ correo }).lean();
@@ -95,7 +129,7 @@ async function ensureAdminSeed() {
 }
 
 /* ===========================
- * 7) Inicio del servidor
+ * 8) Inicio del servidor
  *    - En test NO levantamos ni nos conectamos
  * =========================== */
 if (process.env.NODE_ENV !== 'test') {
@@ -104,9 +138,17 @@ if (process.env.NODE_ENV !== 'test') {
       await connectDB();        // Conecta a MongoDB
       await ensureAdminSeed();  // 🌱 Crea admin si no existe (idempotente)
 
-      const PORT = process.env.PORT || 3000; // DO inyecta PORT automáticamente
+      // Con Mongo en memoria la base arranca vacía en cada ejecución, así que
+      // sembramos datos de ejemplo para que la app se pueda mirar de verdad.
+      const { usandoMongoEnMemoria } = require('./config/memoryDb');
+      if (process.env.SEED_DEMO === '1' || usandoMongoEnMemoria()) {
+        await require('./scripts/seedDemo')();
+      }
+
+      const PORT = process.env.PORT || 3000;
       app.listen(PORT, () => {
         console.log(`🟢 Servidor corriendo en http://localhost:${PORT}`);
+        if (hayBuildFrontend) console.log('🖥️  Frontend servido en la misma URL');
       });
     } catch (err) {
       console.error('❌ Error al conectar a MongoDB:', err);

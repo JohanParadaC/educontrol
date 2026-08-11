@@ -1,5 +1,6 @@
 const request = require('supertest');
 const app = require('../app');
+const { crearUsuario } = require('./helpers');
 
 async function tokenAdmin() {
   await request(app).post('/api/admin/seed-admin')
@@ -17,12 +18,13 @@ describe('Cursos delete (happy path)', () => {
   it('crea curso, lo elimina y luego GET by id devuelve 404/400', async () => {
     const adminToken = await tokenAdmin();
 
-    // 1) Crear curso
+    // 1) Crear curso (el admin debe indicar quién lo imparte)
+    const profesor = await crearUsuario({ rol: 'profesor' });
     const nombre = `Curso ${Date.now()}`;
     const createRes = await request(app)
       .post('/api/cursos')
       .set('Authorization', `Bearer ${adminToken}`)
-      .send({ nombre, descripcion: 'desc' })
+      .send({ nombre, descripcion: 'desc', profesor: profesor.id })
       .expect([200, 201]);
 
     // 2) Obtener id (del create o de la lista)

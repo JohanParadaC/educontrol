@@ -17,13 +17,16 @@ const {
 const router = Router();
 
 // 1) Registro público
+//    ⚠️ 'admin' NO es un rol solicitable desde aquí: el registro es anónimo, así
+//    que aceptarlo permitía a cualquiera crearse una cuenta de administrador.
+//    'profesor' sí se admite, pero el controlador exige la clave de profesor.
 router.post(
   '/',
   [
     check('nombre',     'El nombre es obligatorio').notEmpty(),
     check('correo',     'Correo no válido').isEmail(),
     check('contraseña', 'La contraseña debe tener 6 caracteres mínimo').isLength({ min: 6 }),
-    check('rol',        'Rol inválido').isIn(['estudiante', 'profesor', 'admin']),
+    check('rol',        'Rol inválido').optional().isIn(['estudiante', 'profesor']),
     validateFields
   ],
   crearUsuario
@@ -35,7 +38,10 @@ router.get('/', [ validateJWT, roleCheck('admin') ], obtenerUsuarios);
 // 3) Obtener por ID (cualquiera autenticado)
 router.get('/:id', [ validateJWT, check('id').isMongoId(), validateFields ], obtenerUsuarioPorId);
 
-// 4) ✅ Actualizar (self o admin). Nada de roleCheck aquí.
+// 4) Actualizar (self o admin).
+//    No hay roleCheck porque un estudiante puede editarse a sí mismo; la
+//    comprobación de propiedad la hace el controlador, y cubre TODOS los campos
+//    (antes solo se comprobaba al cambiar 'rol').
 router.put(
   '/:id',
   [

@@ -14,6 +14,8 @@ console.error = (...args) => {
 // ⬅️ CLAVE: secret para JWT en entorno de test
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
 process.env.DB_NAME = process.env.DB_NAME || 'jest';
+// Clave de profesor: necesaria para probar el ascenso legítimo a profesor.
+process.env.PROFESOR_CLAVE = process.env.PROFESOR_CLAVE || 'clave-profesor-test';
 
 let mongod;
 

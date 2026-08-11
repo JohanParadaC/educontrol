@@ -1,6 +1,10 @@
 // __tests__/helpers.js
 const request = require('supertest');
-const app = require('../app');
+const bcrypt  = require('bcryptjs');
+const app     = require('../app');
+const Usuario = require('../models/Usuario');
+
+const PASSWORD_POR_DEFECTO = 'Secret123';
 
 function uniqueEmail(prefix = 'test') {
   const rand = Math.random().toString(36).slice(2, 10);
@@ -8,42 +12,58 @@ function uniqueEmail(prefix = 'test') {
   return `${prefix}_${ts}_${rand}@mail.com`;
 }
 
-async function createUserAndLogin(rol = 'admin') {
-  const correo = uniqueEmail('user');
-  const pass = 'Secret123';
-
-  // 1) crear usuario
-  const createRes = await request(app).post('/api/usuarios').send({
-    nombre: 'Test',
-    correo,
-    rol,
-    // tu API valida este campo
-    'contraseña': pass,
-    // por compatibilidad si tu modelo lo admite
-    password: pass,
-  });
-
-  if (![200, 201].includes(createRes.status)) {
-    console.error('❌ Falla creando usuario', { status: createRes.status, body: createRes.body });
-    throw new Error(`No pudo crear usuario: ${createRes.status}`);
-  }
-
-  // 2) login
-  const loginRes = await request(app).post('/api/auth/login').send({
-    correo,
-    'contraseña': pass,
-    password: pass,
-  });
-
-  if (loginRes.status !== 200) {
-    console.error('❌ Falla login', { status: loginRes.status, body: loginRes.body });
-    throw new Error(`No pudo loguear: ${loginRes.status}`);
-  }
-
-  const token = loginRes.body.token || loginRes.body.accessToken;
-  if (!token) throw new Error('API no devolvió token en /api/auth/login');
-
-  return { token, correo };
+/**
+ * Crea un usuario directamente contra el modelo, sin pasar por la API.
+ *
+ * Es deliberado: la API pública ya no permite auto-asignarse 'admin' ni
+ * 'profesor' sin clave, así que los fixtures con privilegios se montan por
+ * debajo. Si un test necesita comprobar qué puede pedir un cliente, debe usar
+ * el endpoint de verdad, no este helper.
+ */
+async function crearUsuario({
+  rol      = 'estudiante',
+  nombre   = 'Test',
+  correo   = uniqueEmail(rol),
+  password = PASSWORD_POR_DEFECTO
+} = {}) {
+  const hash = await bcrypt.hash(password, 10);
+  const usuario = await Usuario.create({ nombre, correo, contraseña: hash, rol });
+  return { usuario, id: String(usuario._id), correo, password, rol };
 }
 
-module.exports = { createUserAndLogin, uniqueEmail };
+/** Hace login y devuelve el token; falla ruidosamente si el login no va bien. */
+async function login(correo, password = PASSWORD_POR_DEFECTO) {
+  const res = await request(app)
+    .post('/api/auth/login')
+    .send({ correo, 'contraseña': password });
+
+  if (res.status !== 200) {
+    throw new Error(`No pudo loguear (${res.status}): ${JSON.stringify(res.body)}`);
+  }
+
+  const token = res.body.token || res.body.accessToken;
+  if (!token) throw new Error('API no devolvió token en /api/auth/login');
+  return token;
+}
+
+/** Crea un usuario con el rol pedido y devuelve su token ya listo. */
+async function createUserAndLogin(rol = 'admin', opciones = {}) {
+  const creado = await crearUsuario({ rol, ...opciones });
+  const token = await login(creado.correo, creado.password);
+  return { ...creado, token };
+}
+
+/** Atajo para los tests que solo necesitan un token de admin. */
+async function adminToken() {
+  const { token } = await createUserAndLogin('admin');
+  return token;
+}
+
+module.exports = {
+  createUserAndLogin,
+  crearUsuario,
+  login,
+  adminToken,
+  uniqueEmail,
+  PASSWORD_POR_DEFECTO
+};
