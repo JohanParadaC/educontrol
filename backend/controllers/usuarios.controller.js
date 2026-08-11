@@ -2,8 +2,10 @@
 const Usuario = require('../models/Usuario');
 const bcrypt  = require('bcryptjs');
 const { claveProfesorValida, extraerClave } = require('../utils/profesorClave');
+const { leerPaginacion, metadatos } = require('../utils/paginacion');
 
 const ROLES_PUBLICOS = ['estudiante', 'profesor'];
+const ROLES = [...ROLES_PUBLICOS, 'admin'];
 
 // Crear un usuario (registro público)
 const crearUsuario = async (req, res, next) => {
@@ -32,11 +34,24 @@ const crearUsuario = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// Listar usuarios
+// Listar usuarios (paginado, con filtro opcional por rol)
 const obtenerUsuarios = async (req, res, next) => {
   try {
-    const usuarios = await Usuario.find().select('-contraseña');
-    res.json({ ok: true, usuarios });
+    const { pagina, limite, saltar } = leerPaginacion(req.query);
+
+    // ?rol=profesor evita que un desplegable tenga que tragarse la tabla entera
+    // para encontrar a los profesores. Se ignora si no es un rol conocido.
+    const filtro = {};
+    if (ROLES.includes(req.query.rol)) filtro.rol = req.query.rol;
+
+    const [usuarios, total] = await Promise.all([
+      Usuario.find(filtro).select('-contraseña').sort({ nombre: 1 }).skip(saltar).limit(limite),
+      Usuario.countDocuments(filtro)
+    ]);
+
+    // `usuarios` sigue siendo un array en la misma clave de siempre: los
+    // clientes que no paginan no se enteran del cambio.
+    res.json({ ok: true, usuarios, ...metadatos({ total, pagina, limite }) });
   } catch (err) { next(err); }
 };
 
@@ -70,11 +85,37 @@ const updateUsuario = async (req, res, next) => {
 
     const cambios = {};
     const { nombre, correo, rol, contraseña } = req.body || {};
+    const contraseñaActual = req.body?.contraseñaActual ?? req.body?.passwordActual;
 
     if (nombre !== undefined) cambios.nombre = nombre;
     if (correo !== undefined) cambios.correo = correo;
 
     if (contraseña) {
+      // 🔒 Reautenticación: cambiar tu propia contraseña exige demostrar que
+      // conoces la actual. Sin esto, una sesión olvidada abierta un minuto es
+      // suficiente para que un tercero se quede la cuenta para siempre.
+      //
+      // Un admin actuando sobre OTRA cuenta queda exento: es una acción
+      // administrativa (restablecer el acceso de alguien), no un cambio propio.
+      if (soyElMismo) {
+        if (!contraseñaActual) {
+          return res.status(400).json({
+            ok: false,
+            msg: 'Indica tu contraseña actual para poder cambiarla'
+          });
+        }
+
+        // req.usuario viene sin el hash (validateJWT hace select('-contraseña')),
+        // así que lo pedimos explícitamente.
+        const cuenta = await Usuario.findById(id);
+        if (!cuenta) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
+
+        const coincide = await bcrypt.compare(String(contraseñaActual), cuenta.contraseña);
+        if (!coincide) {
+          return res.status(403).json({ ok: false, msg: 'La contraseña actual no es correcta' });
+        }
+      }
+
       const salt = await bcrypt.genSalt(10);
       cambios.contraseña = await bcrypt.hash(contraseña, salt);
     }

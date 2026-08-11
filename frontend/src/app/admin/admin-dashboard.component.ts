@@ -12,6 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ NUEVO: tooltips para íconos
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
@@ -37,7 +38,8 @@ type Rol = 'estudiante' | 'profesor';
     FormsModule,
     ReactiveFormsModule,
     MatCardModule, MatTableModule, MatSelectModule, MatFormFieldModule,
-    MatButtonModule, MatIconModule, MatTooltipModule // ✅ NUEVO
+    MatButtonModule, MatIconModule, MatTooltipModule, // ✅ NUEVO
+    MatPaginatorModule
   ]
 })
 export class AdminDashboardComponent implements OnInit {
@@ -67,6 +69,16 @@ export class AdminDashboardComponent implements OnInit {
   // Tampoco columna 'rol': el select de "Nuevo rol" ya muestra el rol actual.
   displayedUserCols = ['nombre', 'correo', 'acciones'];
   displayedCourseCols = ['titulo', 'descripcion', 'profesor', 'acciones'];
+
+  // Paginación de las dos tablas
+  tamPagina = 20;
+  pagUsuarios = 1;
+  pagCursos = 1;
+  totalUsuarios = 0;
+  totalCursos = 0;
+
+  /** Cursos para el selector de "asignar profesor" (no es la página visible). */
+  cursosOpt: Curso[] = [];
 
   loading = false;
 
@@ -115,23 +127,67 @@ export class AdminDashboardComponent implements OnInit {
 
   cargarTodo() {
     this.loading = true;
+    this.cargarUsuarios(this.pagUsuarios);
+    this.cargarCursos(this.pagCursos);
+    this.cargarOpciones();
+  }
 
-    // Usuarios → derive profesores/estudiantes → opciones planas
-    this.api.listUsuarios().subscribe({
-      next: (us) => {
-        this.usuarios = us;
-        this.profesores  = us.filter(u => u.rol === 'profesor');
-        this.estudiantes = us.filter(u => u.rol === 'estudiante');
-        this.buildOptions();
+  /** Tabla de usuarios: solo la página que se está mirando. */
+  cargarUsuarios(pagina: number) {
+    this.pagUsuarios = pagina;
+    this.api.listUsuariosPaginado(pagina, this.tamPagina).subscribe({
+      next: (p) => {
+        this.usuarios = p.items;
+        this.totalUsuarios = p.total;
       },
       error: () => this.snack.open('No se pudieron cargar usuarios', 'Cerrar', { duration: 2500 })
     });
+  }
 
-    // Cursos
-    this.api.listCursos().subscribe({
-      next: (cs) => { this.cursos = cs; this.loading = false; },
-      error: () => { this.loading = false; this.snack.open('No se pudieron cargar cursos', 'Cerrar', { duration: 2500 }); }
+  /** Tabla de cursos: ídem. */
+  cargarCursos(pagina: number) {
+    this.pagCursos = pagina;
+    this.api.listCursosPaginado(pagina, this.tamPagina).subscribe({
+      next: (p) => {
+        this.cursos = p.items;
+        this.totalCursos = p.total;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+        this.snack.open('No se pudieron cargar cursos', 'Cerrar', { duration: 2500 });
+      }
     });
+  }
+
+  /**
+   * Opciones de los desplegables (asignar profesor, matricular estudiante).
+   *
+   * Van por su cuenta y filtradas por rol en el servidor: si se derivaran de la
+   * tabla, al paginar los desplegables solo verían a quien cayera en la página
+   * actual. También el listado de cursos del selector, por lo mismo.
+   */
+  private cargarOpciones() {
+    this.api.listUsuariosPorRol('profesor').subscribe(us => {
+      this.profesores = us;
+      this.buildOptions();
+    });
+    this.api.listUsuariosPorRol('estudiante').subscribe(us => {
+      this.estudiantes = us;
+      this.buildOptions();
+    });
+    this.api.listCursos().subscribe(cs => this.cursosOpt = cs);
+  }
+
+  // Handlers del paginador de Material
+  onPaginaUsuarios(e: PageEvent) {
+    this.tamPagina = e.pageSize;
+    this.cargarUsuarios(e.pageIndex + 1);
+  }
+
+  onPaginaCursos(e: PageEvent) {
+    this.tamPagina = e.pageSize;
+    this.cargarCursos(e.pageIndex + 1);
   }
 
   // ================== CURSOS: CREAR ==================
