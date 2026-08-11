@@ -1,10 +1,19 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
 // Puedes seguir usando tu módulo que reexporta Material
 import { MaterialModule } from '../material.module';
 import { AuthService } from '../../core/auth.service';
+
+/** Un enlace de la barra, con la condición para mostrarlo. */
+interface Enlace {
+  etiqueta: string;
+  ruta: string;
+  icono: string;
+  visible: () => boolean;
+}
 
 @Component({
   selector   : 'app-navbar',
@@ -18,10 +27,57 @@ import { AuthService } from '../../core/auth.service';
   ]
 })
 export class NavbarComponent {
+  /** Menú desplegable en móvil. En escritorio no se usa. */
+  menuAbierto = false;
+
+  /**
+   * Los enlaces viven aquí y no repetidos en la plantilla: antes había que
+   * escribir cada botón dos veces (escritorio y móvil) y era cuestión de tiempo
+   * que las dos versiones dejaran de coincidir.
+   */
+  readonly enlaces: Enlace[] = [
+    {
+      etiqueta: 'Inicio', ruta: '/dashboard', icono: 'dashboard',
+      visible: () => this.isLoggedIn && this.role !== 'profesor'
+    },
+    {
+      etiqueta: 'Inicio', ruta: '/profesor/dashboard', icono: 'dashboard',
+      visible: () => this.isLoggedIn && this.role === 'profesor'
+    },
+    {
+      etiqueta: 'Cursos', ruta: '/cursos', icono: 'school',
+      visible: () => this.isLoggedIn && this.role === 'estudiante'
+    },
+    {
+      etiqueta: 'Mis clases', ruta: '/profesor/clases', icono: 'groups',
+      visible: () => this.isLoggedIn && this.role === 'profesor'
+    },
+    {
+      etiqueta: 'Administración', ruta: '/admin', icono: 'admin_panel_settings',
+      visible: () => this.isLoggedIn && this.role === 'admin'
+    },
+    {
+      etiqueta: 'Elegir rol', ruta: '/elige-rol', icono: 'swap_horiz',
+      visible: () => this.isLoggedIn && this.role !== 'admin'
+    },
+    { etiqueta: 'Entrar',       ruta: '/login',    icono: 'login',        visible: () => !this.isLoggedIn },
+    { etiqueta: 'Crear cuenta', ruta: '/register', icono: 'person_add',   visible: () => !this.isLoggedIn }
+  ];
+
   constructor(
     public auth: AuthService,
     private router: Router
-  ) {}
+  ) {
+    // Navegar cierra el menú: si no, al elegir una opción el panel se queda
+    // abierto tapando la página a la que acabas de llegar.
+    this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => this.menuAbierto = false);
+  }
+
+  get enlacesVisibles(): Enlace[] {
+    return this.enlaces.filter(e => e.visible());
+  }
 
   /** ✅ Getter simple para no ensuciar el template */
   get role(): 'estudiante' | 'profesor' | 'admin' | '' {
@@ -34,8 +90,25 @@ export class NavbarComponent {
     return this.auth.isLoggedIn;
   }
 
+  /** Ruta de la marca: cada rol tiene su propia pantalla de inicio. */
+  get rutaInicio(): string {
+    if (!this.isLoggedIn) return '/login';
+    return this.role === 'profesor' ? '/profesor/dashboard' : '/dashboard';
+  }
+
+  alternarMenu(): void {
+    this.menuAbierto = !this.menuAbierto;
+  }
+
+  /** Escape cierra el menú, como se espera de cualquier panel desplegable. */
+  @HostListener('document:keydown.escape')
+  cerrarMenu(): void {
+    this.menuAbierto = false;
+  }
+
   /** Cierra sesión y navega al login */
   logout(): void {
+    this.menuAbierto = false;
     try {
       this.auth.logout();           // Limpia token/estado
     } finally {

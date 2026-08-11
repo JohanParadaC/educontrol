@@ -61,11 +61,18 @@ body {
    indicador de foco no debe poder desactivarse por accidente. */
 :focus-visible,
 .mat-mdc-button-base:focus-visible,
-.mat-mdc-select:focus-visible .mat-mdc-select-trigger,
-.mdc-text-field:focus-within {
+.mat-mdc-select:focus-visible .mat-mdc-select-trigger {
   outline: 2px solid var(--mat-sys-primary) !important;
   outline-offset: 2px !important;
   border-radius: 4px;
+}
+
+/* Excepción: los campos de texto. Material ya marca el foco engrosando su
+   propio contorno y tiñéndolo de color primario, que es indicador suficiente.
+   Añadirle encima nuestro anillo dibujaba un marco doble alrededor del campo. */
+.mat-mdc-form-field input:focus-visible,
+.mat-mdc-form-field textarea:focus-visible {
+  outline: none !important;
 }
 
 /* ---------------------------------------------------------------------------
@@ -78,8 +85,12 @@ mat-toolbar.mat-toolbar {
   color: var(--mat-sys-on-primary);
   gap: var(--sp-1);
 
+  /* El icon-button no hereda el color del toolbar por su cuenta: sin esto el
+     icono de menú sale oscuro sobre el azul. */
   .mat-mdc-button,
-  .mat-mdc-outlined-button { color: var(--mat-sys-on-primary); }
+  .mat-mdc-outlined-button,
+  .mat-mdc-icon-button,
+  .mat-mdc-icon-button .mat-icon { color: var(--mat-sys-on-primary); }
 
   /* El botón del rol activo se distingue por fondo, no solo por negrita. */
   .active {

@@ -87,6 +87,17 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   /** Convierte ObjectId|string a string siempre */
+  /**
+   * `profesor` puede llegar como id o como objeto poblado, según el endpoint.
+   * En la tabla no se nota porque `matCellDef` no tipa la fila; en la lista de
+   * tarjetas sí, así que resolvemos el nombre en un solo sitio.
+   */
+  nombreProfesor(curso: Curso): string {
+    const p: any = curso?.profesor;
+    if (!p) return 'Sin profesor asignado';
+    return typeof p === 'string' ? 'Sin profesor asignado' : (p.nombre || 'Sin profesor asignado');
+  }
+
   id(u: Partial<Usuario>): string {
     const anyId = (u as any)?._id ?? (u as any)?.id ?? '';
     return typeof anyId === 'string' ? anyId : anyId?.toString?.() ?? '';

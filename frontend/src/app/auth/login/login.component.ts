@@ -14,6 +14,7 @@ import {
 
 import { Router, RouterModule } from '@angular/router';     // 👈 necesario por el routerLink del template
 import { AuthService }          from '../../core/auth.service';
+import { mensajeDeError }       from '../../core/http-error';
 
 /* Angular Material centralizado (si exporta todo) */
 import { MaterialModule } from '../../shared/material.module';
@@ -87,7 +88,7 @@ export class LoginComponent {
         },
         error: err => {
           this.enviando = false;
-          this.msg = err?.error?.msg || 'Credenciales inválidas';
+          this.msg = mensajeDeError(err, 'Correo o contraseña incorrectos');
         }
       });
   }
