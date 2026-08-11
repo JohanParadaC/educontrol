@@ -20,6 +20,9 @@ coverage/
 *.log
 npm-debug.log*
 
+# Perfil temporal de Chrome que usa scripts/capturas.mjs
+.chrome-capturas/
+
 # Sistema operativo / editor
 .DS_Store
 Thumbs.db

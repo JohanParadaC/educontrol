@@ -30,8 +30,10 @@
   color: var(--mat-sys-on-surface);
 }
 
-.brand { display:flex; align-items:center; gap:12px; }
-.brand h1 { margin:0; }
+.titulo-pagina {
+  font: var(--mat-sys-headline-small);
+  margin: 0 0 var(--sp-2);
+}
 
 /* ✅ Alineación vertical centrada en toda la tabla (arregla descuadres) */
 .mat-mdc-table .mat-mdc-cell,

@@ -25,7 +25,9 @@ describe('ApiService', () => {
       expect(resp).toBeTruthy();
     });
 
-    const req = httpMock.expectOne(`${environment.baseUrl}/cursos`);
+    // La propiedad del entorno se llama apiBase; `baseUrl` no existe y rompía
+    // la compilación de toda la suite.
+    const req = httpMock.expectOne(`${environment.apiBase}/cursos`);
     expect(req.request.method).toBe('GET');
     req.flush({ ok: true, cursos: mockCursos });
   });
