@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 
 import { AuthService } from '../core/auth.service';
+import { rutaInicioPara } from '../core/rutas';
 
 @Component({
   standalone: true,
@@ -50,7 +51,7 @@ export class LandingComponent {
     // Con sesión iniciada esta página no aporta nada: al panel directamente.
     if (this.auth.isLoggedIn) {
       const rol = this.auth.usuario?.rol;
-      this.router.navigateByUrl(rol === 'profesor' ? '/profesor/dashboard' : '/dashboard');
+      this.router.navigateByUrl(rutaInicioPara(rol));
     }
   }
 }

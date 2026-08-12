@@ -262,15 +262,12 @@ export class AdminDashboardComponent implements OnInit {
       }
       const payload = { titulo: data.titulo, descripcion: data.descripcion, profesor: profId } as any;
 
-      (this.api as any).updateCursoAdmin
-        ? (this.api as any).updateCursoAdmin(curso._id!, payload).subscribe({
-            next: () => { this.snack.open('Curso actualizado', 'OK', { duration: 2000 }); this.cargarTodo(); },
-            error: (e: any) => this.snack.open(e?.error?.msg || 'No se pudo actualizar', 'Cerrar', { duration: 3000 })
-          })
-        : this.api.updateCurso(curso._id!, payload).subscribe({
-            next: () => { this.snack.open('Curso actualizado', 'OK', { duration: 2000 }); this.cargarTodo(); },
-            error: (e) => this.snack.open((e as any)?.error?.msg || 'No se pudo actualizar', 'Cerrar', { duration: 3000 })
-          });
+      // Antes esto era un ternario sobre `(this.api as any).updateCursoAdmin`,
+      // un método que nunca ha existido: la rama verdadera era inalcanzable.
+      this.api.updateCurso(curso._id!, payload).subscribe({
+        next: () => { this.snack.open('Curso actualizado', 'OK', { duration: 2000 }); this.cargarTodo(); },
+        error: (e) => this.snack.open(mensajeDeError(e, 'No se pudo actualizar'), 'Cerrar', { duration: 3000 })
+      });
     });
   }
 

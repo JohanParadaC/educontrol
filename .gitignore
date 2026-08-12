@@ -23,6 +23,9 @@ npm-debug.log*
 # Perfil temporal de Chrome que usa scripts/capturas.mjs
 .chrome-capturas/
 
+# Salida de graphify (grafo de conocimiento generado a partir del código)
+graphify-out/
+
 # Sistema operativo / editor
 .DS_Store
 Thumbs.db

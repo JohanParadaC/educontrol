@@ -2,9 +2,12 @@
 // En apps standalone NO declaras NgModule aquí. Solo exporta `routes`.
 // main.ts hace: provideRouter(routes)
 
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/auth.guard';
 import { AdminGuard } from './core/admin.guard';
+import { AuthService } from './core/auth.service';
+import { rutaInicioPara } from './core/rutas';
 
 export const routes: Routes = [
   // ===== Públicas =====
@@ -46,14 +49,6 @@ export const routes: Routes = [
   // Alias para compatibilidad: /mis-clases -> /profesor/clases
   { path: 'mis-clases', redirectTo: 'profesor/clases', pathMatch: 'full' },
 
-  // ===== Dashboard genérico (alumno/neutral) =====
-  {
-    path: 'dashboard',
-    canActivate: [AuthGuard],
-    loadComponent: () =>
-      import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
-  },
-
   // ===== Admin =====
   {
     path: 'admin',
@@ -62,7 +57,13 @@ export const routes: Routes = [
       import('./admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
   },
 
-  // ===== Estudiante (ajusta paths si usas otros) =====
+  // ===== Estudiante =====
+  {
+    path: 'estudiante/inicio',
+    canActivate: [AuthGuard],
+    loadComponent: () =>
+      import('./student/student-dashboard.component').then(m => m.StudentDashboardComponent),
+  },
   {
     path: 'cursos',
     canActivate: [AuthGuard],
@@ -87,6 +88,17 @@ export const routes: Routes = [
   },
   // Alias: los enlaces antiguos siguen funcionando.
   { path: 'elige-rol', redirectTo: 'cuenta', pathMatch: 'full' },
+
+  // ===== /dashboard: redirección por rol =====
+  // Antes esto cargaba un DashboardComponent cuyo único trabajo era mirar el rol
+  // y renderizar uno de otros tres componentes. Un conmutador no es una pantalla:
+  // la decisión es de enrutado, así que vive en el router y no monta nada.
+  // Se mantiene la ruta porque hay enlaces y marcadores que apuntan aquí.
+  {
+    path: 'dashboard',
+    canActivate: [AuthGuard],
+    redirectTo: () => rutaInicioPara(inject(AuthService).usuario?.rol),
+  },
 
   // ===== 404 =====
   // Comodín real, no una redirección silenciosa a /dashboard.

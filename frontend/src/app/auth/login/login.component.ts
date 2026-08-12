@@ -15,6 +15,7 @@ import {
 import { Router, RouterModule } from '@angular/router';     // 👈 necesario por el routerLink del template
 import { AuthService }          from '../../core/auth.service';
 import { mensajeDeError }       from '../../core/http-error';
+import { rutaInicioPara }       from '../../core/rutas';
 
 /* Angular Material centralizado (si exporta todo) */
 /* Solo los módulos que usa la pantalla, no el paquete entero. */
@@ -86,7 +87,7 @@ export class LoginComponent {
         next : ()  => {
           // ✅ CAMBIO: redirección por rol (profesor -> /profesor/dashboard)
           const rol = this.getRoleSafe();
-          this.router.navigateByUrl(rol === 'profesor' ? '/profesor/dashboard' : '/dashboard');
+          this.router.navigateByUrl(rutaInicioPara(rol));
         },
         error: err => {
           this.enviando = false;
