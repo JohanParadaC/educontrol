@@ -37,10 +37,9 @@ export class AuthService {
       credentials.contrasena ??
       '';
 
-    // Mandamos ambas claves por si acaso (el backend ya es tolerante igual)
-    const body: any = { correo: credentials.correo, password: pass, contraseña: pass };
-
-    return this.api.login(body).pipe(
+    // AuthApi ya traduce `password` al campo `contraseña` que espera el backend;
+    // mandar las dos claves era duplicar esa decisión en dos capas.
+    return this.api.login({ correo: credentials.correo, password: pass }).pipe(
       tap(({ token, usuario }) => this.setSession(token, usuario))
     );
   }

@@ -12,6 +12,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import { AuthService } from '../../core/auth.service';
+import { rutaInicioPara } from '../../core/rutas';
 
 /** Un enlace de la barra, con la condición para mostrarlo. */
 interface Enlace {
@@ -102,7 +103,7 @@ export class NavbarComponent {
   /** Ruta de la marca: sin sesión, la portada; con sesión, tu panel. */
   get rutaInicio(): string {
     if (!this.isLoggedIn) return '/';
-    return this.role === 'profesor' ? '/profesor/dashboard' : '/dashboard';
+    return rutaInicioPara(this.role);
   }
 
   alternarMenu(): void {

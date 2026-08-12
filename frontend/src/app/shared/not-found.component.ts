@@ -13,6 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 import { AuthService } from '../core/auth.service';
+import { rutaInicioPara } from '../core/rutas';
 
 @Component({
   standalone: true,
@@ -53,7 +54,7 @@ export class NotFoundComponent {
 
   get destino(): string {
     if (!this.auth.isLoggedIn) return '/';
-    return this.auth.usuario?.rol === 'profesor' ? '/profesor/dashboard' : '/dashboard';
+    return rutaInicioPara(this.auth.usuario?.rol);
   }
 
   get etiquetaDestino(): string {
