@@ -19,6 +19,10 @@ function verificarEntorno() {
     if (esProduccion) {
       console.error('❌ Falta JWT_SECRET. Configúralo antes de arrancar en producción.');
       process.exit(1);
+      // `return` explícito: sin él, la asignación de abajo dependería de que
+      // process.exit mate el proceso de inmediato para no colar el secreto de
+      // desarrollo en producción. Eso es apoyarse en un efecto colateral.
+      return;
     }
     process.env.JWT_SECRET = DEV_JWT_SECRET;
     console.warn('⚠️  JWT_SECRET no configurado: usando un secreto de desarrollo.');

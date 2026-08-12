@@ -3,8 +3,14 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
-// Puedes seguir usando tu módulo que reexporta Material
-import { MaterialModule } from '../material.module';
+// Solo lo que la barra usa de verdad.
+// Antes importaba MaterialModule, que reexporta doce módulos (Sidenav,
+// Expansion, List, Table…). Como la barra vive en el bundle inicial, arrastraba
+// todo eso a la primera carga aunque no se usara nada.
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+
 import { AuthService } from '../../core/auth.service';
 
 /** Un enlace de la barra, con la condición para mostrarlo. */
@@ -23,7 +29,7 @@ interface Enlace {
   imports    : [
     CommonModule,          // ⭐️ incluye *ngIf, *ngFor, etc.
     RouterModule,
-    MaterialModule
+    MatToolbarModule, MatButtonModule, MatIconModule
   ]
 })
 export class NavbarComponent {

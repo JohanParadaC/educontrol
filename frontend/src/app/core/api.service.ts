@@ -8,6 +8,7 @@ import { map, switchMap, catchError, tap } from 'rxjs/operators';
 import { Usuario }     from '../models/usuario.model';
 import { Curso }       from '../models/curso.model';
 import { Inscripcion } from '../models/inscripcion.model';
+import { aCurso, aCursos, deCurso } from '../models/curso.mapper';
 
 /** Tamaño de página por defecto y tope que aplica el backend. */
 export const LIMITE_PAGINA = 20;
@@ -148,71 +149,37 @@ export class ApiService {
   }
 
   // ---------------- CURSOS ----------------
-  // ✅ tolerante ({ok, cursos} o array), igual que listUsuarios.
-  // Antes asumía un array pelado y reventaba con la respuesta real del backend,
-  // que envuelve la lista en { ok, cursos }.
+  // La traducción nombre↔titulo vive en models/curso.mapper.ts y solo ahí.
   getCursos(): Observable<Curso[]> {
-    return this.http.get<{ ok: boolean; cursos: Curso[] } | Curso[]>(`${this.base}/cursos`).pipe(
-      map((r: any) => (Array.isArray(r) ? r : (r?.cursos ?? [])) as any[]),
-      map(cs => cs.map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)))
+    return this.http.get<any>(`${this.base}/cursos`).pipe(
+      map(r => aCursos(Array.isArray(r) ? r : (r?.cursos ?? [])))
     );
   }
 
   // ⇨ tolerante a { ok, curso } | Curso
   getCurso(id: string): Observable<Curso> {
-    return this.http.get<any>(`${this.base}/cursos/${id}`).pipe(
-      map((res: any) => {
-        const c = res?.curso ?? res;
-        return { ...c, titulo: c?.titulo ?? c?.nombre } as Curso;
-      })
-    );
+    return this.http.get<any>(`${this.base}/cursos/${id}`).pipe(map(aCurso));
   }
 
-  // CAMBIO: acepta profesor y lo envía como _id (string), no como nombre.
   createCurso(
-    body: Partial<Curso> & { nombre?: string; titulo?: string; descripcion?: string; profesor?: string | Usuario }
+    body: Partial<Curso> & { nombre?: string; descripcion?: string; profesor?: string | Usuario }
   ): Observable<Curso> {
-    const payload: any = {
-      nombre: body.nombre ?? body.titulo,
-      descripcion: body.descripcion
-    };
-    if ((body as any).profesor !== undefined && (body as any).profesor !== null) {
-      payload.profesor = typeof (body as any).profesor === 'string'
-        ? (body as any).profesor
-        : this.idOf((body as any).profesor);
-    }
-    return this.http.post<Curso>(`${this.base}/cursos`, payload).pipe(
-      map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
-    );
+    return this.http.post<any>(`${this.base}/cursos`, deCurso(body)).pipe(map(aCurso));
   }
 
-  // ⇨ si faltan 'nombre'/'descripcion', los completa leyendo el curso
+  /**
+   * El PUT del backend valida el curso completo, así que si la edición es
+   * parcial hay que leerlo antes y completar los campos que falten.
+   */
   updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {
-    const needsFetch =
-      ((body as any).nombre === undefined && (body as any).titulo === undefined) ||
-      body.descripcion === undefined;
+    const payload = deCurso(body);
+    const completo = payload['nombre'] !== undefined && payload['descripcion'] !== undefined;
 
-    const buildPayload = (base: any) => {
-      const nombre = (body as any).nombre ?? (body as any).titulo ?? base?.nombre ?? base?.titulo ?? '';
-      const descripcion = body.descripcion ?? base?.descripcion ?? '';
-      const payload: any = { nombre, descripcion };
+    const enviar = (base?: Curso) =>
+      this.http.put<any>(`${this.base}/cursos/${id}`, { ...deCurso(base ?? {}), ...payload }, this.authOpts())
+        .pipe(map(aCurso));
 
-      // CAMBIO: si viene 'profesor', lo mandamos como _id (string) siempre.
-      if ((body as any).profesor !== undefined && (body as any).profesor !== null) {
-        payload.profesor = typeof (body as any).profesor === 'string'
-          ? (body as any).profesor
-          : this.idOf((body as any).profesor);
-      }
-      return payload;
-    };
-
-    const put = (payload: any) =>
-      this.http.put<Curso>(`${this.base}/cursos/${id}`, payload, this.authOpts())
-        .pipe(map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)));
-
-    return needsFetch
-      ? this.getCurso(id).pipe(switchMap(cur => put(buildPayload(cur))))
-      : put(buildPayload(undefined));
+    return completo ? enviar() : this.getCurso(id).pipe(switchMap(enviar));
   }
 
   deleteCurso(id: string): Observable<void> {
@@ -235,48 +202,33 @@ export class ApiService {
       .get<any>(`${this.base}/cursos`, { params })
       .pipe(map(r => {
         const p = aPagina<any>(r, 'cursos', pagina, limite);
-        return { ...p, items: p.items.map(c => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso)) };
+        return { ...p, items: aCursos(p.items) };
       }));
   }
 
-  /**
-   * CAMBIO: Crea curso (admin) y, si se pasa profesor, lo envía como _id.
-   */
+  /** Crea curso como admin (mismo endpoint, con cabecera de autorización). */
   createCursoAdmin(
     body: { titulo: string; descripcion: string; profesor?: string | Usuario }
   ): Observable<Curso> {
-    const payload: any = {
-      nombre: body.titulo,
-      descripcion: body.descripcion
-    };
-    if (body.profesor !== undefined && body.profesor !== null) {
-      payload.profesor = typeof body.profesor === 'string' ? body.profesor : this.idOf(body.profesor);
-    }
     return this.http
-      .post<{ ok: boolean; curso: Curso } | Curso>(`${this.base}/cursos`, payload, this.authOpts())
-      .pipe(
-        map((r: any) => r?.curso ?? r),
-        map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
-      );
+      .post<any>(`${this.base}/cursos`, deCurso(body), this.authOpts())
+      .pipe(map(aCurso));
   }
 
   /**
-   * CAMBIO: Reasignar profesor enviando el _id (string), no el nombre.
-   * Lee el curso para completar nombre/descripcion si el backend los requiere en el PUT.
+   * Reasigna el profesor de un curso.
+   * Lee el curso antes porque el PUT del backend valida el recurso completo.
    */
   asignarProfesor(cursoId: string, profesor: string | Usuario): Observable<Curso> {
-    const profId = (typeof profesor === 'string') ? profesor : this.idOf(profesor);
     return this.getCurso(cursoId).pipe(
-      switchMap((curso) => {
-        const payload: any = {
-          nombre:      (curso as any)?.nombre ?? (curso as any)?.titulo ?? '',
-          descripcion: (curso as any)?.descripcion ?? '',
-          profesor:    profId
-        };
-        return this.http.put<Curso>(`${this.base}/cursos/${cursoId}`, payload, this.authOpts());
-      }),
-      map((r: any) => (r?.curso ?? r) as Curso),
-      map((c: any) => ({ ...c, titulo: c?.titulo ?? c?.nombre } as Curso))
+      switchMap(curso =>
+        this.http.put<any>(
+          `${this.base}/cursos/${cursoId}`,
+          { ...deCurso(curso), ...deCurso({ profesor }) },
+          this.authOpts()
+        )
+      ),
+      map(aCurso)
     );
   }
 

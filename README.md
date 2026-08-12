@@ -86,9 +86,11 @@ frontend/src/app/
 ## Tests
 
 ```bash
-npm test                        # backend: 62 tests
-npm test --prefix frontend      # frontend: 10 tests
+npm test        # backend: 119 tests (Jest + Supertest)
+npm run test:web  # frontend: 26 tests (Karma + Jasmine)
 ```
+
+Cobertura del backend: **85 % sentencias · 73 % ramas · 100 % funciones · 87 % líneas**. Los umbrales de `jest.config.js` están puestos unos puntos por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de una auditoría del propio proyecto: se encontraron cuatro fallos de control de acceso y cada arreglo se fijó con tests de regresión que fallan contra el código anterior.
 
@@ -140,9 +142,9 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 - **No hay recuperación de contraseña.** Si un usuario la olvida, solo un administrador puede restablecérsela.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
 - **La búsqueda del catálogo filtra en cliente** sobre los cursos cargados (hasta 100). Con catálogos mayores hay que mover el filtro al servidor.
-- **Queda código muerto** de iteraciones anteriores (`cursos/`, `mis-cursos/`, `dashboard/home/`).
-- **El bundle inicial pesa ~800 kB** frente a un presupuesto de 500 kB, sobre todo por importar Angular Material completo.
 - **No hay pantalla de detalle de un curso:** desde las tarjetas se navega al listado, no a una ficha propia.
+- **`POST /api/inscripciones` acepta el `estudianteId` del cuerpo sin comprobar de quién es.** Lo necesita el panel de administración para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
+- **El bundle inicial pesa ~770 kB** (189 kB transferidos con compresión). Es lo que cuesta Angular con Material; el presupuesto del build está puesto en 800 kB para que avise de regresiones reales en vez de saltar siempre.
 
 ## Licencia
 

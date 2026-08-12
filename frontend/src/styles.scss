@@ -3,6 +3,10 @@
    --------------------------------------------------------------------------- */
 @use '@angular/material' as mat;
 
+/* Las fuentes (Roboto y Material Icons) se cargan desde el propio bundle.
+   Se declaran en el array `styles` de angular.json, no aquí: son CSS plano y
+   `@use` exige identificadores válidos de Sass ("300.css" no lo es). */
+
 /*
    La macro `mat.theme()` se encarga de:
    1. Construir el theme claro

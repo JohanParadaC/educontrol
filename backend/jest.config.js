@@ -25,14 +25,18 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
 
-  // ⬇️ CAMBIO: relajamos umbrales globales para que tu suite actual pase en verde.
-  // (Más adelante podemos volver a subirlos cuando cubramos Inscripciones y ramas faltantes.)
+  // Umbrales ajustados a la cobertura real (85 / 73 / 100 / 87), con unos
+  // puntos de margen para que no salte por ruido.
+  //
+  // Antes iban en 70/50/65/70, muy por debajo de lo que se cubría: un umbral
+  // que va por detrás de la realidad no protege de nada, porque se puede
+  // borrar media suite sin que nadie se entere.
   coverageThreshold: {
     global: {
-      statements: 70,
-      branches:   50,
-      functions:  65,
-      lines:      70,
+      statements: 82,
+      branches:   68,
+      functions:  95,
+      lines:      84,
     },
   },
 
