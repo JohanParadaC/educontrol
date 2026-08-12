@@ -19,8 +19,11 @@ router.post(
   '/',
   [
     validateJWT,
-    check('cursoId',      'El ID de curso es obligatorio').notEmpty(),
-    check('estudianteId', 'El ID de estudiante es obligatorio').notEmpty(),
+    // isMongoId y no solo notEmpty: un identificador con formato inválido
+    // llegaba hasta Mongoose, lanzaba un CastError y salía como 500. Un dato
+    // mal formado por el cliente es un 400, no un fallo del servidor.
+    check('cursoId',      'El ID de curso no es válido').isMongoId(),
+    check('estudianteId', 'El ID de estudiante no es válido').isMongoId(),
     validateFields
   ],
   inscribirEstudiante

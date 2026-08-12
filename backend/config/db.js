@@ -73,4 +73,6 @@ async function disconnectDB() {
   await require('./memoryDb').detenerMongoEnMemoria();
 }
 
-module.exports = { connectDB, disconnectDB, mongoose };
+// resolveUri se exporta para poder probarla sola: es la decisión importante
+// (a qué Mongo apuntamos) y es lógica pura, sin red de por medio.
+module.exports = { connectDB, disconnectDB, resolveUri, mongoose };

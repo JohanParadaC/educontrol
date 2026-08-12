@@ -17,10 +17,12 @@ import { AuthService }          from '../../core/auth.service';
 import { mensajeDeError }       from '../../core/http-error';
 
 /* Angular Material centralizado (si exporta todo) */
-import { MaterialModule } from '../../shared/material.module';
-
-/* Si tu MaterialModule NO exporta MatIcon, impórtalo directo aquí */
+/* Solo los módulos que usa la pantalla, no el paquete entero. */
 import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector:    'app-login',
@@ -31,7 +33,7 @@ import { MatIconModule } from '@angular/material/icon';
     CommonModule,
     ReactiveFormsModule,
     RouterModule,      // 👈 para usar routerLink en el HTML
-    MaterialModule,
+    MatCardModule, MatButtonModule, MatFormFieldModule, MatInputModule,
     MatIconModule      // 👈 asegura que <mat-icon> funcione
   ]
 })
