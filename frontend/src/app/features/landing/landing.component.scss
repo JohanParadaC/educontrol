@@ -1,91 +1,464 @@
-.hero {
-  text-align: center;
-  padding: var(--sp-7) 0 var(--sp-6);
-  max-width: 720px;
-  margin: 0 auto;
+/* Portada pública.
+   El único sitio de la aplicación donde el color puede ocupar superficie: en la
+   consola el azul significa "esto se pulsa", pero aquí todavía no hay nada que
+   gestionar y la página tiene que explicarse antes de pedir credenciales. */
 
-  h1 {
-    font: var(--mat-sys-display-small);
-    margin: 0 0 var(--sp-4);
+/* Punto en el que el héroe cabe a dos columnas. No es 1024: a partir de ahí ya
+   hay 260 px de barra lateral comiéndose el ancho, y el texto y la captura se
+   quedaban en dos tiras estrechas. */
+$dos-columnas: 1280px;
+
+/* ---------------------------------------------------------------------------
+   1. HÉROE
+   --------------------------------------------------------------------------- */
+.heroe {
+  position: relative;
+  overflow: hidden; /* la captura girada asoma por el borde derecho a propósito */
+  display: grid;
+  gap: var(--sp-6);
+  align-items: center;
+  padding: var(--sp-7) var(--sp-6);
+  margin-bottom: var(--sp-7);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+
+  /* Dos capas: un halo de acento arriba a la izquierda y una base que va del
+     azul teñido a la superficie normal. Ambas salen de los tokens, así que en
+     oscuro el mismo gradiente se recalcula solo. */
+  background:
+    radial-gradient(
+      70ch 40ch at 8% -20%,
+      color-mix(in srgb, var(--acento) 18%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(155deg, var(--acento-suave), var(--superficie-0) 62%);
+
+  @media (min-width: $dos-columnas) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: var(--sp-7);
   }
 }
 
+.sello {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-1) var(--sp-3) var(--sp-1) var(--sp-2);
+  border: 1px solid color-mix(in srgb, var(--acento) 30%, var(--borde));
+  border-radius: 999px;
+  background: var(--superficie-0);
+  color: var(--acento-fuerte);
+  font: var(--mat-sys-label-large);
+}
+
+.heroe h1 {
+  margin: 0 0 var(--sp-4);
+  font: var(--mat-sys-display-medium);
+  color: var(--texto);
+  text-wrap: balance;
+}
+
 .entradilla {
+  margin: 0 0 var(--sp-5);
   font: var(--mat-sys-body-large);
-  color: var(--mat-sys-on-surface-variant);
-  margin: 0 auto var(--sp-5);
-  max-width: 56ch; /* longitud de línea cómoda de leer */
+  color: var(--texto-suave);
+  /* El «ch» mide el ancho del cero, más ancho que la letra media: 54ch deja la
+     línea en unos 60 caracteres, que es el máximo cómodo de leer. */
+  max-width: 54ch;
 }
 
 .acciones {
   display: flex;
   flex-wrap: wrap;
   gap: var(--sp-3);
-  justify-content: center;
 }
 
 .cta {
   min-width: 160px;
   height: 48px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.demo {
+.atajo {
   margin: var(--sp-5) 0 0;
   font: var(--mat-sys-body-small);
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--texto-suave);
+  max-width: 54ch;
 }
 
+/* ---------------------------------------------------------------------------
+   LA CAPTURA
+   Perspectiva ligera: lo justo para que se lea como una pantalla y no como un
+   recorte pegado. Asoma fuera del bloque por la derecha, que es lo que da la
+   sensación de que la aplicación sigue más allá.
+   --------------------------------------------------------------------------- */
+.heroe__captura {
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-md);
+    box-shadow: var(--sombra-2);
+  }
+
+  @media (min-width: $dos-columnas) {
+    /* El margen negativo es el que la deja salir del padding del bloque. */
+    margin-right: calc(-1 * var(--sp-7));
+
+    img {
+      /* La perspectiva va DENTRO del transform y no como propiedad del padre:
+         `perspective` solo alcanza a los hijos directos, y aquí entre medias
+         está el <picture>, así que el giro salía plano —un simple encogido. */
+      transform: perspective(1600px) rotateY(-9deg) rotateX(3deg);
+      transform-origin: left center;
+      box-shadow: 0 24px 48px rgb(15 23 42 / 18%);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   2. PERFILES
+   Cada uno con su color de rol —el mismo que llevará el chip dentro de la
+   aplicación— en la franja superior y en el icono. El color tiñe el fondo;
+   para escribir se usa la variante -texto: el ámbar sobre blanco da 2,3:1.
+   --------------------------------------------------------------------------- */
 .perfiles {
   display: grid;
   gap: var(--sp-4);
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   margin-bottom: var(--sp-7);
 }
 
-.perfil {
+/* Tarjeta de perfil y paso del flujo son la misma caja: lo que cambia es lo
+   que llevan dentro. */
+.perfil,
+.paso {
+  position: relative;
   padding: var(--sp-5);
-  text-align: center;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--superficie-0);
+}
 
-  mat-icon {
-    /* Tamaño del glifo del icono, no tipografía de texto: los iconos de
-       Material se dimensionan con font-size. */
-    font-size: 36px;
-    width: 36px;
-    height: 36px;
-    color: var(--mat-sys-primary);
+.perfil h2,
+.paso h3 {
+  font: var(--mat-sys-title-medium);
+}
+
+.perfil p,
+.paso p,
+.demo__intro p {
+  margin: 0;
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-medium);
+}
+
+.perfil {
+  overflow: hidden;
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  box-shadow: var(--sombra-1);
+  color: var(--texto);
+  text-decoration: none;
+  transition: box-shadow var(--transicion);
+
+  /* La franja de 3 px */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: var(--color-rol);
+  }
+
+  &:hover {
+    box-shadow: var(--sombra-2);
+    border-color: color-mix(in srgb, var(--color-rol) 45%, var(--borde));
   }
 
   h2 {
-    font: var(--mat-sys-title-medium);
+    margin: var(--sp-2) 0 0;
+  }
+}
+
+/* El color del rol se resuelve una vez, en el elemento que lo lleva escrito, y
+   de ahí abajo lo heredan la franja, el icono y el número. Es un atributo y no
+   una clase porque así son tres reglas en vez de nueve: cada tarjeta, cada
+   paso y cada fila de demostración querían las mismas dos variables. */
+[data-rol='estudiante'] {
+  --color-rol: var(--rol-estudiante);
+  --color-rol-texto: var(--rol-estudiante-texto);
+}
+
+[data-rol='profesor'] {
+  --color-rol: var(--rol-profesor);
+  --color-rol-texto: var(--rol-profesor-texto);
+}
+
+[data-rol='admin'] {
+  --color-rol: var(--rol-admin);
+  --color-rol-texto: var(--rol-admin-texto);
+}
+
+.perfil__icono {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radio-md);
+  background: color-mix(in srgb, var(--color-rol) 16%, transparent);
+  color: var(--color-rol-texto);
+
+  mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.perfil__pie {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+  color: var(--acento);
+  font: var(--mat-sys-label-large);
+}
+
+/* Tamaño de glifo, no tipografía: los iconos de Material se dimensionan con
+   font-size. */
+.sello mat-icon,
+.perfil__pie mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------------------------------------------------------------------------
+   3. CÓMO FUNCIONA
+   Tres pasos en fila con un conector entre ellos. La lista ordenada de antes
+   decía lo mismo, pero no se veía que fuera un recorrido.
+   --------------------------------------------------------------------------- */
+.flujo > h2,
+.demo__intro h2 {
+  font: var(--mat-sys-headline-small);
+}
+
+.flujo {
+  margin-bottom: var(--sp-7);
+
+  > h2 {
+    margin: 0 0 var(--sp-5);
+  }
+}
+
+.pasos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-5);
+  grid-template-columns: repeat(3, 1fr);
+
+  @media (max-width: 899px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.paso {
+  h3 {
     margin: var(--sp-3) 0 var(--sp-2);
   }
 
-  p {
-    margin: 0;
-    color: var(--mat-sys-on-surface-variant);
+  /* El conector vive en el hueco de la rejilla: sale por el margen derecho de
+     cada paso menos el último. */
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: calc(var(--sp-5) + 18px);
+    right: calc(-1 * var(--sp-5));
+    width: var(--sp-5);
+    height: 2px;
+    background: var(--borde);
+  }
+
+  /* En columna el conector se pone de pie. */
+  @media (max-width: 899px) {
+    &:not(:last-child)::after {
+      top: auto;
+      bottom: calc(-1 * var(--sp-5));
+      right: auto;
+      left: calc(var(--sp-5) + 18px);
+      width: 2px;
+      height: var(--sp-5);
+    }
   }
 }
 
-.detalle {
-  max-width: 640px;
-  margin: 0 auto var(--sp-7);
+.paso__numero {
+  display: block;
+  font: var(--mat-sys-display-small);
+  /* Cifras de ancho fijo: 01, 02 y 03 tienen que alinearse entre tarjetas. */
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-rol-texto);
+}
+
+/* ---------------------------------------------------------------------------
+   4. DEMOSTRACIÓN
+   Era una línea de texto pequeño al final del héroe. Ahora es una tarjeta con
+   un botón por rol, que es lo que de verdad quiere quien abre esto.
+   --------------------------------------------------------------------------- */
+.demo {
+  padding: var(--sp-6);
+  margin-bottom: var(--sp-7);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--superficie-2);
+}
+
+.demo__intro {
+  margin-bottom: var(--sp-5);
+  max-width: 60ch;
 
   h2 {
-    font: var(--mat-sys-title-large);
-  }
-
-  ol {
-    padding-left: var(--sp-5);
-    line-height: 1.7;
+    margin: 0 0 var(--sp-2);
   }
 }
 
+.demo__roles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.demo__rol {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--color-rol);
+  border-radius: var(--radio-md);
+  background: var(--superficie-0);
+  min-width: 0;
+}
+
+.demo__quien {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.demo__etiqueta {
+  font: var(--mat-sys-label-small);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-rol-texto);
+}
+
+.demo__nombre {
+  font: var(--mat-sys-title-small);
+  color: var(--texto);
+}
+
+/* El correo comparte fila con el botón: si se estira, empuja. */
+.demo__correo {
+  font: var(--mat-sys-body-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo__boton {
+  flex: none;
+}
+
+.demo__error {
+  margin: var(--sp-4) 0 0;
+  color: var(--error);
+  font: var(--mat-sys-body-medium);
+}
+
+/* ---------------------------------------------------------------------------
+   5. PIE
+   --------------------------------------------------------------------------- */
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-5);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--borde);
+  font: var(--mat-sys-body-small);
+  color: var(--texto-suave);
+
+  p {
+    margin: 0;
+  }
+}
+
+.pie__enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+
+  a {
+    color: var(--acento);
+  }
+}
+
+.pie__stack {
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------------------------
+   ENTRADA
+   Solo para quien no ha pedido lo contrario. La animación se declara DENTRO de
+   la consulta y no se apaga fuera: así el estado base no depende de que la
+   consulta se evalúe, y nada puede quedarse en opacity 0.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes entrada {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+
+  .heroe,
+  .perfiles,
+  .flujo,
+  .demo {
+    animation: entrada 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  .perfiles {
+    animation-delay: 80ms;
+  }
+
+  .flujo {
+    animation-delay: 160ms;
+  }
+
+  .demo {
+    animation-delay: 240ms;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   MÓVIL
+   --------------------------------------------------------------------------- */
 @media (max-width: 767px) {
-  .hero {
-    padding: var(--sp-5) 0 var(--sp-4);
+  .heroe {
+    padding: var(--sp-5) var(--sp-4);
+    gap: var(--sp-5);
 
     h1 {
       font: var(--mat-sys-headline-medium);
@@ -94,9 +467,17 @@
 
   .acciones .cta {
     flex: 1 1 100%;
-  } /* botones a ancho completo en móvil */
+  }
 
-  .perfiles {
-    grid-template-columns: 1fr;
+  .demo {
+    padding: var(--sp-5) var(--sp-4);
+  }
+
+  .demo__rol {
+    flex-wrap: wrap;
+  }
+
+  .pie__stack {
+    margin-left: 0;
   }
 }

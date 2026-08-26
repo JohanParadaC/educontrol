@@ -255,6 +255,23 @@ body {
   margin: 0;
 }
 
+/* La barra superior es fija: sin esto, saltar a un ancla deja el destino
+   escondido debajo de ella. Va aquí y no en la página que tenga anclas porque
+   los 56 px son de la barra, no suyos. */
+[id] {
+  scroll-margin-top: calc(56px + var(--sp-4));
+}
+
+/* Saltar a un ancla se desliza en vez de teletransportar: sin ese recorrido no
+   se entiende que el destino estaba más abajo en la misma página. Va dentro de
+   la consulta y no se apaga fuera, así que quien ha pedido menos movimiento
+   conserva el salto instantáneo del navegador. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   /* `light dark` y no `light`: sin esto, los controles nativos, las barras de
      desplazamiento y el fondo del formulario se quedan en claro dentro de una

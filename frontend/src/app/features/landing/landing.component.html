@@ -1,41 +1,139 @@
-<section class="hero">
-  <h1>Gestiona cursos, profesores y matrículas en un solo sitio</h1>
-  <p class="entradilla">
-    EduControl es una plataforma académica con tres perfiles: los estudiantes se matriculan, los
-    profesores ven sus clases y administración lo coordina todo.
-  </p>
+<!-- ===== 1. HÉROE =====
+     El bloque tiene fondo propio porque es lo único de la página que puede
+     permitirse color: a partir de aquí manda el gris de la consola. -->
+<section class="heroe">
+  <div class="heroe__texto">
+    <p class="sello">
+      <mat-icon aria-hidden="true">school</mat-icon>
+      Plataforma de gestión académica
+    </p>
 
-  <div class="acciones">
-    <a mat-flat-button color="primary" routerLink="/login" class="cta">Entrar</a>
-    <a mat-stroked-button routerLink="/register" class="cta">Crear cuenta</a>
+    <h1>Cursos, profesores y matrículas en un solo sitio</h1>
+
+    <p class="entradilla">
+      Administración crea los cursos y reparte las clases, cada profesor ve las suyas y los
+      estudiantes se matriculan solos. Tres vistas, una misma base de datos.
+    </p>
+
+    <div class="acciones">
+      <a mat-flat-button color="primary" routerLink="/login" class="cta">Entrar</a>
+      <a mat-stroked-button routerLink="/register" class="cta">Crear cuenta</a>
+    </div>
+
+    <!-- Quien viene a mirar el proyecto no se va a registrar: hay que dejarle
+         entrar en un clic o cierra la pestaña. Aquí solo se le señala; el
+         acceso de verdad está más abajo, con un botón por rol. -->
+    <p class="atajo">
+      ¿Solo quieres mirar? <a href="#demostracion">Entra con una cuenta de ejemplo</a> — hay una por
+      rol y no piden nada.
+    </p>
   </div>
 
-  <!-- Quien viene a mirar el proyecto no se va a registrar: hay que dejarle
-  entrar en un clic o cierra la pestaña. -->
-  <p class="demo">
-    ¿Solo quieres echar un vistazo?
-    <a routerLink="/login">Entra con una cuenta de demostración</a> — hay una por rol.
-  </p>
+  <!-- La captura es la propia aplicación, no un dibujo. Se regenera con
+       `npm run capturas` junto a las de docs/, así que no envejece sola.
+
+       <picture> y no una sola imagen: en oscuro, una captura blanca de 1280 px
+       es una linterna. Sigue a prefers-color-scheme, que hoy es lo único que
+       cambia el tema. -->
+  <div class="heroe__captura">
+    <picture>
+      <source srcset="captura-panel-oscuro.webp" media="(prefers-color-scheme: dark)" />
+      <img
+        src="captura-panel.webp"
+        width="1280"
+        height="860"
+        decoding="async"
+        fetchpriority="high"
+        alt="Panel de administración de EduControl: indicadores de usuarios y cursos sobre una tabla de personas con su rol"
+      />
+    </picture>
+  </div>
 </section>
 
+<!-- ===== 2. PARA QUIÉN ES =====
+     Tres tarjetas idénticas no distinguen nada. Cada perfil lleva su color de
+     rol —el mismo que verá después en los chips de la aplicación— y lleva al
+     paso del flujo que le corresponde. -->
 <section class="perfiles" aria-label="Para quién es">
-  @for (p of perfiles; track p) {
-    <mat-card class="perfil">
-      <mat-icon aria-hidden="true">{{ p.icono }}</mat-icon>
+  @for (p of perfiles; track p.rol) {
+    <a class="perfil" [attr.data-rol]="p.rol" [href]="'#' + p.paso">
+      <span class="perfil__icono" aria-hidden="true">
+        <mat-icon>{{ p.icono }}</mat-icon>
+      </span>
       <h2>{{ p.titulo }}</h2>
       <p>{{ p.texto }}</p>
-    </mat-card>
+      <span class="perfil__pie">
+        Ver cómo funciona
+        <mat-icon aria-hidden="true">arrow_forward</mat-icon>
+      </span>
+    </a>
   }
 </section>
 
-<section class="detalle">
-  <h2>Cómo funciona</h2>
-  <ol>
-    <li>
-      <strong>Te registras</strong> como estudiante, o activas tu cuenta de profesor con la clave
-      del centro.
-    </li>
-    <li><strong>Administración</strong> crea los cursos y asigna a cada profesor los suyos.</li>
-    <li><strong>Los estudiantes</strong> buscan en el catálogo y se matriculan.</li>
+<!-- ===== 3. CÓMO FUNCIONA ===== -->
+<section class="flujo" aria-labelledby="titulo-flujo">
+  <h2 id="titulo-flujo">Cómo funciona</h2>
+
+  <ol class="pasos">
+    @for (p of pasos; track p.id) {
+      <li class="paso" [attr.data-rol]="p.rol" [id]="p.id">
+        <span class="paso__numero" aria-hidden="true">{{ p.numero }}</span>
+        <h3>{{ p.titulo }}</h3>
+        <p>{{ p.texto }}</p>
+      </li>
+    }
   </ol>
 </section>
+
+<!-- ===== 4. PROBARLO ===== -->
+<section class="demo" id="demostracion" aria-labelledby="titulo-demo">
+  <div class="demo__intro">
+    <h2 id="titulo-demo">Pruébalo sin registrarte</h2>
+    <p>
+      Los datos son de ejemplo y se reinician con el servidor. Elige un rol y entras directamente,
+      sin escribir nada.
+    </p>
+  </div>
+
+  <ul class="demo__roles">
+    @for (d of demos; track d.correo) {
+      <li class="demo__rol" [attr.data-rol]="d.rol">
+        <span class="demo__quien">
+          <span class="demo__etiqueta">{{ d.etiqueta }}</span>
+          <span class="demo__nombre">{{ d.nombre }}</span>
+          <span class="demo__correo">{{ d.correo }}</span>
+        </span>
+        <button
+          mat-flat-button
+          type="button"
+          class="demo__boton"
+          (click)="entrar(d)"
+          [disabled]="!!entrando() && entrando() !== d.correo"
+        >
+          {{ entrando() === d.correo ? 'Entrando…' : 'Entrar' }}
+        </button>
+      </li>
+    }
+  </ul>
+
+  @if (error()) {
+    <p class="demo__error" role="alert">{{ error() }}</p>
+  }
+</section>
+
+<!-- ===== 5. PIE ===== -->
+<footer class="pie">
+  <p class="pie__marca"><strong>EduControl</strong> — proyecto de código abierto.</p>
+
+  <nav class="pie__enlaces" aria-label="Enlaces del proyecto">
+    <a href="https://github.com/JohanParadaC/educontrol" rel="noopener">Repositorio</a>
+    <a href="https://github.com/JohanParadaC/educontrol/blob/main/LICENSE" rel="noopener">
+      Licencia MIT
+    </a>
+    <a href="https://github.com/JohanParadaC/educontrol/blob/main/README.md" rel="noopener">
+      Documentación
+    </a>
+  </nav>
+
+  <p class="pie__stack">Angular 20 · Angular Material · Express 5 · MongoDB · JWT</p>
+</footer>
