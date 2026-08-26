@@ -84,6 +84,17 @@ const PANTALLAS = [
     alto: 844,
     preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
   },
+  {
+    // La misma pantalla en oscuro. El sistema de diseño se ve entero aquí y
+    // así el modo oscuro deja de ser una promesa del README.
+    fichero: '07-admin-oscuro.png',
+    titulo: 'Panel de administración en modo oscuro',
+    ruta: '/login',
+    ancho: 1280,
+    alto: 900,
+    tema: 'dark',
+    preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
+  },
 ];
 
 /** Devuelve un script que rellena el login y espera a salir de /login. */
@@ -180,6 +191,13 @@ async function main() {
   await enviar('Runtime.enable');
 
   for (const p of PANTALLAS) {
+    // El tema se fija a mano en cada captura. Sin esto, Chrome hereda el
+    // esquema del sistema y las mismas capturas salen claras u oscuras según
+    // quién las regenere.
+    await enviar('Emulation.setEmulatedMedia', {
+      features: [{ name: 'prefers-color-scheme', value: p.tema ?? 'light' }],
+    });
+
     await enviar('Emulation.setDeviceMetricsOverride', {
       width: p.ancho,
       height: p.alto,
