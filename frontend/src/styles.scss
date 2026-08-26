@@ -30,6 +30,199 @@ html {
 }
 
 /* ---------------------------------------------------------------------------
+   TOKENS DE EDUCONTROL — Dirección A, "consola académica"
+   ---------------------------------------------------------------------------
+   Una capa propia por encima de Material 3, no en lugar de él.
+
+   Material sigue generando sus `--mat-sys-*` con mat.theme(); lo que hace este
+   bloque es (1) declarar el vocabulario del producto y (2) reapuntar los
+   `--mat-sys-*` que importan a esos tokens. Así los componentes de Material
+   —tablas, botones, diálogos, paginador— obedecen a la paleta sin tocarlos uno
+   a uno, y el resto del CSS del proyecto habla en términos del producto
+   (`--superficie-1`, `--texto-suave`) y no de Material.
+
+   El antes era el tema por defecto del schematic: azul Azure saturado, tarjetas
+   gris sobre gris sin borde ni elevación, y ningún modo oscuro.
+
+   REGLA: ningún color tiene su única definición dentro de un @media. Todo se
+   declara aquí, en claro, y los bloques de abajo solo redefinen. Si un token
+   solo existiera dentro del bloque oscuro, en claro sería `unset` y el
+   componente saldría transparente.
+   --------------------------------------------------------------------------- */
+:root {
+  /* --- Superficies: del papel hacia arriba ------------------------------- */
+  --superficie-0: #ffffff; /* tarjetas, diálogos, barra */
+  --superficie-1: #f8fafc; /* fondo de la página */
+  --superficie-2: #f1f5f9; /* cabeceras de tabla, zonas hundidas */
+
+  --borde: #e2e8f0;
+
+  /* --- Texto ------------------------------------------------------------- */
+  --texto: #0f172a;
+  /* slate-600 y no slate-500. Con #64748b el texto secundario daba 4,34:1
+     sobre la superficie hundida —cabeceras de tabla, chips—, por debajo del
+     4,5 que pide AA. Medido, no estimado. */
+  --texto-suave: #475569;
+
+  /* --- Acento: el color de la acción, no del decorado -------------------- */
+  --acento: #2563eb;
+  --acento-fuerte: #1d4ed8; /* hover de la acción primaria */
+  --acento-suave: #eff6ff; /* fondos teñidos, chips seleccionados */
+  --sobre-acento: #ffffff;
+
+  /* --- Roles: cada uno con su color, siempre el mismo -------------------- */
+  --rol-estudiante: #0ea5e9;
+  --rol-profesor: #8b5cf6;
+  --rol-admin: #f59e0b;
+
+  /* El color del rol sirve para pintar el fondo de un chip, no para escribir
+     encima: el ámbar sobre blanco da 2,3:1. Estos son la versión legible del
+     mismo color, para el texto. */
+  --rol-estudiante-texto: #0369a1;
+  --rol-profesor-texto: #6d28d9;
+  /* amber-800 y no 700: sobre su propio fondo teñido, el 700 se quedaba en
+     4,44:1, a seis centésimas de AA. El ámbar es el color difícil de la paleta. */
+  --rol-admin-texto: #92400e;
+
+  /* --- Estado ------------------------------------------------------------ */
+  --exito: #059669;
+  --aviso: #d97706;
+  --error: #dc2626;
+  --sobre-error: #ffffff;
+
+  /* --- Forma ------------------------------------------------------------- */
+  --radio-sm: 6px;
+  --radio-md: 10px;
+  --radio-lg: 14px;
+
+  /* --- Profundidad -------------------------------------------------------
+     Sombras de slate y no de negro puro: sobre neutros fríos, el negro
+     ensucia. */
+  --sombra-1: 0 1px 2px rgb(15 23 42 / 6%), 0 1px 3px rgb(15 23 42 / 4%);
+  --sombra-2: 0 4px 12px rgb(15 23 42 / 8%);
+
+  /* --- Velo de los diálogos y del menú móvil -----------------------------
+     Negro con alfa y no una superficie: es una sombra sobre el contenido, y
+     tiene que atenuar igual en claro y en oscuro. Por eso no se redefine
+     abajo. */
+  --velo: rgb(0 0 0 / 32%);
+
+  /* --- Transición estándar ---------------------------------------------- */
+  --transicion: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   MODO OSCURO
+   Solo se redefinen tokens. Dos bloques a propósito:
+   - el @media, para quien no ha elegido nada y su sistema está en oscuro;
+   - el [data-theme="dark"], para que un selector manual gane en los dos
+     sentidos. El guard :not([data-theme="light"]) es lo que permite que
+     alguien fuerce el claro teniendo el sistema en oscuro.
+   --------------------------------------------------------------------------- */
+@mixin tokens-oscuros {
+  --superficie-0: #0f172a;
+  --superficie-1: #0b1120;
+  --superficie-2: #1e293b;
+
+  --borde: #334155;
+
+  --texto: #f1f5f9;
+  --texto-suave: #94a3b8; /* 5,9:1 sobre superficie-0 */
+
+  /* En oscuro el acento se aclara y el texto encima se oscurece: un #2563eb
+     sobre #0f172a no llega a AA, y con texto blanco encima tampoco. */
+  --acento: #60a5fa;
+  --acento-fuerte: #93c5fd;
+  --acento-suave: #172554;
+  --sobre-acento: #0b1120;
+
+  --rol-estudiante: #38bdf8;
+  --rol-profesor: #a78bfa;
+  --rol-admin: #fbbf24;
+
+  /* En oscuro el propio color ya contrasta contra el fondo: no hace falta
+     oscurecerlo, hace falta no aclararlo más. */
+  --rol-estudiante-texto: #7dd3fc;
+  --rol-profesor-texto: #c4b5fd;
+  --rol-admin-texto: #fcd34d;
+
+  --exito: #34d399;
+  --aviso: #fbbf24;
+  --error: #f87171;
+  --sobre-error: #0b1120;
+
+  /* Sobre fondo oscuro una sombra negra no se ve: la profundidad la da el
+     borde, así que las sombras se suavizan y no desaparecen del todo. */
+  --sombra-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --sombra-2: 0 4px 12px rgb(0 0 0 / 50%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include tokens-oscuros;
+  }
+}
+
+:root[data-theme='dark'] {
+  @include tokens-oscuros;
+}
+
+/* ---------------------------------------------------------------------------
+   PUENTE CON MATERIAL
+   Los componentes de Material leen `--mat-sys-*`. Reapuntarlos aquí es lo que
+   hace que una tabla, un diálogo o un paginador sigan la paleta sin tener que
+   escribir reglas para cada uno.
+
+   Va después de mat.theme() a propósito: misma especificidad, gana el último.
+   --------------------------------------------------------------------------- */
+:root {
+  --mat-sys-surface: var(--superficie-0);
+  --mat-sys-surface-container-lowest: var(--superficie-0);
+  --mat-sys-surface-container-low: var(--superficie-1);
+  --mat-sys-surface-container: var(--superficie-1);
+  --mat-sys-surface-container-high: var(--superficie-2);
+  --mat-sys-surface-container-highest: var(--superficie-2);
+  --mat-sys-surface-variant: var(--superficie-2);
+  --mat-sys-surface-bright: var(--superficie-0);
+  --mat-sys-surface-dim: var(--superficie-2);
+  --mat-sys-background: var(--superficie-1);
+
+  --mat-sys-on-surface: var(--texto);
+  --mat-sys-on-background: var(--texto);
+  --mat-sys-on-surface-variant: var(--texto-suave);
+
+  --mat-sys-outline: var(--borde);
+  --mat-sys-outline-variant: var(--borde);
+
+  --mat-sys-primary: var(--acento);
+  --mat-sys-on-primary: var(--sobre-acento);
+  --mat-sys-primary-container: var(--acento-suave);
+  --mat-sys-on-primary-container: var(--acento-fuerte);
+
+  --mat-sys-secondary: var(--texto-suave);
+  --mat-sys-on-secondary: var(--superficie-0);
+  --mat-sys-secondary-container: var(--superficie-2);
+  --mat-sys-on-secondary-container: var(--texto);
+
+  --mat-sys-tertiary: var(--rol-profesor);
+  --mat-sys-on-tertiary: var(--sobre-acento);
+
+  --mat-sys-error: var(--error);
+  --mat-sys-on-error: var(--sobre-error);
+  --mat-sys-error-container: color-mix(in srgb, var(--error) 14%, transparent);
+  --mat-sys-on-error-container: var(--error);
+
+  --mat-sys-inverse-surface: var(--texto);
+  --mat-sys-inverse-on-surface: var(--superficie-0);
+
+  /* Las sombras de Material pasan a las nuestras, para que una tarjeta y un
+     menú flotante no tengan dos lenguajes de profundidad distintos. */
+  --mat-sys-level1: var(--sombra-1);
+  --mat-sys-level2: var(--sombra-2);
+  --mat-sys-level3: var(--sombra-2);
+}
+
+/* ---------------------------------------------------------------------------
    ESCALA DE ESPACIADO
    Una sola fuente de verdad para márgenes y paddings. Antes cada componente
    improvisaba (16 aquí, 32 allá, style="margin-left:8px" en el HTML).
@@ -54,9 +247,12 @@ body {
 }
 
 body {
-  color-scheme: light;
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
+  /* `light dark` y no `light`: sin esto, los controles nativos, las barras de
+     desplazamiento y el fondo del formulario se quedan en claro dentro de una
+     interfaz oscura. */
+  color-scheme: light dark;
+  background-color: var(--superficie-1);
+  color: var(--texto);
   font: var(--mat-sys-body-medium);
 }
 
@@ -91,31 +287,29 @@ body {
 
 /* ---------------------------------------------------------------------------
    BARRA SUPERIOR
-   `color="primary"` en <mat-toolbar> es API de Material 2 y este proyecto usa
-   mat.theme() de M3, que la ignora: la barra salía blanca sobre fondo blanco.
+   Era una franja de azul saturado de 64 px: el elemento con más peso visual de
+   la pantalla era el que menos información lleva. En la dirección "consola",
+   el acento es el color de la acción, no el fondo de una banda. La barra pasa
+   a ser una superficie más, separada por un borde.
    --------------------------------------------------------------------------- */
 mat-toolbar.mat-toolbar {
-  background: var(--mat-sys-primary);
-  color: var(--mat-sys-on-primary);
+  background: var(--superficie-0);
+  color: var(--texto);
+  border-bottom: 1px solid var(--borde);
   gap: var(--sp-1);
 
-  /* El icon-button no hereda el color del toolbar por su cuenta: sin esto el
-     icono de menú sale oscuro sobre el azul. */
   .mat-mdc-button,
   .mat-mdc-outlined-button,
   .mat-mdc-icon-button,
   .mat-mdc-icon-button .mat-icon {
-    color: var(--mat-sys-on-primary);
+    color: var(--texto-suave);
   }
 
-  /* El botón del rol activo se distingue por fondo, no solo por negrita. */
+  /* La sección en la que estás sí lleva el acento: es el único sitio de la
+     barra donde el color significa algo. */
   .active {
-    background: color-mix(in srgb, var(--mat-sys-on-primary) 18%, transparent);
-  }
-
-  /* Sobre el azul de la barra, el contorno azul sería invisible. */
-  :focus-visible {
-    outline-color: var(--mat-sys-on-primary) !important;
+    background: var(--acento-suave);
+    color: var(--acento-fuerte);
   }
 }
 
@@ -136,27 +330,83 @@ a:not(.mat-mdc-button-base) {
    Retoques visuales rápidos (compatibles con M3)
    --------------------------------------------------------------------------- */
 
-/* Cards más redondeadas y con un pelín de transparencia (si usas dark, se notará más) */
+/* ---------------------------------------------------------------------------
+   TARJETAS
+   Eran gris sobre gris, sin borde ni sombra: se leían como bloques de fondo y
+   no como objetos. Ahora tienen superficie propia, un borde de 1 px y una
+   sombra que sube al pasar el ratón.
+   --------------------------------------------------------------------------- */
 .mdc-card,
 .mat-mdc-card {
-  border-radius: 16px !important;
-  backdrop-filter: blur(2px);
+  /* Material pinta la tarjeta con sus propias variables y le pone
+     `border: none`, así que no basta con declarar background y border: hay que
+     hablarle en su idioma y forzar el borde. Sin esto, la tarjeta seguía
+     saliendo del color del fondo —gris sobre gris— y sin contorno. */
+  --mat-card-elevated-container-color: var(--superficie-0);
+  --mat-card-filled-container-color: var(--superficie-0);
+  --mat-card-outlined-container-color: var(--superficie-0);
+
+  background: var(--superficie-0) !important;
+  border: 1px solid var(--borde) !important;
+  border-radius: var(--radio-lg) !important;
+  box-shadow: var(--sombra-1) !important;
+  transition:
+    box-shadow var(--transicion),
+    border-color var(--transicion);
 }
 
-/* Tablas limpias */
+/* Solo donde hay puntero fino: en táctil el hover se queda pegado tras tocar. */
+@media (hover: hover) {
+  .mdc-card:hover,
+  .mat-mdc-card:hover {
+    box-shadow: var(--sombra-2) !important;
+    border-color: color-mix(in srgb, var(--acento) 30%, var(--borde));
+  }
+}
+
+/* Tablas: la cabecera se apoya en la superficie hundida y el cuerpo respira. */
 .mat-mdc-table {
   background: transparent;
 }
 .mat-mdc-header-row {
-  font-weight: 600;
+  /* !important porque Material pinta la fila de cabecera con el color de fondo
+     de la tabla y gana por especificidad. Sin esto la cabecera se confunde con
+     el cuerpo y la tabla no tiene dónde empezar a leerse. */
+  background: var(--superficie-2) !important;
+  font: var(--mat-sys-title-small);
+}
+.mat-mdc-row:hover {
+  background: var(--superficie-1);
 }
 
-/* Botones con bordes más suaves */
+/* Botones con el radio medio del sistema. */
 .mdc-button,
 .mat-mdc-unelevated-button,
 .mat-mdc-raised-button,
 .mat-mdc-outlined-button {
-  border-radius: 10px !important;
+  border-radius: var(--radio-md) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   CONTROLES DESHABILITADOS
+   Material los pinta con la etiqueta al 38 % de opacidad. Sobre el fondo claro
+   se leen a duras penas; sobre el oscuro daban 1,17:1, o sea invisibles: el
+   botón "Asignar profesor" desaparecía hasta que elegías curso y profesor.
+
+   Un control deshabilitado tiene que PARECER deshabilitado, no esfumarse: si
+   no se ve, tampoco se entiende que está ahí esperando algo.
+   --------------------------------------------------------------------------- */
+/* !important a propósito: Material escribe el color de la etiqueta
+   deshabilitada en una regla propia, con más peso que sus propias variables.
+   Declararlas no bastaba —seguía saliendo al 38 %— y esta es la diferencia
+   entre "se ve apagado" y "no se ve". */
+.mat-mdc-button-base:disabled,
+.mat-mdc-button-base.mat-mdc-button-disabled {
+  color: color-mix(in srgb, var(--texto) 55%, transparent) !important;
+
+  .mat-icon {
+    color: inherit !important;
+  }
 }
 
 /* En pantallas táctiles los botones suben a 48px (el objetivo recomendado por
@@ -173,9 +423,9 @@ a:not(.mat-mdc-button-base) {
 
 /* Separadores sutiles entre secciones (opcional) */
 .section {
-  margin-block: 16px;
-  padding-block: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--mat-sys-outline) 30%, transparent);
+  margin-block: var(--sp-4);
+  padding-block: var(--sp-2);
+  border-top: 1px solid var(--borde);
 }
 
 /* Chips de rol.
@@ -187,12 +437,18 @@ a:not(.mat-mdc-button-base) {
   padding: 2px 10px;
   border-radius: 999px;
   font: var(--mat-sys-label-medium);
-  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
-  color: var(--mat-sys-on-primary);
+
+  /* El color lo pone el rol, y es siempre el mismo en toda la aplicación: un
+     estudiante es cian aquí y en la tabla de al lado. El fondo es el color al
+     14 % y el texto el color entero, que sobre ese fondo sí contrasta. */
+  background: color-mix(in srgb, var(--rol-estudiante) 14%, transparent);
+  color: var(--rol-estudiante-texto);
 }
 .role-chip.pro {
-  background: color-mix(in srgb, var(--mat-sys-tertiary) 22%, transparent);
+  background: color-mix(in srgb, var(--rol-profesor) 14%, transparent);
+  color: var(--rol-profesor-texto);
 }
 .role-chip.admin {
-  background: color-mix(in srgb, var(--mat-sys-secondary) 22%, transparent);
+  background: color-mix(in srgb, var(--rol-admin) 16%, transparent);
+  color: var(--rol-admin-texto);
 }
