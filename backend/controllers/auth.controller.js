@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
+const { normalizarCorreo } = require('../utils/correo');
 const { firmarToken } = require('../utils/jwt');
 
 /**
@@ -19,7 +20,10 @@ const CREDENCIALES_INVALIDAS = 'Correo o contraseña incorrectos';
 // POST /api/auth/login
 const login = async (req, res, next) => {
   // 👇 Aceptamos cualquiera de estas claves desde el frontend
-  const correo = req.body?.correo;
+  // El esquema guarda el correo en minúsculas y sin espacios. Buscarlo tal
+  // y como venga significa que quien escribe "Ana@x.com" no encuentra su
+  // propia cuenta.
+  const correo = normalizarCorreo(req.body?.correo);
   const pass = req.body?.contraseña ?? req.body?.password ?? req.body?.contrasena;
 
   if (!correo || !pass) {

@@ -1,6 +1,7 @@
 // controllers/admin.controller.js
 const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
+const { normalizarCorreo } = require('../utils/correo');
 
 /**
  * POST /api/admin/seed-admin
@@ -22,7 +23,7 @@ exports.seedAdmin = async (req, res) => {
     };
     const { correo, password, nombre } = { ...defaults, ...(req.body || {}) };
 
-    const existente = await Usuario.findOne({ correo });
+    const existente = await Usuario.findOne({ correo: normalizarCorreo(correo) });
     if (existente) {
       // Nada que hacer: no tocamos rol ni contraseña de una cuenta ya creada.
       return res.status(200).json({

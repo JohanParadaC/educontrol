@@ -187,7 +187,7 @@
                usamos solo íconos; de lo contrario, botones con texto -->
           <td mat-cell *matCellDef="let c" class="acciones-cell">
             <!-- Versión con texto -->
-            <ng-container *ngIf="!accionesCompactas(c); else soloIconos">
+            <ng-container *ngIf="!accionesCompactas(); else soloIconos">
               <button mat-stroked-button (click)="abrirDialogEditarCurso(c)">
                 <mat-icon>edit</mat-icon>
                 <span>Editar</span>

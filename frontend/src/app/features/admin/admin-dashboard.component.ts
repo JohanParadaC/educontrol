@@ -100,7 +100,6 @@ export class AdminDashboardComponent implements OnInit {
   eliminandoId: string | null = null;
 
   /** 🔢 Umbral para considerar descripción “larga” y compactar acciones */
-  private readonly DESC_LARGA = 200; // ✅ NUEVO
 
   constructor(
     private api: ApiService,
@@ -436,11 +435,16 @@ export class AdminDashboardComponent implements OnInit {
 
   // ========= helpers =========
 
-  /** ✅ Si la descripción es larga o la ventana es estrecha, mostramos solo íconos */
-  accionesCompactas(c: Curso): boolean {
-    const len = (c?.descripcion || '').length;
-    const estrecha = window.innerWidth < 1200;
-    return len > this.DESC_LARGA || estrecha;
+  /**
+   * En ventanas estrechas, las acciones de la fila se quedan en iconos.
+   *
+   * Aquí había también un umbral de 200 caracteres de descripción: si el texto
+   * se desbordaba, se compactaban los botones. Era tratar el síntoma —el dato
+   * no estaba acotado— desde el sitio equivocado. Ahora `Curso.descripcion`
+   * tiene maxlength 500 en el modelo y la longitud deja de decidir el layout.
+   */
+  accionesCompactas(): boolean {
+    return window.innerWidth < 1200;
   }
 
   trackOpt = (_: number, item: { _id: string }) => item._id;

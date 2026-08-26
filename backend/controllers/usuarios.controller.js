@@ -5,6 +5,7 @@ const Inscripcion = require('../models/Inscripcion');
 const bcrypt = require('bcryptjs');
 const { claveProfesorValida, extraerClave } = require('../utils/profesorClave');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
+const { normalizarCorreo } = require('../utils/correo');
 
 const ROLES_PUBLICOS = ['estudiante', 'profesor'];
 const ROLES = [...ROLES_PUBLICOS, 'admin'];
@@ -22,7 +23,7 @@ const crearUsuario = async (req, res, next) => {
       return res.status(403).json({ ok: false, msg: 'Clave de profesor inválida' });
     }
 
-    const existe = await Usuario.findOne({ correo });
+    const existe = await Usuario.findOne({ correo: normalizarCorreo(correo) });
     if (existe) return res.status(400).json({ ok: false, msg: 'Correo ya registrado' });
 
     const salt = await bcrypt.genSalt(10);
