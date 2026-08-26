@@ -32,6 +32,7 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Curso } from '../../data/curso.model';
 import { Usuario } from '../../data/usuario.model';
+import { Inscripcion } from '../../data/inscripcion.model';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 import { mensajeDeError } from '../../core/http-error';
 
@@ -170,7 +171,7 @@ export class ProfessorClassesComponent implements OnInit {
       cursos: this.api.listCursosDeProfesorMe(),
       // Las inscripciones sí toleran fallo: sin ellas se ven los cursos pero
       // sin alumnos, que es peor que nada pero mejor que una pantalla vacía.
-      ins: this.api.listInscripciones().pipe(catchError(() => of([] as any[]))),
+      ins: this.api.listInscripciones().pipe(catchError(() => of<Inscripcion[]>([]))),
     }).subscribe({
       next: ({ cursos, ins }) => {
         this.cursos = cursos || [];

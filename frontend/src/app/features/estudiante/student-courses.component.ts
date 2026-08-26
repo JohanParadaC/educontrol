@@ -1,7 +1,14 @@
-// src/app/student/student-courses.component.ts
-// Catálogo de cursos (búsqueda + auto-matrícula con ApiService.enrollMe).
+// src/app/features/estudiante/student-courses.component.ts
+// ---------------------------------------------------------------------------
+// Catálogo de cursos: buscar y matricularse.
+//
+// La búsqueda la hace el servidor (?buscar=), con 300 ms de espera entre
+// pulsaciones. Antes se descargaban 100 cursos y se filtraban aquí: con 101
+// cursos, la búsqueda dejaba fuera resultados reales sin decir nada.
+// ---------------------------------------------------------------------------
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -10,13 +17,20 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar'; // ✅ módulo incluido
-import { BehaviorSubject, of, combineLatest, startWith, map, switchMap, Observable } from 'rxjs';
+import {
+  of,
+  startWith,
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  catchError,
+  tap,
+} from 'rxjs';
 
 import { ApiService } from '../../core/api.service';
 import { mensajeDeError } from '../../core/http-error';
 import { Curso } from '../../data/curso.model';
-
-type Inscripcion = { _id: string; curso: string | Curso; estudiante?: any; cursoId?: string };
+import { Inscripcion } from '../../data/inscripcion.model';
 
 @Component({
   standalone: true,
@@ -57,7 +71,7 @@ type Inscripcion = { _id: string; curso: string | Curso; estudiante?: any; curso
       </div>
 
       <ng-container *ngIf="!cargando && !errorCarga">
-        <ng-container *ngIf="filtered | async as lista">
+        <ng-container *ngIf="cursos as lista">
           <div class="grid cards">
             <mat-card *ngFor="let c of lista; trackBy: trackCurso" class="course">
               <h3>{{ c.titulo }}</h3>
@@ -189,10 +203,10 @@ type Inscripcion = { _id: string; curso: string | Curso; estudiante?: any; curso
   ],
 })
 export class StudentCoursesComponent implements OnInit {
-  private api = inject(ApiService) as any;
+  private api = inject(ApiService);
   private snack = inject(MatSnackBar);
+  private destroyRef = inject(DestroyRef);
 
-  private cursos$ = new BehaviorSubject<Curso[]>([]);
   cursos: Curso[] = [];
   inscripciones: Inscripcion[] = [];
 
@@ -201,52 +215,51 @@ export class StudentCoursesComponent implements OnInit {
 
   q = new FormControl<string>('', { nonNullable: true });
 
-  filtered = combineLatest([this.q.valueChanges.pipe(startWith('')), this.cursos$]).pipe(
-    map(([q, cursos]) => this.filterCourses(cursos, q))
-  );
-
   ngOnInit() {
-    // Catálogo
-    this.cargando = true;
-    (this.api.listCursos?.() ?? this.api.getCursos?.() ?? of<Curso[]>([])).subscribe({
-      next: (cs: Curso[]) => {
-        this.cursos = cs || [];
-        this.cursos$.next(this.cursos);
+    this.q.valueChanges
+      .pipe(
+        // 300 ms: escribir "algoritmos" son once pulsaciones, y sin espera
+        // serían once búsquedas.
+        debounceTime(300),
+        distinctUntilChanged(),
+        startWith(this.q.value),
+        tap(() => {
+          this.cargando = true;
+          this.errorCarga = '';
+        }),
+        switchMap(texto =>
+          this.api.listCursos({ buscar: texto }).pipe(
+            // Este catchError no se traga el fallo: lo deja en errorCarga, que
+            // la plantilla pinta como estado de error. Está aquí dentro para
+            // que un error no mate el flujo y deje el buscador muerto.
+            catchError(err => {
+              this.errorCarga = mensajeDeError(err, 'No se pudieron cargar los cursos.');
+              return of<Curso[]>([]);
+            })
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(cs => {
+        this.cursos = cs ?? [];
         this.cargando = false;
-      },
-      error: (err: unknown) => {
-        // Un fallo al cargar no puede parecerse a "no hay cursos": son cosas
-        // distintas y el usuario necesita saber cuál le ha tocado.
-        this.errorCarga = mensajeDeError(err, 'No se pudieron cargar los cursos.');
-        this.cargando = false;
-      },
-    });
+      });
 
-    // Mis inscripciones
-    this.getMyEnrollments().subscribe((ins: Inscripcion[]) => {
-      this.inscripciones = ins || [];
-    });
+    this.cargarInscripciones();
   }
 
-  /** Reintenta la carga sin obligar a recargar la página entera. */
+  /** Reintenta la búsqueda actual sin recargar la página entera. */
   reintentar(): void {
     this.errorCarga = '';
-    this.ngOnInit();
+    // distinctUntilChanged descartaría el mismo texto, así que se pasa por un
+    // valor distinto para forzar el ciclo.
+    const texto = this.q.value;
+    this.q.setValue(texto === '' ? ' ' : '');
+    this.q.setValue(texto);
   }
 
-  profName(p: any): string {
-    return typeof p === 'string' ? '' : p?.nombre || '';
-  }
-
-  filterCourses(cursos: Curso[], q: string): Curso[] {
-    const s = (q || '').trim().toLowerCase();
-    if (!s) return cursos;
-    return cursos.filter(
-      c =>
-        c.titulo?.toLowerCase().includes(s) ||
-        c.descripcion?.toLowerCase().includes(s) ||
-        this.profName(c.profesor).toLowerCase().includes(s)
-    );
+  profName(p: Curso['profesor']): string {
+    return typeof p === 'string' ? '' : (p?.nombre ?? '');
   }
 
   isEnrolled(cursoId: string): boolean {
@@ -255,40 +268,29 @@ export class StudentCoursesComponent implements OnInit {
     );
   }
 
-  // ✅ Usa enrollMe; sin snackbar viejo
   matricular(c: Curso) {
-    const id = c._id!;
-    (this.api.enrollMe?.(id) as Observable<any>).subscribe({
+    this.api.enrollMe(c._id!).subscribe({
       next: () => {
         this.snack.open('¡Matriculado con éxito!', 'OK', { duration: 2000 });
-        // refrescar inscripciones locales
-        this.getMyEnrollments().subscribe((ins: Inscripcion[]) => (this.inscripciones = ins || []));
+        this.cargarInscripciones();
       },
-      error: (e: any) =>
-        this.snack.open(e?.error?.msg || 'No se pudo matricular', 'Cerrar', { duration: 3000 }),
+      error: err =>
+        this.snack.open(mensajeDeError(err, 'No se pudo matricular.'), 'Cerrar', {
+          duration: 3000,
+        }),
     });
   }
 
-  // ✅ Tipado explícito
-  private getMyEnrollments(): Observable<Inscripcion[]> {
-    const api: any = this.api;
-    if (api.listMisInscripciones) return api.listMisInscripciones();
-    if (api.listInscripcionesMe) return api.listInscripcionesMe();
-    if (api.listInscripciones && api.me) {
-      return api.me().pipe(
-        switchMap((me: any) =>
-          api.listInscripciones().pipe(
-            map((all: Inscripcion[]) =>
-              (all || []).filter(i => {
-                const estId = (i as any).estudiante?._id || (i as any).estudiante || '';
-                return String(estId) === String(me?._id || me?.id || '');
-              })
-            )
-          )
-        )
-      );
-    }
-    return of<Inscripcion[]>([]);
+  private cargarInscripciones(): void {
+    this.api
+      .listInscripcionesMe()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ins => (this.inscripciones = ins ?? []),
+        // Si esto falla, el catálogo se sigue viendo: lo único que se pierde es
+        // saber en qué cursos ya estás, y el backend rechaza el duplicado.
+        error: () => (this.inscripciones = []),
+      });
   }
 
   trackCurso = (_: number, c: Curso) => c._id!;

@@ -22,6 +22,7 @@ import { catchError, finalize } from 'rxjs/operators';
 import { ApiService } from '../../core/api.service';
 import { Usuario } from '../../data/usuario.model';
 import { Curso } from '../../data/curso.model';
+import { idDe } from '../../data/sesion-local';
 import { CourseCreateDialogComponent } from './course-create-dialog.component';
 import { EnrollStudentDialogComponent } from './enroll-student-dialog.component';
 
@@ -118,14 +119,15 @@ export class AdminDashboardComponent implements OnInit {
    * tarjetas sí, así que resolvemos el nombre en un solo sitio.
    */
   nombreProfesor(curso: Curso): string {
-    const p: any = curso?.profesor;
-    if (!p) return 'Sin profesor asignado';
-    return typeof p === 'string' ? 'Sin profesor asignado' : p.nombre || 'Sin profesor asignado';
+    const p = curso?.profesor;
+    // Un identificador suelto no sirve para escribir un nombre: si el
+    // backend no lo pobló, no lo sabemos.
+    if (!p || typeof p === 'string') return 'Sin profesor asignado';
+    return p.nombre || 'Sin profesor asignado';
   }
 
   id(u: Partial<Usuario>): string {
-    const anyId = (u as any)?._id ?? (u as any)?.id ?? '';
-    return typeof anyId === 'string' ? anyId : (anyId?.toString?.() ?? '');
+    return idDe(u);
   }
 
   /** Reconstruye opciones para selects */
@@ -236,27 +238,26 @@ export class AdminDashboardComponent implements OnInit {
           this.snack.open('Selecciona un profesor', 'Cerrar', { duration: 2000 });
           return;
         }
-        const payload = {
-          titulo: data.titulo,
-          descripcion: data.descripcion,
-          profesor: profesorId,
-        } as any;
-
-        this.api.createCursoAdmin(payload).subscribe({
-          next: () => {
-            this.snack.open('Curso creado', 'OK', { duration: 2000 });
-            this.cargarTodo();
-          },
-          error: e =>
-            this.snack.open(e?.error?.msg || 'No se pudo crear', 'Cerrar', { duration: 3000 }),
-        });
+        this.api
+          .createCursoAdmin({
+            titulo: data.titulo,
+            descripcion: data.descripcion,
+            profesor: profesorId,
+          })
+          .subscribe({
+            next: () => {
+              this.snack.open('Curso creado', 'OK', { duration: 2000 });
+              this.cargarTodo();
+            },
+            error: e =>
+              this.snack.open(e?.error?.msg || 'No se pudo crear', 'Cerrar', { duration: 3000 }),
+          });
       });
   }
 
   // ================== CURSOS: EDITAR ==================
   abrirDialogEditarCurso(curso: Curso) {
-    const p: any = (curso as any).profesor;
-    const profesorId = typeof p === 'string' ? p : p && p._id ? String(p._id) : '';
+    const profesorId = idDe(curso.profesor);
 
     this.dialog
       .open(CourseCreateDialogComponent, {
@@ -279,11 +280,11 @@ export class AdminDashboardComponent implements OnInit {
           this.snack.open('Selecciona un profesor', 'Cerrar', { duration: 2000 });
           return;
         }
-        const payload = {
+        const payload: Partial<Curso> = {
           titulo: data.titulo,
           descripcion: data.descripcion,
           profesor: profId,
-        } as any;
+        };
 
         // Antes esto era un ternario sobre `(this.api as any).updateCursoAdmin`,
         // un método que nunca ha existido: la rama verdadera era inalcanzable.
@@ -425,8 +426,9 @@ export class AdminDashboardComponent implements OnInit {
               this.snack.open('Curso eliminado', 'OK', { duration: 1800 });
             },
             error: e => {
-              const msg = (e as any)?.error?.msg || 'No se pudo eliminar el curso';
-              this.snack.open(msg, 'Cerrar', { duration: 3000 });
+              this.snack.open(mensajeDeError(e, 'No se pudo eliminar el curso.'), 'Cerrar', {
+                duration: 3000,
+              });
             },
           });
       });

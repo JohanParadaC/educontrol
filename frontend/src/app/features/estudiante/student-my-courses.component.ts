@@ -1,57 +1,86 @@
+// src/app/features/estudiante/student-my-courses.component.ts
+// ---------------------------------------------------------------------------
+// Las matrículas del estudiante, con la opción de darse de baja.
+//
+// Esta pantalla estaba enrutada pero no enlazada desde ningún sitio, y sus tres
+// acciones estaban rotas: `desmatricular()` llamaba a un método que no existía
+// y avisaba de que "tu API no expone endpoint para cancelar matrícula",
+// `irAlCurso()` abría un aviso de "próximamente" y se pintaba un `progreso`
+// que el backend no tiene.
+//
+// Ahora la baja es real (DELETE /api/inscripciones/:id), el campo inventado ha
+// desaparecido y el enlace está en el navbar. "Ir al curso" se ha quitado
+// hasta que exista la ficha de curso: un botón cuyo único efecto es decir que
+// no hace nada es peor que no tener botón.
+// ---------------------------------------------------------------------------
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { switchMap, map } from 'rxjs';
 
 import { ApiService } from '../../core/api.service';
+import { mensajeDeError } from '../../core/http-error';
 import { Curso } from '../../data/curso.model';
-
-type Inscripcion = { _id: string; curso: string | Curso; progreso?: number; promedio?: number };
+import { Inscripcion } from '../../data/inscripcion.model';
+import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 
 @Component({
   standalone: true,
   selector: 'app-student-my-courses',
-  imports: [CommonModule, MatCardModule, MatIconModule, MatButtonModule, MatProgressBarModule],
+  imports: [
+    CommonModule,
+    RouterLink,
+    MatCardModule,
+    MatIconModule,
+    MatButtonModule,
+    EstadoVistaComponent,
+  ],
   template: `
-    <div class="grid gap-3">
-      <ng-container *ngIf="inscripciones.length; else empty">
-        <mat-card class="course" *ngFor="let i of inscripciones; trackBy: trackIns">
-          <div class="head">
-            <div>
-              <h3>{{ courseTitle(i.curso) }}</h3>
-              <div class="muted">{{ courseProfesor(i.curso) || '—' }}</div>
-            </div>
-            <div class="head-actions">
-              <button mat-stroked-button color="primary" (click)="irAlCurso(i)">
-                <mat-icon>open_in_new</mat-icon> Ir al curso
-              </button>
-              <button mat-stroked-button color="warn" (click)="desmatricular(i)">
-                <mat-icon>cancel</mat-icon> Cancelar
-              </button>
-            </div>
-          </div>
+    <h2 class="titulo">Mis cursos</h2>
 
-          <div class="progress" *ngIf="i.progreso !== null && i.progreso !== undefined">
-            <mat-progress-bar [value]="i.progreso"></mat-progress-bar>
-            <span>{{ i.progreso }}% completado</span>
-          </div>
-        </mat-card>
-      </ng-container>
+    <app-estado-vista
+      *ngIf="cargando || error || !inscripciones.length"
+      [cargando]="cargando"
+      [error]="error"
+      mensajeVacio="Aún no tienes cursos."
+      iconoVacio="school"
+      (reintentar)="cargar()"
+    >
+    </app-estado-vista>
 
-      <ng-template #empty>
-        <div class="empty">
-          <mat-icon>info</mat-icon>
-          Aún no tienes cursos. <a routerLink="/cursos">Explora el catálogo</a>
+    <div class="grid gap-3" *ngIf="!cargando && !error && inscripciones.length">
+      <mat-card class="course" *ngFor="let i of inscripciones; trackBy: trackIns">
+        <div class="head">
+          <div>
+            <h3>{{ tituloDe(i.curso) }}</h3>
+            <div class="muted">{{ profesorDe(i.curso) || '—' }}</div>
+          </div>
+          <button
+            mat-stroked-button
+            color="warn"
+            [disabled]="cancelandoId === i._id"
+            (click)="desmatricular(i)"
+          >
+            <mat-icon>cancel</mat-icon>
+            {{ cancelandoId === i._id ? 'Cancelando…' : 'Cancelar matrícula' }}
+          </button>
         </div>
-      </ng-template>
+      </mat-card>
     </div>
+
+    <p class="pie" *ngIf="!cargando && !error">
+      <a routerLink="/cursos">Explorar el catálogo</a>
+    </p>
   `,
   styles: [
     `
+      .titulo {
+        font: var(--mat-sys-headline-small);
+        margin: 0 0 16px;
+      }
       .grid {
         display: grid;
       }
@@ -67,95 +96,78 @@ type Inscripcion = { _id: string; curso: string | Curso; progreso?: number; prom
         align-items: center;
         gap: 12px;
       }
+      .head h3 {
+        margin: 0;
+      }
       .muted {
         opacity: 0.7;
       }
-      .head-actions button {
-        margin-left: 8px;
+      .pie {
+        margin-top: 16px;
       }
-      .progress {
-        margin-top: 8px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .empty {
-        opacity: 0.7;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+      @media (max-width: 700px) {
+        .head {
+          flex-direction: column;
+          align-items: stretch;
+        }
       }
     `,
   ],
 })
 export class StudentMyCoursesComponent implements OnInit {
-  private api = inject(ApiService) as any;
+  private api = inject(ApiService);
   private snack = inject(MatSnackBar);
 
   inscripciones: Inscripcion[] = [];
+  cargando = false;
+  error = '';
+  cancelandoId: string | null = null;
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.cargar();
   }
 
-  cargar() {
-    const api: any = this.api;
-    if (api.listMisInscripciones) {
-      api
-        .listMisInscripciones()
-        .subscribe((ins: Inscripcion[]) => (this.inscripciones = ins || []));
-    } else if (api.listInscripcionesMe) {
-      api.listInscripcionesMe().subscribe((ins: Inscripcion[]) => (this.inscripciones = ins || []));
-    } else if (api.listInscripciones && api.me) {
-      api
-        .me()
-        .pipe(
-          switchMap((me: any) =>
-            api.listInscripciones().pipe(
-              map((all: any[]) =>
-                (all || []).filter(i => {
-                  const estId = i?.estudiante?._id || i?.estudiante || '';
-                  return String(estId) === String(me?._id || me?.id || '');
-                })
-              )
-            )
-          )
-        )
-        .subscribe((ins: Inscripcion[]) => (this.inscripciones = ins || []));
-    }
+  cargar(): void {
+    this.cargando = true;
+    this.error = '';
+    this.api.listInscripcionesMe().subscribe({
+      next: ins => {
+        this.inscripciones = ins ?? [];
+        this.cargando = false;
+      },
+      error: err => {
+        // Un fallo de carga no es "no tienes cursos": llevan a acciones distintas.
+        this.error = mensajeDeError(err, 'No se pudieron cargar tus cursos.');
+        this.cargando = false;
+      },
+    });
   }
 
-  irAlCurso(_i: Inscripcion) {
-    this.snack.open('Navegación al curso próximamente 😉', 'Cerrar', { duration: 1500 });
+  desmatricular(i: Inscripcion): void {
+    this.cancelandoId = i._id;
+    this.api.deleteInscripcion(i._id).subscribe({
+      next: () => {
+        this.cancelandoId = null;
+        this.inscripciones = this.inscripciones.filter(x => x._id !== i._id);
+        this.snack.open('Matrícula cancelada', 'OK', { duration: 2000 });
+      },
+      error: err => {
+        this.cancelandoId = null;
+        this.snack.open(mensajeDeError(err, 'No se pudo cancelar la matrícula.'), 'Cerrar', {
+          duration: 3000,
+        });
+      },
+    });
   }
 
-  desmatricular(i: Inscripcion) {
-    if (this.api.deleteInscripcion) {
-      this.api.deleteInscripcion(i._id).subscribe({
-        next: () => {
-          this.snack.open('Matrícula cancelada', 'OK', { duration: 1500 });
-          this.cargar();
-        },
-        error: (e: any) =>
-          this.snack.open(e?.error?.msg || 'No se pudo cancelar', 'Cerrar', { duration: 2500 }),
-      });
-    } else {
-      this.snack.open('Tu API no expone endpoint para cancelar matrícula.', 'Cerrar', {
-        duration: 2500,
-      });
-    }
+  tituloDe(c: string | Curso): string {
+    return typeof c === 'string' ? c : (c?.titulo ?? '—');
   }
 
-  // helpers seguros para string | Curso
-  courseTitle(c: string | Curso) {
-    return typeof c === 'string' ? c : c?.titulo || '—';
+  profesorDe(c: string | Curso): string {
+    if (typeof c === 'string') return '';
+    return typeof c.profesor === 'string' ? '' : (c.profesor?.nombre ?? '');
   }
-  courseProfesor(c: string | Curso) {
-    return typeof c === 'string'
-      ? ''
-      : typeof c.profesor === 'string'
-        ? ''
-        : c.profesor?.nombre || '';
-  }
+
   trackIns = (_: number, i: Inscripcion) => i._id;
 }

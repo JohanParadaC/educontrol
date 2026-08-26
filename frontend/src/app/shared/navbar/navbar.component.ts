@@ -64,6 +64,13 @@ export class NavbarComponent {
       visible: () => this.isLoggedIn && this.role === 'estudiante',
     },
     {
+      // Estaba enrutada y sin enlazar: solo se llegaba escribiendo la URL.
+      etiqueta: 'Mis cursos',
+      ruta: '/mis-cursos',
+      icono: 'bookmark',
+      visible: () => this.isLoggedIn && this.role === 'estudiante',
+    },
+    {
       etiqueta: 'Mis clases',
       ruta: '/profesor/clases',
       icono: 'groups',

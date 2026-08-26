@@ -108,8 +108,16 @@ export class RegisterComponent {
     if (this.enviando) return;
     this.enviando = true;
 
-    // CAMBIO: ApiService.register ya mapea password -> 'contraseña'
-    this.api.register(this.form.value as any).subscribe({
+    // ApiService.register ya traduce password -> 'contraseña'. El formulario
+    // no está tipado, así que se declara aquí la forma que tiene: es un molde
+    // concreto, no un `as any` que apaga el tipado de la llamada entera.
+    const datos = this.form.value as {
+      nombre: string;
+      correo: string;
+      password: string;
+      rol: 'estudiante' | 'profesor';
+    };
+    this.api.register(datos).subscribe({
       next: () => {
         this.snack.open('Cuenta creada. Ahora inicia sesión.', 'OK', { duration: 3000 });
         this.router.navigateByUrl('/login'); // ruta real en tu router

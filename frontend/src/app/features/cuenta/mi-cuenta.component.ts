@@ -32,6 +32,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { mensajeDeError } from '../../core/http-error';
+import { idDe } from '../../data/sesion-local';
 
 /** La nueva contraseña y su repetición tienen que coincidir. */
 function coinciden(grupo: AbstractControl): ValidationErrors | null {
@@ -110,7 +111,7 @@ export class MiCuentaComponent {
     return this.auth.usuario;
   }
   get miId(): string {
-    return (this.usuario as any)?._id ?? (this.usuario as any)?.id ?? '';
+    return idDe(this.usuario);
   }
   get soyEstudiante(): boolean {
     return this.usuario?.rol === 'estudiante';
@@ -188,7 +189,7 @@ export class MiCuentaComponent {
     this.activandoProfesor = true;
     this.api
       .updateUsuario(this.miId, {
-        rol: 'profesor' as any,
+        rol: 'profesor',
         profesorClave: this.profesor.value.clave,
       })
       .subscribe({

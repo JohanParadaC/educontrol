@@ -109,7 +109,7 @@ export class LoginComponent {
 
   /** Lee el rol de forma robusta: primero del AuthService, si no desde localStorage */
   private getRoleSafe(): string {
-    const r = (this.auth.usuario as any)?.rol;
+    const r = this.auth.usuario?.rol;
     if (r) return r;
     try {
       const raw = localStorage.getItem('usuario') || localStorage.getItem('user');

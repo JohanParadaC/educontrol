@@ -1,4 +1,13 @@
-// src/app/student/student-dashboard.component.ts
+// src/app/features/estudiante/student-dashboard.component.ts
+// ---------------------------------------------------------------------------
+// Panel del estudiante: sus cursos y los que puede matricular.
+//
+// Este componente se defendía de una API imaginaria: probaba cinco nombres
+// para "mis cursos", tres para "mis inscripciones" y dos para el catálogo,
+// y si ninguno existía se descargaba todo y filtraba a mano. Ninguno de esos
+// métodos existe en ApiService, que está en este mismo repositorio y se puede
+// leer. Ahora llama a los reales.
+// ---------------------------------------------------------------------------
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
@@ -8,26 +17,16 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { RouterModule } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Observable, of, forkJoin } from 'rxjs';
-import { catchError, finalize, map } from 'rxjs/operators';
+import { of, forkJoin } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Curso } from '../../data/curso.model';
+import { mensajeDeError } from '../../core/http-error';
 
-/** Estructura mínima de una inscripción (por si el backend devuelve inscripciones) */
-type Inscripcion = {
-  _id: string;
-  curso?: string | Curso;
-  cursoId?: string;
-  estudiante?: any;
-  progreso?: number;
-  promedio?: number;
-  estado?: string;
-  createdAt?: string;
-};
-
-type CursoCard = Curso & { progreso?: number };
+import { Inscripcion } from '../../data/inscripcion.model';
+import { idDe } from '../../data/sesion-local';
 
 @Component({
   standalone: true,
@@ -75,10 +74,6 @@ type CursoCard = Curso & { progreso?: number };
                 <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
                 <mat-card-content>
                   <p class="desc" *ngIf="c.descripcion">{{ c.descripcion }}</p>
-                  <div class="progress" *ngIf="c.progreso !== null && c.progreso !== undefined">
-                    <mat-progress-bar [value]="c.progreso" mode="determinate"></mat-progress-bar>
-                    <span>{{ c.progreso }}%</span>
-                  </div>
                 </mat-card-content>
                 <mat-card-actions>
                   <a mat-button routerLink="/cursos">Ir al curso</a>
@@ -202,17 +197,17 @@ type CursoCard = Curso & { progreso?: number };
   ],
 })
 export class StudentDashboardComponent implements OnInit {
-  private api = inject(ApiService) as any;
+  private api = inject(ApiService);
   public auth = inject(AuthService);
   private snack = inject(MatSnackBar);
 
   cursos: Curso[] = []; // Catálogo completo
-  cursosDisponibles: Curso[] = []; // Catálogo – matriculados
-  misCursosCards: CursoCard[] = []; // Mis cursos listos para card
+  cursosDisponibles: Curso[] = []; // Catálogo menos los ya matriculados
+  misCursosCards: Curso[] = []; // Los cursos en los que está matriculado
 
   loadingCursos = false;
   loadingIns = false;
-  matriculandoId: string | null = null; // Controla “Matriculando…”
+  matriculandoId: string | null = null; // Controla el "Matriculando…"
 
   ngOnInit() {
     this.loadData();
@@ -223,123 +218,63 @@ export class StudentDashboardComponent implements OnInit {
     this.loadingCursos = true;
     this.loadingIns = true;
 
-    const cursos$ = this.getCursos$().pipe(catchError(() => of<Curso[]>([])));
-    const misCursos$ = this.getMyCoursesOrInscripciones$().pipe(catchError(() => of<any[]>([])));
-
-    forkJoin({ cursos: cursos$, mine: misCursos$ })
+    forkJoin({
+      cursos: this.api.listCursos().pipe(catchError(() => of<Curso[]>([]))),
+      inscripciones: this.api.listInscripcionesMe().pipe(catchError(() => of<Inscripcion[]>([]))),
+    })
       .pipe(
         finalize(() => {
           this.loadingCursos = false;
           this.loadingIns = false;
         })
       )
-      .subscribe(({ cursos, mine }) => {
-        this.cursos = cursos || [];
+      .subscribe(({ cursos, inscripciones }) => {
+        this.cursos = cursos ?? [];
 
-        // 1) endpoint devuelve cursos directos
-        if (this.looksLikeCursoArray(mine)) {
-          this.misCursosCards = (mine as Curso[]).map(c => ({ ...(c as Curso) }));
-        } else {
-          // 2) vino como inscripciones → hidratar
-          const mapCursos = new Map<string, Curso>();
-          for (const c of this.cursos) {
-            const id = this.idOf(c);
-            if (id) mapCursos.set(id, c);
-          }
+        // La inscripción trae el curso poblado, así que no hace falta cruzar
+        // con el catálogo: se usa el del catálogo solo para tener el mismo
+        // objeto (y el mismo `titulo` del mapper) en las dos listas.
+        const porId = new Map(this.cursos.map(c => [this.idOf(c), c]));
+        this.misCursosCards = (inscripciones ?? [])
+          .map(i => porId.get(idDe(i.curso)))
+          .filter((c): c is Curso => !!c);
 
-          const inscripciones: Inscripcion[] = (mine || []) as Inscripcion[];
-          const cards: CursoCard[] = [];
-          for (const i of inscripciones) {
-            const id = this.idOf(i.curso) || i.cursoId;
-            const cursoObj = id ? mapCursos.get(id) : undefined;
-            if (cursoObj) cards.push({ ...(cursoObj as Curso), progreso: i.progreso });
-          }
-          this.misCursosCards = cards;
-        }
-
-        // Cursos disponibles = catálogo – matriculados
-        const enrolledIds = new Set<string>(this.misCursosCards.map(c => this.idOf(c)));
-        this.cursosDisponibles = (this.cursos || []).filter(c => !enrolledIds.has(this.idOf(c)));
+        const matriculados = new Set(this.misCursosCards.map(c => this.idOf(c)));
+        this.cursosDisponibles = this.cursos.filter(c => !matriculados.has(this.idOf(c)));
       });
   }
 
-  /** ✅ Matricular desde el dashboard y actualizar tarjetas al vuelo */
+  /** Matricular desde el panel y actualizar las dos listas al vuelo */
   matricular(curso: Curso): void {
     const cursoId = this.idOf(curso);
     if (!cursoId) return;
 
     this.matriculandoId = cursoId;
-    (this.api.enrollMe?.(cursoId) as Observable<any>)
+    this.api
+      .enrollMe(cursoId)
       .pipe(finalize(() => (this.matriculandoId = null)))
       .subscribe({
         next: () => {
-          // mover a “Tus cursos” y quitar de “Disponibles”
-          this.misCursosCards = [{ ...(curso as Curso) }, ...this.misCursosCards];
+          this.misCursosCards = [curso, ...this.misCursosCards];
           this.cursosDisponibles = this.cursosDisponibles.filter(c => this.idOf(c) !== cursoId);
           this.snack.open('¡Matriculado con éxito!', 'OK', { duration: 2500 });
         },
-        error: err => {
-          const msg = err?.error?.msg || err?.message || 'No se pudo matricular';
-          this.snack.open(msg, 'Cerrar', { duration: 3500 });
-        },
+        error: err =>
+          this.snack.open(mensajeDeError(err, 'No se pudo matricular.'), 'Cerrar', {
+            duration: 3500,
+          }),
       });
   }
 
-  /** Trae catálogo con el nombre disponible */
-  private getCursos$(): Observable<Curso[]> {
-    const api: any = this.api;
-    return api.listCursos?.() ?? api.getCursos?.() ?? of<Curso[]>([]);
-  }
-
-  /** Intenta “mis cursos”; si no hay, usa inscripciones; si no, filtra todas */
-  private getMyCoursesOrInscripciones$(): Observable<Curso[] | Inscripcion[]> {
-    const api: any = this.api;
-
-    const directCourseFns = [
-      'getMisCursos',
-      'obtenerMisCursos',
-      'getCursosMatriculados',
-      'getCursosInscrito',
-      'myCourses',
-    ];
-    for (const fn of directCourseFns) {
-      if (typeof api[fn] === 'function') return api[fn]();
-    }
-
-    const myEnrollFns = ['listMisInscripciones', 'getMisInscripciones', 'listInscripcionesMe'];
-    for (const fn of myEnrollFns) {
-      if (typeof api[fn] === 'function') return api[fn]();
-    }
-
-    // Fallback: todas → filtrar por usuario
-    const meId = (this.auth.usuario as any)?._id || (this.auth.usuario as any)?.id || '';
-    const getAll: () => Observable<Inscripcion[]> =
-      this.api.getInscripciones?.bind(this.api) ??
-      this.api.listInscripciones?.bind(this.api) ??
-      (() => of<Inscripcion[]>([]));
-
-    return getAll().pipe(
-      map((all: Inscripcion[]) =>
-        (all || []).filter((i: Inscripcion) => {
-          const estId = this.idOf((i as any).estudiante);
-          return estId === meId;
-        })
-      )
-    );
-  }
-
   // ---------- helpers ----------
-  private looksLikeCursoArray(arr: any[]): arr is Curso[] {
-    return Array.isArray(arr) && (arr.length ? 'titulo' in (arr[0] || {}) : true);
+  /** Pública para usarla en la plantilla. */
+  idOf(x: Curso | string | null | undefined): string {
+    return idDe(x);
   }
-  /** ⚠️ Pública para usarla en el template */
-  idOf(x: any): string {
-    if (!x) return '';
-    if (typeof x === 'string') return x;
-    return (x._id ?? x.id ?? x.uid ?? x._uid ?? '') as string;
+
+  profName(p: Curso['profesor']): string {
+    return typeof p === 'string' ? p : (p?.nombre ?? '');
   }
-  profName(p: any): string {
-    return typeof p === 'string' ? p : p?.nombre || '';
-  }
-  trackCurso = (_: number, c: Curso | CursoCard) => (c as any)._id ?? (c as any).titulo;
+
+  trackCurso = (_: number, c: Curso) => this.idOf(c) || c.titulo;
 }

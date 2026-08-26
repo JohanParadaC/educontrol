@@ -225,7 +225,7 @@ export class ProfessorDashboardComponent implements OnInit {
         const idsCursos = new Set(this.cursos.map(c => this.idOf(c)));
 
         for (const i of ins || []) {
-          const cursoId = this.idOf((i as any).curso) || (i as any).cursoId;
+          const cursoId = this.idOf(i.curso);
           if (!cursoId || !idsCursos.has(cursoId)) continue;
 
           const prev = this.inscritosPorCurso.get(cursoId) || 0;
