@@ -13,9 +13,9 @@ import {
 } from '@angular/forms';
 
 import { Router, RouterModule } from '@angular/router';     // 👈 necesario por el routerLink del template
-import { AuthService }          from '../../core/auth.service';
-import { mensajeDeError }       from '../../core/http-error';
-import { rutaInicioPara }       from '../../core/rutas';
+import { AuthService }          from '../../../core/auth.service';
+import { mensajeDeError }       from '../../../core/http-error';
+import { rutaInicioPara }       from '../../../core/rutas';
 
 /* Angular Material centralizado (si exporta todo) */
 /* Solo los módulos que usa la pantalla, no el paquete entero. */

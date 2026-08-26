@@ -11,7 +11,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
-import { Inscripcion } from '../models/inscripcion.model';
+import { Inscripcion } from './inscripcion.model';
 import { usuarioLocal, idDe } from './sesion-local';
 
 @Injectable({ providedIn: 'root' })

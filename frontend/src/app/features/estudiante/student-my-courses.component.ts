@@ -7,8 +7,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, switchMap, map } from 'rxjs';
 
-import { ApiService } from '../core/api.service';
-import { Curso } from '../models/curso.model';
+import { ApiService } from '../../core/api.service';
+import { Curso } from '../../data/curso.model';
 
 type Inscripcion = { _id: string; curso: string | Curso; progreso?: number; promedio?: number; };
 

@@ -20,9 +20,9 @@ import {
   Observable,
 } from 'rxjs';
 
-import { ApiService } from '../core/api.service';
-import { mensajeDeError } from '../core/http-error';
-import { Curso } from '../models/curso.model';
+import { ApiService } from '../../core/api.service';
+import { mensajeDeError } from '../../core/http-error';
+import { Curso } from '../../data/curso.model';
 
 type Inscripcion = { _id: string; curso: string | Curso; estudiante?: any; cursoId?: string };
 

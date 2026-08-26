@@ -13,8 +13,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 // CAMBIO: si luego quieres mostrar un select visible
 import { MatSelectModule }     from '@angular/material/select';
 
-import { ApiService } from '../../core/api.service';
-import { mensajeDeError } from '../../core/http-error';
+import { ApiService } from '../../../core/api.service';
+import { mensajeDeError } from '../../../core/http-error';
 
 /**
  * Validador de grupo: marca el error en el propio control de confirmación para

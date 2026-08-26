@@ -25,9 +25,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { ApiService } from '../core/api.service';
-import { AuthService } from '../core/auth.service';
-import { mensajeDeError } from '../core/http-error';
+import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
+import { mensajeDeError } from '../../core/http-error';
 
 /** La nueva contraseña y su repetición tienen que coincidir. */
 function coinciden(grupo: AbstractControl): ValidationErrors | null {

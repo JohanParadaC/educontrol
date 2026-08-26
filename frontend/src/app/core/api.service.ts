@@ -17,9 +17,9 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { Usuario } from '../models/usuario.model';
-import { Curso } from '../models/curso.model';
-import { Inscripcion } from '../models/inscripcion.model';
+import { Usuario } from '../data/usuario.model';
+import { Curso } from '../data/curso.model';
+import { Inscripcion } from '../data/inscripcion.model';
 
 import { AuthApi, RespuestaSesion } from '../data/auth.api';
 import { UsuariosApi } from '../data/usuarios.api';

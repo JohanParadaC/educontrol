@@ -11,9 +11,9 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, finalize, map } from 'rxjs/operators';
 
-import { ApiService } from '../core/api.service';
-import { AuthService } from '../core/auth.service';
-import { Curso } from '../models/curso.model';
+import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
+import { Curso } from '../../data/curso.model';
 
 /** Estructura mínima de una inscripción (por si el backend devuelve inscripciones) */
 type Inscripcion = {

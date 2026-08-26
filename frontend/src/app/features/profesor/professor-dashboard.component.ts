@@ -22,11 +22,11 @@ import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ CAMBIO: too
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import { AuthService } from '../core/auth.service';
-import { ApiService } from '../core/api.service';
-import { Curso } from '../models/curso.model';
-import { EstadoVistaComponent } from '../shared/estado-vista.component';
-import { mensajeDeError } from '../core/http-error';
+import { AuthService } from '../../core/auth.service';
+import { ApiService } from '../../core/api.service';
+import { Curso } from '../../data/curso.model';
+import { EstadoVistaComponent } from '../../shared/estado-vista.component';
+import { mensajeDeError } from '../../core/http-error';
 
 @Component({
   standalone: true,

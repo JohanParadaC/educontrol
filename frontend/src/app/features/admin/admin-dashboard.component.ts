@@ -13,20 +13,20 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ NUEVO: tooltips para íconos
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { EstadoVistaComponent } from '../shared/estado-vista.component';
-import { mensajeDeError } from '../core/http-error';
+import { EstadoVistaComponent } from '../../shared/estado-vista.component';
+import { mensajeDeError } from '../../core/http-error';
 
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
-import { ApiService } from '../core/api.service';
-import { Usuario } from '../models/usuario.model';
-import { Curso } from '../models/curso.model';
+import { ApiService } from '../../core/api.service';
+import { Usuario } from '../../data/usuario.model';
+import { Curso } from '../../data/curso.model';
 import { CourseCreateDialogComponent } from './course-create-dialog.component';
 import { EnrollStudentDialogComponent } from './enroll-student-dialog.component';
 
 // diálogo de confirmación propio (standalone)
-import { ConfirmDialogComponent } from '../shared/confirm-dialog.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 
 type Rol = 'estudiante' | 'profesor';
 

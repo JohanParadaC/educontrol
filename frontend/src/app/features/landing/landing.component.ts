@@ -15,8 +15,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 
-import { AuthService } from '../core/auth.service';
-import { rutaInicioPara } from '../core/rutas';
+import { AuthService } from '../../core/auth.service';
+import { rutaInicioPara } from '../../core/rutas';
 
 @Component({
   standalone: true,

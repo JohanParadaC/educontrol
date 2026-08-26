@@ -17,17 +17,17 @@ export const routes: Routes = [
     path: '',
     pathMatch: 'full',
     loadComponent: () =>
-      import('./landing/landing.component').then(m => m.LandingComponent),
+      import('./features/landing/landing.component').then(m => m.LandingComponent),
   },
   {
     path: 'login',
     loadComponent: () =>
-      import('./auth/login/login.component').then(m => m.LoginComponent),
+      import('./features/auth/login/login.component').then(m => m.LoginComponent),
   },
   {
     path: 'register',
     loadComponent: () =>
-      import('./auth/register/register.component').then(m => m.RegisterComponent),
+      import('./features/auth/register/register.component').then(m => m.RegisterComponent),
   },
 
   // ===== Profesor =====
@@ -36,14 +36,14 @@ export const routes: Routes = [
     path: 'profesor/dashboard',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./professor/professor-dashboard.component')
+      import('./features/profesor/professor-dashboard.component')
         .then(m => m.ProfessorDashboardComponent),
   },
   {
     path: 'profesor/clases',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./professor/professor-classes.component')
+      import('./features/profesor/professor-classes.component')
         .then(m => m.ProfessorClassesComponent),
   },
   // Alias para compatibilidad: /mis-clases -> /profesor/clases
@@ -54,7 +54,7 @@ export const routes: Routes = [
     path: 'admin',
     canActivate: [AuthGuard, AdminGuard],
     loadComponent: () =>
-      import('./admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
+      import('./features/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
   },
 
   // ===== Estudiante =====
@@ -62,19 +62,19 @@ export const routes: Routes = [
     path: 'estudiante/inicio',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./student/student-dashboard.component').then(m => m.StudentDashboardComponent),
+      import('./features/estudiante/student-dashboard.component').then(m => m.StudentDashboardComponent),
   },
   {
     path: 'cursos',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./student/student-courses.component').then(m => m.StudentCoursesComponent),
+      import('./features/estudiante/student-courses.component').then(m => m.StudentCoursesComponent),
   },
   {
     path: 'mis-cursos',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./student/student-my-courses.component').then(m => m.StudentMyCoursesComponent),
+      import('./features/estudiante/student-my-courses.component').then(m => m.StudentMyCoursesComponent),
   },
 
   // ===== Mi cuenta =====
@@ -84,7 +84,7 @@ export const routes: Routes = [
     path: 'cuenta',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./cuenta/mi-cuenta.component').then(m => m.MiCuentaComponent),
+      import('./features/cuenta/mi-cuenta.component').then(m => m.MiCuentaComponent),
   },
   // Alias: los enlaces antiguos siguen funcionando.
   { path: 'elige-rol', redirectTo: 'cuenta', pathMatch: 'full' },

@@ -9,9 +9,9 @@ import { Observable } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
-import { Curso } from '../models/curso.model';
-import { Usuario } from '../models/usuario.model';
-import { aCurso, aCursos, deCurso } from '../models/curso.mapper';
+import { Curso } from './curso.model';
+import { Usuario } from './usuario.model';
+import { aCurso, aCursos, deCurso } from './curso.mapper';
 import { Pagina, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
 import { usuarioLocal, idDe, normalizar } from './sesion-local';
 

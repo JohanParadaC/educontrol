@@ -28,12 +28,12 @@ import { MatTableModule } from '@angular/material/table';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
-import { ApiService } from '../core/api.service';
-import { AuthService } from '../core/auth.service';
-import { Curso } from '../models/curso.model';
-import { Usuario } from '../models/usuario.model';
-import { EstadoVistaComponent } from '../shared/estado-vista.component';
-import { mensajeDeError } from '../core/http-error';
+import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
+import { Curso } from '../../data/curso.model';
+import { Usuario } from '../../data/usuario.model';
+import { EstadoVistaComponent } from '../../shared/estado-vista.component';
+import { mensajeDeError } from '../../core/http-error';
 
 @Component({
   standalone: true,

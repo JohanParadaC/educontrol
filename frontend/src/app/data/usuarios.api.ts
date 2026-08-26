@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
-import { Usuario } from '../models/usuario.model';
+import { Usuario } from './usuario.model';
 import { Pagina, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
 
 @Injectable({ providedIn: 'root' })

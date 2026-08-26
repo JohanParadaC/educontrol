@@ -10,7 +10,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { Usuario } from '../models/usuario.model';
+import { Usuario } from './usuario.model';
 
 export interface RespuestaSesion {
   token: string;
