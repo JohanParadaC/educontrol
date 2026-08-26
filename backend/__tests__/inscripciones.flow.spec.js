@@ -102,7 +102,6 @@ describe('Inscripciones (flow)', () => {
     if (!first.ok) {
       // Si no conocemos aún el contrato, validamos que responda con un código razonable y salimos.
       // Esto deja el test verde mientras confirmamos el payload/endpoint correcto.
-      // eslint-disable-next-line no-console
       console.warn('ℹ️ Inscripción no ejecutada (contrato desconocido). Intentos:', first.tried);
       expect([400, 401, 403, 404]).toContain(first.status);
       return;

@@ -70,4 +70,9 @@ $movil: 767px;
   inset: 56px 0 0;
   z-index: 10;
   background: rgb(0 0 0 / 32%);
+
+  // Es un <button> por accesibilidad: se le quita todo el aspecto de botón.
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }

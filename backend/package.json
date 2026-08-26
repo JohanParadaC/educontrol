@@ -8,7 +8,9 @@
     "dev": "nodemon server.js",
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
-    "test:cov": "cross-env NODE_ENV=test jest --coverage --runInBand"
+    "test:cov": "cross-env NODE_ENV=test jest --coverage --runInBand",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -38,7 +40,10 @@
     "mongoose": "^8.16.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "cross-env": "^10.0.0",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
     "jest": "^30.0.5",
     "mongodb-memory-server": "^10.2.0",
     "nodemon": "^3.1.10",

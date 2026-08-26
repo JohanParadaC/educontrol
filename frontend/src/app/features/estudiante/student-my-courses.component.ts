@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of, switchMap, map } from 'rxjs';
+import { switchMap, map } from 'rxjs';
 
 import { ApiService } from '../../core/api.service';
 import { Curso } from '../../data/curso.model';
@@ -35,7 +35,7 @@ type Inscripcion = { _id: string; curso: string | Curso; progreso?: number; prom
           </div>
         </div>
 
-        <div class="progress" *ngIf="i.progreso != null">
+        <div class="progress" *ngIf="i.progreso !== null && i.progreso !== undefined">
           <mat-progress-bar [value]="i.progreso"></mat-progress-bar>
           <span>{{ i.progreso }}% completado</span>
         </div>
@@ -84,7 +84,7 @@ export class StudentMyCoursesComponent implements OnInit {
     }
   }
 
-  irAlCurso(i: Inscripcion) {
+  irAlCurso(_i: Inscripcion) {
     this.snack.open('Navegación al curso próximamente 😉', 'Cerrar', { duration: 1500 });
   }
 

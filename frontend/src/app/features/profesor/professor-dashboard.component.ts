@@ -19,8 +19,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ CAMBIO: tooltip
 
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';

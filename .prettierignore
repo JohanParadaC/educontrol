@@ -1,0 +1,16 @@
+# Dependencias y salidas de build
+node_modules/
+dist/
+coverage/
+.angular/
+graphify-out/
+
+# Ficheros generados: los gestiona npm, no nosotros
+package-lock.json
+
+# Documentos escritos a mano: las tablas y los bloques de la auditoría se
+# quedan tal cual se redactaron.
+docs/
+
+# Binarios
+*.png

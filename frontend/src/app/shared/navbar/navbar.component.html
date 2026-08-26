@@ -46,5 +46,12 @@
   </nav>
 </div>
 
-<!-- Capa que atenúa el fondo y cierra el menú al tocar fuera -->
-<div class="fondo-menu" *ngIf="menuAbierto" (click)="cerrarMenu()"></div>
+<!-- Capa que atenúa el fondo y cierra el menú al tocar fuera. Es un <button>
+     y no un <div> para que también se pueda cerrar con el teclado. -->
+<button
+  type="button"
+  class="fondo-menu"
+  *ngIf="menuAbierto"
+  aria-label="Cerrar menú"
+  (click)="cerrarMenu()"
+></button>

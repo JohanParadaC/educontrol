@@ -38,7 +38,9 @@ async function connectDB(uri) {
   try {
     const { hostname } = new URL(finalUri);
     console.log('🔎 Mongo host ->', hostname);
-  } catch {}
+  } catch {
+    // La URI no es parseable como URL: seguimos sin registrar el host.
+  }
 
   // Si la URI es la de por defecto (localhost) esperamos poco: o hay un mongod
   // escuchando o no lo hay, y no tiene sentido bloquear el arranque 10 s.

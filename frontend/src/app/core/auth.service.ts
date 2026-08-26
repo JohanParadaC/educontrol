@@ -18,7 +18,11 @@ export class AuthService {
     const token = localStorage.getItem(this.TOKEN_KEY);
     const userStr = localStorage.getItem(this.USER_KEY);
     if (userStr) {
-      try { this.user$.next(JSON.parse(userStr) as Usuario); } catch {}
+      try {
+        this.user$.next(JSON.parse(userStr) as Usuario);
+      } catch {
+        // localStorage con basura: se ignora y se rehidrata al validar el token.
+      }
     }
 
     if (token) {

@@ -26,7 +26,7 @@ const validateJWT = async (req, res, next) => {
     req.rol = rol;
 
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ ok: false, msg: 'Token no válido' });
   }
 };

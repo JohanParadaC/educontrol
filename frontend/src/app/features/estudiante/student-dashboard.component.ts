@@ -70,7 +70,7 @@ type CursoCard = Curso & { progreso?: number };
               <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
               <mat-card-content>
                 <p class="desc" *ngIf="c.descripcion">{{ c.descripcion }}</p>
-                <div class="progress" *ngIf="c.progreso != null">
+                <div class="progress" *ngIf="c.progreso !== null && c.progreso !== undefined">
                   <mat-progress-bar [value]="c.progreso" mode="determinate"></mat-progress-bar>
                   <span>{{ c.progreso }}%</span>
                 </div>
@@ -266,7 +266,7 @@ export class StudentDashboardComponent implements OnInit {
 
   // ---------- helpers ----------
   private looksLikeCursoArray(arr: any[]): arr is Curso[] {
-    return Array.isArray(arr) && (!!arr.length ? ('titulo' in (arr[0] || {})) : true);
+    return Array.isArray(arr) && (arr.length ? 'titulo' in (arr[0] || {}) : true);
   }
   /** ⚠️ Pública para usarla en el template */
   idOf(x: any): string {
