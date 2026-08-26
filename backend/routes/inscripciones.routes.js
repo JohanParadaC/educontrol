@@ -2,12 +2,10 @@ const { Router } = require('express');
 const { check } = require('express-validator');
 const validateFields = require('../middlewares/validateFields');
 const { validateJWT } = require('../middlewares/auth');
-const { roleCheck } = require('../middlewares/roleCheck');
 const {
   inscribirEstudiante,
   obtenerInscripciones,
   obtenerInscripcionPorId,
-  actualizarInscripcion,
   borrarInscripcion,
 } = require('../controllers/inscripciones.controller');
 
@@ -49,12 +47,8 @@ router.get(
   obtenerInscripcionPorId
 );
 
-// 4) Actualizar inscripción (solo admin) (añadido)
-router.put(
-  '/:id',
-  [validateJWT, roleCheck('admin'), check('id', 'ID no válido').isMongoId(), validateFields],
-  actualizarInscripcion
-);
+// PUT /api/inscripciones/:id ya no existe: era una asignación masiva sobre
+// req.body sin ningún caso de uso en la interfaz. Cae en el 404 general.
 
 // 5) Eliminar inscripción. Sin roleCheck a propósito: quien puede borrarla
 //    depende de quién es su dueño, y eso solo se sabe leyendo la inscripción.

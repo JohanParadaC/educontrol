@@ -153,59 +153,44 @@ describe('GET /api/inscripciones/:id', () => {
   });
 });
 
-describe('PUT /api/inscripciones/:id', () => {
-  it('un estudiante no puede actualizarla → 403', async () => {
-    const alumno = await createUserAndLogin('estudiante');
-    const { curso } = await crearCurso();
-    const ins = await Inscripcion.create({ estudiante: alumno.id, curso: curso._id });
-
-    const res = await request(app)
-      .put(`/api/inscripciones/${ins._id}`)
-      .set('Authorization', `Bearer ${alumno.token}`)
-      .send({ curso: curso._id });
-
-    expect(res.status).toBe(403);
-  });
-
-  it('un profesor tampoco → 403', async () => {
-    const profe = await createUserAndLogin('profesor');
-    const alumno = await crearUsuario({ rol: 'estudiante' });
-    const { curso } = await crearCurso();
-    const ins = await Inscripcion.create({ estudiante: alumno.id, curso: curso._id });
-
-    const res = await request(app)
-      .put(`/api/inscripciones/${ins._id}`)
-      .set('Authorization', `Bearer ${profe.token}`)
-      .send({ curso: curso._id });
-
-    expect(res.status).toBe(403);
-  });
-
-  it('un admin sí, y devuelve la inscripción actualizada → 200', async () => {
+describe('PUT /api/inscripciones/:id — ya no existe', () => {
+  // La ruta pasaba req.body entero a findByIdAndUpdate: un admin podía
+  // reescribir estudiante, curso y fecha de cualquier matrícula. Eso no es
+  // editar una inscripción, es fabricar otra. Ninguna pantalla la usaba.
+  it('un admin ya no puede reescribir una matrícula: la ruta no está', async () => {
     const admin = await createUserAndLogin('admin');
     const alumno = await crearUsuario({ rol: 'estudiante' });
     const { curso } = await crearCurso('Original');
     const otro = await crearCurso('Destino');
     const ins = await Inscripcion.create({ estudiante: alumno.id, curso: curso._id });
 
-    const { body } = await request(app)
+    const res = await request(app)
       .put(`/api/inscripciones/${ins._id}`)
       .set('Authorization', `Bearer ${admin.token}`)
-      .send({ curso: otro.curso._id })
-      .expect(200);
-
-    expect(body.inscripcion.curso.nombre).toBe('Destino');
-  });
-
-  it('inscripción inexistente → 404', async () => {
-    const admin = await createUserAndLogin('admin');
-
-    const res = await request(app)
-      .put(`/api/inscripciones/${idInexistente()}`)
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({});
+      .send({ curso: otro.curso._id });
 
     expect(res.status).toBe(404);
+
+    // Y lo que importa: la matrícula sigue apuntando a donde apuntaba.
+    const despues = await Inscripcion.findById(ins._id);
+    expect(String(despues.curso)).toBe(String(curso._id));
+  });
+
+  it('tampoco sirve para reasignar el estudiante', async () => {
+    const admin = await createUserAndLogin('admin');
+    const alumno = await crearUsuario({ rol: 'estudiante' });
+    const otroAlumno = await crearUsuario({ rol: 'estudiante' });
+    const { curso } = await crearCurso();
+    const ins = await Inscripcion.create({ estudiante: alumno.id, curso: curso._id });
+
+    await request(app)
+      .put(`/api/inscripciones/${ins._id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ estudiante: otroAlumno.id })
+      .expect(404);
+
+    const despues = await Inscripcion.findById(ins._id);
+    expect(String(despues.estudiante)).toBe(alumno.id);
   });
 });
 

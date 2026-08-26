@@ -1,5 +1,6 @@
 const Inscripcion = require('../models/Inscripcion');
 const Curso = require('../models/Curso');
+const Usuario = require('../models/Usuario');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 
 /**
@@ -57,27 +58,53 @@ const alcanceDe = async usuario => {
 };
 
 /**
- * Inscribe un estudiante en un curso
+ * Inscribe un estudiante en un curso.
+ *
+ * Antes no se comprobaba nada del contenido: se podía matricular a un
+ * administrador en un curso inexistente y el sistema lo aceptaba. Los dos
+ * identificadores tienen formato válido —de eso se encarga el validador de la
+ * ruta— pero que un ObjectId esté bien escrito no quiere decir que exista.
  */
 const inscribirEstudiante = async (req, res, next) => {
   try {
     const { cursoId, estudianteId } = req.body;
 
-    // validar que no exista ya la inscripción
-    const yaInscrito = await Inscripcion.findOne({ curso: cursoId, estudiante: estudianteId });
-    if (yaInscrito) {
-      return res
-        .status(400)
-        .json({ ok: false, msg: 'El estudiante ya está inscrito en este curso' });
+    const [curso, estudiante] = await Promise.all([
+      Curso.findById(cursoId).select('_id'),
+      Usuario.findById(estudianteId).select('rol'),
+    ]);
+
+    // El curso no está: 404, porque el recurso al que apunta no existe.
+    if (!curso) {
+      return res.status(404).json({ ok: false, msg: 'El curso no existe' });
     }
 
-    const inscripcion = new Inscripcion({
-      curso: cursoId,
-      estudiante: estudianteId,
-    });
+    // El estudiante sí existe pero no es un estudiante: 400, porque el dato
+    // que manda el cliente está mal, no falta.
+    if (!estudiante) {
+      return res.status(404).json({ ok: false, msg: 'El estudiante no existe' });
+    }
+    if (estudiante.rol !== 'estudiante') {
+      return res.status(400).json({ ok: false, msg: 'Solo se puede matricular a un estudiante' });
+    }
 
-    await inscripcion.save();
-    res.status(201).json({ ok: true, inscripcion });
+    try {
+      const inscripcion = await Inscripcion.create({ curso: cursoId, estudiante: estudianteId });
+      return res.status(201).json({ ok: true, inscripcion });
+    } catch (err) {
+      // El duplicado lo decide el índice único, no una consulta previa.
+      //
+      // Antes se hacía un findOne y luego el save. Entre las dos cosas cabe
+      // otra petición: las dos leían "no está", las dos insertaban, y la
+      // segunda reventaba con un E11000 que salía como 500. Ahora se intenta
+      // insertar y se traduce el choque.
+      if (err?.code === 11000) {
+        return res
+          .status(400)
+          .json({ ok: false, msg: 'El estudiante ya está inscrito en este curso' });
+      }
+      throw err;
+    }
   } catch (err) {
     next(err);
   }
@@ -142,26 +169,12 @@ const obtenerInscripcionPorId = async (req, res, next) => {
   }
 };
 
-/**
- * Actualiza una inscripción existente
- */
-const actualizarInscripcion = async (req, res, next) => {
-  try {
-    const inscripcionActualizada = await Inscripcion.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    })
-      .populate('estudiante', 'nombre correo')
-      .populate(POBLAR_CURSO);
-
-    if (!inscripcionActualizada) {
-      return res.status(404).json({ ok: false, msg: 'Inscripción no encontrada' });
-    }
-    res.json({ ok: true, inscripcion: inscripcionActualizada });
-  } catch (err) {
-    next(err);
-  }
-};
+// Aquí vivía `actualizarInscripcion`, detrás de PUT /api/inscripciones/:id.
+//
+// Pasaba `req.body` entero a findByIdAndUpdate sin lista blanca, así que un
+// administrador podía reescribir `estudiante`, `curso` y `fecha` de cualquier
+// matrícula: eso no es editar, es fabricar otra. Ninguna pantalla lo usaba.
+// Para cambiar de curso se cancela la matrícula y se crea la nueva.
 
 /**
  * Elimina una inscripción.
@@ -198,6 +211,5 @@ module.exports = {
   inscribirEstudiante,
   obtenerInscripciones,
   obtenerInscripcionPorId,
-  actualizarInscripcion,
   borrarInscripcion,
 };
