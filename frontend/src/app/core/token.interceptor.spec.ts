@@ -15,18 +15,13 @@
 // ciclo. Este monta el grafo de verdad.
 // ---------------------------------------------------------------------------
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpClient,
-  HTTP_INTERCEPTORS,
-  provideHttpClient,
-  withInterceptorsFromDi,
-} from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { AuthService } from './auth.service';
-import { TokenInterceptor } from './token.interceptor';
+import { tokenInterceptor } from './token.interceptor';
 
-describe('TokenInterceptor — arranque con sesión guardada', () => {
+describe('tokenInterceptor — arranque con sesión guardada', () => {
   const usuario = { _id: 'u1', nombre: 'Ana', correo: 'ana@mail.com', rol: 'estudiante' as const };
 
   beforeEach(() => {
@@ -36,19 +31,22 @@ describe('TokenInterceptor — arranque con sesión guardada', () => {
 
   afterEach(() => localStorage.clear());
 
-  /** Arranca AuthService con el interceptor registrado, como en la aplicación real. */
+  /** Registra el interceptor tal y como lo hace main.ts. */
+  function configurar(conAuthService: boolean) {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(withInterceptors([tokenInterceptor])),
+        provideHttpClientTesting(),
+        ...(conAuthService ? [AuthService] : []),
+      ],
+    });
+  }
+
+  /** Arranca AuthService con una sesión ya guardada, como al recargar. */
   function arrancarConSesion() {
     localStorage.setItem('token', 'token-guardado');
     localStorage.setItem('usuario', JSON.stringify(usuario));
-
-    TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(withInterceptorsFromDi()),
-        provideHttpClientTesting(),
-        { provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true },
-        AuthService,
-      ],
-    });
+    configurar(true);
 
     const auth = TestBed.inject(AuthService);
     const http = TestBed.inject(HttpTestingController);
@@ -71,20 +69,13 @@ describe('TokenInterceptor — arranque con sesión guardada', () => {
     http.expectOne(r => r.url.endsWith('/auth/renew')).flush({ token: 'token-renovado', usuario });
 
     expect(localStorage.getItem('token')).toBe('token-renovado');
-    expect(auth.isLoggedIn).toBeTrue();
+    expect(auth.estaAutenticado()).toBeTrue();
     http.verify();
   });
 
   it('no toca las peticiones que no van a la API', () => {
     localStorage.setItem('token', 'token-guardado');
-
-    TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(withInterceptorsFromDi()),
-        provideHttpClientTesting(),
-        { provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true },
-      ],
-    });
+    configurar(false);
 
     const http = TestBed.inject(HttpTestingController);
     TestBed.inject(HttpClient).get('/assets/config.json').subscribe();
@@ -92,6 +83,21 @@ describe('TokenInterceptor — arranque con sesión guardada', () => {
     // Un recurso estático no lleva el token encima.
     const peticion = http.expectOne('/assets/config.json');
     expect(peticion.request.headers.has('Authorization')).toBeFalse();
+    peticion.flush({});
+    http.verify();
+  });
+
+  it('no pisa una cabecera Authorization puesta a mano', () => {
+    localStorage.setItem('token', 'token-guardado');
+    configurar(false);
+
+    const http = TestBed.inject(HttpTestingController);
+    TestBed.inject(HttpClient)
+      .get('/api/cursos', { headers: { Authorization: 'Bearer otro-token' } })
+      .subscribe();
+
+    const peticion = http.expectOne('/api/cursos');
+    expect(peticion.request.headers.get('Authorization')).toBe('Bearer otro-token');
     peticion.flush({});
     http.verify();
   });

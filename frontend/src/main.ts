@@ -3,12 +3,12 @@ import { enableProdMode } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 
-import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { environment } from './environments/environment';
 import { routes } from './app/app-routing-module';
 
-import { TokenInterceptor } from './app/core/token.interceptor';
+import { tokenInterceptor } from './app/core/token.interceptor';
 import { AppComponent } from './app/app.component';
 
 import { MatPaginatorIntl } from '@angular/material/paginator';
@@ -38,17 +38,9 @@ bootstrapApplication(AppComponent, {
   providers: [
     provideRouter(routes),
 
-    // Importante: habilitar interceptores via DI
-    provideHttpClient(withInterceptorsFromDi()),
+    provideHttpClient(withInterceptors([tokenInterceptor])),
 
     provideAnimationsAsync(),
-
-    // Registrar el interceptor
-    {
-      provide: HTTP_INTERCEPTORS,
-      useClass: TokenInterceptor,
-      multi: true,
-    },
 
     // La app está en español: fechas, números y textos del paginador también.
     { provide: LOCALE_ID, useValue: 'es' },
