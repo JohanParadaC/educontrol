@@ -14,7 +14,7 @@
   font: var(--mat-sys-body-large);
   color: var(--mat-sys-on-surface-variant);
   margin: 0 auto var(--sp-5);
-  max-width: 56ch;   /* longitud de línea cómoda de leer */
+  max-width: 56ch; /* longitud de línea cómoda de leer */
 }
 
 .acciones {
@@ -71,7 +71,9 @@
   max-width: 640px;
   margin: 0 auto var(--sp-7);
 
-  h2 { font: var(--mat-sys-title-large); }
+  h2 {
+    font: var(--mat-sys-title-large);
+  }
 
   ol {
     padding-left: var(--sp-5);
@@ -83,10 +85,16 @@
   .hero {
     padding: var(--sp-5) 0 var(--sp-4);
 
-    h1 { font: var(--mat-sys-headline-medium); }
+    h1 {
+      font: var(--mat-sys-headline-medium);
+    }
   }
 
-  .acciones .cta { flex: 1 1 100%; }   /* botones a ancho completo en móvil */
+  .acciones .cta {
+    flex: 1 1 100%;
+  } /* botones a ancho completo en móvil */
 
-  .perfiles { grid-template-columns: 1fr; }
+  .perfiles {
+    grid-template-columns: 1fr;
+  }
 }

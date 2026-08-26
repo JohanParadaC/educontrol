@@ -29,8 +29,8 @@ export class UsuariosApi {
     id: string,
     body: Partial<Usuario> & {
       profesorClave?: string;
-      'contraseña'?: string;
-      'contraseñaActual'?: string;
+      contraseña?: string;
+      contraseñaActual?: string;
     }
   ): Observable<{ ok: boolean; usuario: Usuario }> {
     return this.http.put<{ ok: boolean; usuario: Usuario }>(`${this.base}/${id}`, body);

@@ -1,17 +1,24 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, Validators, ReactiveFormsModule, FormGroup, AbstractControl, ValidationErrors } from '@angular/forms';
+import {
+  FormBuilder,
+  Validators,
+  ReactiveFormsModule,
+  FormGroup,
+  AbstractControl,
+  ValidationErrors,
+} from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 
 /* Angular Material */
-import { MatFormFieldModule }  from '@angular/material/form-field';
-import { MatInputModule }      from '@angular/material/input';
-import { MatButtonModule }     from '@angular/material/button';
-import { MatIconModule }       from '@angular/material/icon';
-import { MatCardModule }       from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 // CAMBIO: si luego quieres mostrar un select visible
-import { MatSelectModule }     from '@angular/material/select';
+import { MatSelectModule } from '@angular/material/select';
 
 import { ApiService } from '../../../core/api.service';
 import { mensajeDeError } from '../../../core/http-error';
@@ -45,15 +52,21 @@ function coincidenLasContrasenas(grupo: AbstractControl): ValidationErrors | nul
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
   imports: [
-    CommonModule, ReactiveFormsModule, RouterModule,
-    MatFormFieldModule, MatInputModule, MatButtonModule,
-    MatIconModule, MatCardModule, MatSnackBarModule,
-    MatSelectModule // CAMBIO: opcional (solo si usas <mat-select>)
-  ]
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatSnackBarModule,
+    MatSelectModule, // CAMBIO: opcional (solo si usas <mat-select>)
+  ],
 })
 export class RegisterComponent {
   hide = true;
-  msg  = '';
+  msg = '';
   enviando = false;
 
   // Declaramos el tipo y lo inicializamos en el constructor
@@ -66,16 +79,19 @@ export class RegisterComponent {
     private snack: MatSnackBar
   ) {
     // ✅ crear el form aquí evita "Property 'fb' is used before its initialization"
-    this.form = this.fb.group({
-      nombre  : ['', [Validators.required, Validators.minLength(2)]],
-      correo  : ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      // Sin confirmación, una errata al teclear deja la cuenta inaccesible para
-      // siempre: no hay recuperación de contraseña.
-      password2: ['', [Validators.required]],
-      // CAMBIO: rol con valor por defecto (aunque no se muestre)
-      rol     : ['estudiante', [Validators.required]]
-    }, { validators: coincidenLasContrasenas });
+    this.form = this.fb.group(
+      {
+        nombre: ['', [Validators.required, Validators.minLength(2)]],
+        correo: ['', [Validators.required, Validators.email]],
+        password: ['', [Validators.required, Validators.minLength(6)]],
+        // Sin confirmación, una errata al teclear deja la cuenta inaccesible para
+        // siempre: no hay recuperación de contraseña.
+        password2: ['', [Validators.required]],
+        // CAMBIO: rol con valor por defecto (aunque no se muestre)
+        rol: ['estudiante', [Validators.required]],
+      },
+      { validators: coincidenLasContrasenas }
+    );
   }
 
   onSubmit(): void {
@@ -101,14 +117,13 @@ export class RegisterComponent {
       error: err => {
         this.enviando = false;
         this.msg = mensajeDeError(err, 'No se pudo crear la cuenta');
-      }
+      },
     });
   }
 
   /** Lleva el foco al primer control con error, para no obligar a buscarlo. */
   private enfocarPrimerCampoInvalido(): void {
-    const primero = Object.keys(this.form.controls)
-      .find(nombre => this.form.get(nombre)?.invalid);
+    const primero = Object.keys(this.form.controls).find(nombre => this.form.get(nombre)?.invalid);
     if (!primero) return;
 
     document.querySelector<HTMLElement>(`[formControlName="${primero}"]`)?.focus();

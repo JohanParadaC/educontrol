@@ -34,11 +34,11 @@ Un solo proceso sirve la API y la aplicación web desde el mismo origen, así qu
 
 La pantalla de login tiene un botón por rol que entra directamente. Si prefieres escribirlas:
 
-| Rol | Correo | Contraseña |
-|---|---|---|
+| Rol           | Correo                 | Contraseña  |
+| ------------- | ---------------------- | ----------- |
 | Administrador | `admin@educontrol.com` | `Admin123*` |
-| Profesora | `lucia@educontrol.com` | `Demo1234` |
-| Estudiante | `ana@educontrol.com` | `Demo1234` |
+| Profesora     | `lucia@educontrol.com` | `Demo1234`  |
+| Estudiante    | `ana@educontrol.com`   | `Demo1234`  |
 
 ### Desarrollo
 
@@ -57,13 +57,13 @@ npm run dev:web    # Angular dev server con proxy a la API, puerto 4200
 
 ## Stack
 
-| Capa | Tecnología |
-|---|---|
-| Frontend | Angular 20 (standalone components), Angular Material 3, RxJS |
-| Backend | Node.js, Express 5, Mongoose 8 |
-| Base de datos | MongoDB (o en memoria para desarrollo) |
-| Autenticación | JWT, contraseñas con bcrypt |
-| Tests | Jest + Supertest (backend), Karma + Jasmine (frontend) |
+| Capa          | Tecnología                                                   |
+| ------------- | ------------------------------------------------------------ |
+| Frontend      | Angular 20 (standalone components), Angular Material 3, RxJS |
+| Backend       | Node.js, Express 5, Mongoose 8                               |
+| Base de datos | MongoDB (o en memoria para desarrollo)                       |
+| Autenticación | JWT, contraseñas con bcrypt                                  |
+| Tests         | Jest + Supertest (backend), Karma + Jasmine (frontend)       |
 
 ## Estructura
 
@@ -105,17 +105,17 @@ Cobertura del backend: **85 % sentencias · 73 % ramas · 100 % funciones · 87 
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de una auditoría del propio proyecto: se encontraron cuatro fallos de control de acceso y cada arreglo se fijó con tests de regresión que fallan contra el código anterior.
 
-| Comprobación | Resultado esperado |
-|---|---|
-| `DELETE /api/admin/purge` sin token | 401 |
-| `DELETE /api/admin/purge` con token de estudiante | 403 |
-| `POST /api/admin/seed-admin` sobre una cuenta existente | no la modifica |
-| `POST /api/usuarios` con `rol: admin` | 400 |
-| `PUT /api/usuarios/:id` de un tercero | 403, sin efecto |
-| Auto-ascenso a profesor sin clave | 403 |
-| Cambiar la propia contraseña sin indicar la actual | 400 |
-| Cambiarla con una contraseña actual equivocada | 403, la antigua sigue valiendo |
-| `?limit=999999` en un listado | recortado al máximo permitido |
+| Comprobación                                            | Resultado esperado             |
+| ------------------------------------------------------- | ------------------------------ |
+| `DELETE /api/admin/purge` sin token                     | 401                            |
+| `DELETE /api/admin/purge` con token de estudiante       | 403                            |
+| `POST /api/admin/seed-admin` sobre una cuenta existente | no la modifica                 |
+| `POST /api/usuarios` con `rol: admin`                   | 400                            |
+| `PUT /api/usuarios/:id` de un tercero                   | 403, sin efecto                |
+| Auto-ascenso a profesor sin clave                       | 403                            |
+| Cambiar la propia contraseña sin indicar la actual      | 400                            |
+| Cambiarla con una contraseña actual equivocada          | 403, la antigua sigue valiendo |
+| `?limit=999999` en un listado                           | recortado al máximo permitido  |
 
 Los tests no solo comprueban el código de estado: verifican también que el efecto no ocurrió. Tras un 403 al intentar cambiar la contraseña del administrador, la contraseña original sigue siendo válida y la del atacante no.
 
@@ -125,7 +125,7 @@ Los tests no solo comprueban el código de estado: verifican también que el efe
 
 Decisiones que conviene conocer si vas a desplegarlo:
 
-- **Las rutas destructivas no existen en producción.** `/api/admin/purge` y `/api/admin/seed-admin` solo se montan si `NODE_ENV` es `development` o `test`. La comprobación es *fail-closed*: si la variable no está definida, se asume producción. Devuelven 404, no 403, para no confirmar que la ruta existe.
+- **Las rutas destructivas no existen en producción.** `/api/admin/purge` y `/api/admin/seed-admin` solo se montan si `NODE_ENV` es `development` o `test`. La comprobación es _fail-closed_: si la variable no está definida, se asume producción. Devuelven 404, no 403, para no confirmar que la ruta existe.
 - **El registro público solo crea estudiantes o profesores.** El rol nunca se toma del cuerpo de la petición sin filtrar. Un administrador solo se crea desde el servidor, con `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 - **Ascender a profesor exige `PROFESOR_CLAVE`.** Si la variable no está configurada, nadie puede auto-asignarse el rol: solo lo concede un administrador.
 - **La autorización lee el rol de la base de datos, no del token.** Un usuario degradado pierde el acceso de inmediato en lugar de conservarlo hasta que caduque su JWT.
@@ -137,12 +137,12 @@ Decisiones que conviene conocer si vas a desplegarlo:
 
 Copia `backend/.env.example` a `backend/.env`. En desarrollo todas tienen valor por defecto y el servidor avisa por consola de cuáles está inventando.
 
-| Variable | Para qué |
-|---|---|
-| `MONGO_URI` | Conexión a MongoDB. Sin ella, base en memoria. |
-| `JWT_SECRET` | Firma de los tokens. **Obligatoria en producción.** |
-| `PROFESOR_CLAVE` | Clave para ascender a profesor. |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial. |
+| Variable                         | Para qué                                            |
+| -------------------------------- | --------------------------------------------------- |
+| `MONGO_URI`                      | Conexión a MongoDB. Sin ella, base en memoria.      |
+| `JWT_SECRET`                     | Firma de los tokens. **Obligatoria en producción.** |
+| `PROFESOR_CLAVE`                 | Clave para ascender a profesor.                     |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial.                              |
 
 ---
 

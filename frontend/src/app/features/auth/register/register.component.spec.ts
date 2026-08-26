@@ -12,7 +12,7 @@ describe('RegisterComponent', () => {
         RegisterComponent,
         ReactiveFormsModule,
         HttpClientTestingModule,
-        RouterTestingModule
+        RouterTestingModule,
       ],
     }).compileComponents();
   });

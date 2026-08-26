@@ -9,10 +9,14 @@
   grid-template-columns: repeat(2, 1fr);
   align-items: start;
 
-  @media (max-width: 767px) { grid-template-columns: 1fr; }
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
 }
 
-.ancho-completo { grid-column: 1 / -1; }
+.ancho-completo {
+  grid-column: 1 / -1;
+}
 
 mat-card {
   padding: var(--sp-5);
@@ -35,7 +39,9 @@ mat-card {
   justify-content: space-between;
   gap: var(--sp-3);
 
-  h2 { margin: 0; }
+  h2 {
+    margin: 0;
+  }
 }
 
 .rol {
@@ -53,14 +59,18 @@ mat-card {
   font: var(--mat-sys-body-small);
 }
 
-.full { width: 100%; }
+.full {
+  width: 100%;
+}
 
 /* Clave + botón en la misma línea cuando hay sitio */
 .en-linea {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
 
-  @media (max-width: 767px) { grid-template-columns: 1fr; }
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cta {

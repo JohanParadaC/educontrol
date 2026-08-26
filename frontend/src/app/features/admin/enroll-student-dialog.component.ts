@@ -1,7 +1,13 @@
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
-import { ReactiveFormsModule, FormBuilder, Validators, FormGroup, FormControl } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  FormBuilder,
+  Validators,
+  FormGroup,
+  FormControl,
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
@@ -39,11 +45,21 @@ import { MatButtonModule } from '@angular/material/button';
       </button>
     </div>
   `,
-  styles: [`.w-100{width:100%}`],
+  styles: [
+    `
+      .w-100 {
+        width: 100%;
+      }
+    `,
+  ],
   imports: [
-    CommonModule, MatDialogModule, ReactiveFormsModule,
-    MatFormFieldModule, MatSelectModule, MatButtonModule
-  ]
+    CommonModule,
+    MatDialogModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatButtonModule,
+  ],
 })
 export class EnrollStudentDialogComponent {
   // Form REACTIVO tipado: requiere estudianteId (string)
@@ -51,13 +67,16 @@ export class EnrollStudentDialogComponent {
 
   constructor(
     @Inject(MAT_DIALOG_DATA)
-    public data: { cursoTitulo: string; estudiantes: Array<{ _id: string; nombre: string; correo: string }> },
+    public data: {
+      cursoTitulo: string;
+      estudiantes: Array<{ _id: string; nombre: string; correo: string }>;
+    },
     public dialogRef: MatDialogRef<EnrollStudentDialogComponent>,
     private fb: FormBuilder
   ) {
     // Crear el form en el constructor (evita el warning “fb used before initialization”)
     this.form = this.fb.nonNullable.group({
-      estudianteId: ['', Validators.required]
+      estudianteId: ['', Validators.required],
     });
   }
 

@@ -7,20 +7,20 @@ Frontend construido con **Angular** (standalone components) y **Angular Material
 
 ## 📋 Tabla de contenidos
 
-- [Descripción](#descripción)  
-- [Características](#características)  
-- [Prerequisitos](#prerequisitos)  
-- [Instalación](#instalación)  
-- [Configuración](#configuración)  
-- [Estructura del proyecto](#estructura-del-proyecto)  
-- [Scripts disponibles](#scripts-disponibles)  
-- [Routing (Angular)](#routing-angular)  
-- [Servicios y modelos](#servicios-y-modelos)  
-- [Guards y Auth](#guards-y-auth)  
-- [Estilos/UI](#estilosui)  
-- [Despliegue](#despliegue)  
-- [Troubleshooting](#troubleshooting)  
-- [Contribuir](#contribuir)  
+- [Descripción](#descripción)
+- [Características](#características)
+- [Prerequisitos](#prerequisitos)
+- [Instalación](#instalación)
+- [Configuración](#configuración)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Scripts disponibles](#scripts-disponibles)
+- [Routing (Angular)](#routing-angular)
+- [Servicios y modelos](#servicios-y-modelos)
+- [Guards y Auth](#guards-y-auth)
+- [Estilos/UI](#estilosui)
+- [Despliegue](#despliegue)
+- [Troubleshooting](#troubleshooting)
+- [Contribuir](#contribuir)
 - [Licencia](#licencia)
 
 ---
@@ -34,7 +34,7 @@ Interfaz web para EduControl que permite:
 - Panel de **profesor** con saludo/KPIs y vista **“Mis clases”** mostrando alumnos inscritos.
 - Catálogo de cursos para **estudiantes**.
 - Integración 100% con el backend REST (Node/Express/Mongo).  
-*(El estilo y secciones siguen la misma línea que el README del backend.)* :contentReference[oaicite:0]{index=0}
+  _(El estilo y secciones siguen la misma línea que el README del backend.)_ :contentReference[oaicite:0]{index=0}
 
 ---
 
@@ -52,18 +52,19 @@ Interfaz web para EduControl que permite:
 
 ## 📦 Prerequisitos
 
-- **Node.js** v18 o superior  
-- **npm** (o yarn/pnpm)  
-- **Angular CLI** recomendado (`npm i -g @angular/cli`)  
+- **Node.js** v18 o superior
+- **npm** (o yarn/pnpm)
+- **Angular CLI** recomendado (`npm i -g @angular/cli`)
 - Backend en local (`http://localhost:3000`) o desplegado
 
 ---
 
 ## 🚀 Instalación
 
-
 # 1. Entrar al proyecto del frontend
+
 cd frontend
+
 ```text
 
 # 2. Instalar dependencias
@@ -84,9 +85,11 @@ Editar
 Base URL del backend en producción: ajusta tu ApiService para usar
 una API_BASE_URL proveniente de environment.ts / variable de entorno al hacer build.
 ```
+
 ---
 
 ## 🗂️ Estructura del proyecto
+
 ```text
 
 src/
@@ -122,28 +125,31 @@ src/
 ├── assets/
 └── environments/                   # environments (si usas)
 ```
+
 ---
 
 ## ⚡ Scripts disponibles
-Comando	Descripción
-npm start	Arranca dev server con proxy (ng serve --proxy-config)
-npm run build	Compila producción en dist/
-npm run lint	Linter (si está configurado)
+
+Comando Descripción
+npm start Arranca dev server con proxy (ng serve --proxy-config)
+npm run build Compila producción en dist/
+npm run lint Linter (si está configurado)
 
 ---
 
 ## 🧭 Routing (Angular)
+
 Rutas principales (standalone + lazy):
 
-Path	Guardas	Descripción
-/login	—	Pantalla de login
-/dashboard	AuthGuard	Dashboard genérico (alumno/neutral)
-/profesor/dashboard	AuthGuard	Dashboard del profesor (saludo + KPIs)
-/profesor/clases	AuthGuard	Mis clases (cursos del profe + alumnos)
-/cursos	AuthGuard	Catálogo/listado para estudiantes
-/admin	AuthGuard+Admin	Panel admin (opcional)
-'' → /dashboard	—	Redirect inicial
-** → /dashboard	—	Catch-all
+Path Guardas Descripción
+/login — Pantalla de login
+/dashboard AuthGuard Dashboard genérico (alumno/neutral)
+/profesor/dashboard AuthGuard Dashboard del profesor (saludo + KPIs)
+/profesor/clases AuthGuard Mis clases (cursos del profe + alumnos)
+/cursos AuthGuard Catálogo/listado para estudiantes
+/admin AuthGuard+Admin Panel admin (opcional)
+'' → /dashboard — Redirect inicial
+** → /dashboard — Catch-all
 
 En el Navbar, el botón Dashboard redirige a /profesor/dashboard cuando el rol es profesor, y a /dashboard en otros casos.
 En Login, tras autenticarse, se redirige por rol (profesor → /profesor/dashboard).
@@ -151,6 +157,7 @@ En Login, tras autenticarse, se redirige por rol (profesor → /profesor/dashboa
 ---
 
 ## 🔌 Servicios y modelos
+
 Servicios
 
 ApiService
@@ -182,6 +189,7 @@ Inscripcion → { _id, curso, estudiante, fecha } (ids u objetos populados)
 ---
 
 ## 🛡️ Guards y Auth
+
 AuthGuard: bloquea acceso a rutas si no hay sesión válida.
 
 AdminGuard (opcional): restringe rutas a rol === 'admin'.
@@ -193,11 +201,13 @@ Redirección por rol en LoginComponent (profesor → /profesor/dashboard).
 ---
 
 ## 🎨 Estilos/UI
+
 Angular Material (toolbar, card, button, icon, table, divider, progress, tooltip…).
 
 Layouts responsive y tarjetas estilo “dashboard”.
 
 ## ☁️ Despliegue
+
 Desarrollo (local)
 
 Backend: http://localhost:3000
@@ -213,10 +223,12 @@ npm run build → publicar dist/<app> en Netlify/Vercel/Hosting.
 ---
 
 ## 🤝 Contribuir
+
 Haz un fork del repo del frontend.
 
 ---
 
 ## 📄 Licencia
+
 Este proyecto está bajo la licencia MIT.
-Para detalles del backend y estructura de datos revisa el README correspondiente. 
+Para detalles del backend y estructura de datos revisa el README correspondiente.

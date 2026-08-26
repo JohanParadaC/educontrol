@@ -1,9 +1,9 @@
 // routes/admin.routes.js
-const express  = require('express');
+const express = require('express');
 const mongoose = require('mongoose');
 const { seedAdmin } = require('../controllers/admin.controller');
 const { validateJWT } = require('../middlewares/auth');
-const { roleCheck }   = require('../middlewares/roleCheck');
+const { roleCheck } = require('../middlewares/roleCheck');
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ const soloEntornosNoProductivos = (_req, res, next) => {
  */
 router.delete(
   '/purge',
-  [ soloEntornosNoProductivos, validateJWT, roleCheck('admin') ],
+  [soloEntornosNoProductivos, validateJWT, roleCheck('admin')],
   async (_req, res) => {
     try {
       await mongoose.connection.dropDatabase();
@@ -55,7 +55,7 @@ router.delete(
  *     `ensureAdminSeed()` de app.js a partir de variables de entorno),
  *  2) el controlador nunca modifica un usuario que ya exista.
  */
-router.post('/seed-admin', [ soloEntornosNoProductivos ], seedAdmin);
+router.post('/seed-admin', [soloEntornosNoProductivos], seedAdmin);
 
 /**
  * GET /api/admin/boom  (SOLO EN TEST)

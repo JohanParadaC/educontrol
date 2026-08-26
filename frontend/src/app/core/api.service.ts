@@ -43,7 +43,12 @@ export class ApiService {
   renew(): Observable<RespuestaSesion> {
     return this.authApi.renew();
   }
-  register(body: { nombre: string; correo: string; password: string; rol?: 'estudiante' | 'profesor' }) {
+  register(body: {
+    nombre: string;
+    correo: string;
+    password: string;
+    rol?: 'estudiante' | 'profesor';
+  }) {
     return this.authApi.register(body);
   }
 
@@ -53,7 +58,11 @@ export class ApiService {
   }
   updateUsuario(
     id: string,
-    body: Partial<Usuario> & { profesorClave?: string; 'contraseña'?: string; 'contraseñaActual'?: string }
+    body: Partial<Usuario> & {
+      profesorClave?: string;
+      contraseña?: string;
+      contraseñaActual?: string;
+    }
   ) {
     return this.usuarios.updateUsuario(id, body);
   }
@@ -80,7 +89,11 @@ export class ApiService {
   listCursosPaginado(pagina = 1, limite = LIMITE_PAGINA): Observable<Pagina<Curso>> {
     return this.cursos.listCursosPaginado(pagina, limite);
   }
-  createCursoAdmin(body: { titulo: string; descripcion: string; profesor?: string | Usuario }): Observable<Curso> {
+  createCursoAdmin(body: {
+    titulo: string;
+    descripcion: string;
+    profesor?: string | Usuario;
+  }): Observable<Curso> {
     return this.cursos.createCurso(body as any);
   }
   updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {

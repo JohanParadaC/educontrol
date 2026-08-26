@@ -21,9 +21,9 @@ export class CursosApi {
   private base = `${environment.apiBase}/cursos`;
 
   getCursos(): Observable<Curso[]> {
-    return this.http.get<any>(this.base).pipe(
-      map(r => aCursos(Array.isArray(r) ? r : (r?.cursos ?? [])))
-    );
+    return this.http
+      .get<any>(this.base)
+      .pipe(map(r => aCursos(Array.isArray(r) ? r : (r?.cursos ?? []))));
   }
 
   getCurso(id: string): Observable<Curso> {
@@ -41,10 +41,12 @@ export class CursosApi {
 
   listCursosPaginado(pagina = 1, limite = LIMITE_PAGINA): Observable<Pagina<Curso>> {
     const params = new HttpParams().set('page', pagina).set('limit', limite);
-    return this.http.get<any>(this.base, { params }).pipe(map(r => {
-      const p = aPagina<any>(r, 'cursos', pagina, limite);
-      return { ...p, items: aCursos(p.items) };
-    }));
+    return this.http.get<any>(this.base, { params }).pipe(
+      map(r => {
+        const p = aPagina<any>(r, 'cursos', pagina, limite);
+        return { ...p, items: aCursos(p.items) };
+      })
+    );
   }
 
   createCurso(
@@ -62,7 +64,8 @@ export class CursosApi {
     const completo = payload['nombre'] !== undefined && payload['descripcion'] !== undefined;
 
     const enviar = (base?: Curso) =>
-      this.http.put<any>(`${this.base}/${id}`, { ...deCurso(base ?? {}), ...payload })
+      this.http
+        .put<any>(`${this.base}/${id}`, { ...deCurso(base ?? {}), ...payload })
         .pipe(map(aCurso));
 
     return completo ? enviar() : this.getCurso(id).pipe(switchMap(enviar));
@@ -84,15 +87,17 @@ export class CursosApi {
     const miNombre = normalizar(yo?.nombre ?? '');
 
     return this.listCursos().pipe(
-      map(cursos => (cursos || []).filter((c: any) => {
-        const p = c?.profesor;
-        const pid = idDe(p);
-        if (pid && miId && String(pid) === String(miId)) return true;
+      map(cursos =>
+        (cursos || []).filter((c: any) => {
+          const p = c?.profesor;
+          const pid = idDe(p);
+          if (pid && miId && String(pid) === String(miId)) return true;
 
-        // Respaldo para datos antiguos en los que el profesor era un nombre.
-        const pnombre = typeof p === 'string' ? p : (p?.nombre ?? '');
-        return !!(pnombre && miNombre) && normalizar(pnombre) === miNombre;
-      }))
+          // Respaldo para datos antiguos en los que el profesor era un nombre.
+          const pnombre = typeof p === 'string' ? p : (p?.nombre ?? '');
+          return !!(pnombre && miNombre) && normalizar(pnombre) === miNombre;
+        })
+      )
     );
   }
 }

@@ -54,7 +54,9 @@ app.get('/api/health', (_req, res) => {
  * =========================== */
 const hayBuildFrontend = montarFrontend(app);
 if (!hayBuildFrontend && process.env.NODE_ENV !== 'test') {
-  console.log('ℹ️  Sin build de frontend; solo se sirve la API. Ejecuta "npm run build" en frontend/.');
+  console.log(
+    'ℹ️  Sin build de frontend; solo se sirve la API. Ejecuta "npm run build" en frontend/.'
+  );
 }
 
 /* ===========================

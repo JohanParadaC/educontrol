@@ -11,7 +11,7 @@ export class AuthService {
 
   /** ---- Claves para LS --------------------------------------------- */
   private readonly TOKEN_KEY = 'token';
-  private readonly USER_KEY  = 'usuario';
+  private readonly USER_KEY = 'usuario';
 
   constructor(private api: ApiService) {
     // CAMBIO: rehidratar usuario desde LS para evitar "parpadeo" de UI
@@ -34,18 +34,19 @@ export class AuthService {
   }
 
   /** ---- Login ------------------------------------------------------- */
-  login(credentials: { correo: string; password?: string; contrasena?: string; contraseña?: string }) {
-    const pass =
-      credentials.password ??
-      credentials.contraseña ??
-      credentials.contrasena ??
-      '';
+  login(credentials: {
+    correo: string;
+    password?: string;
+    contrasena?: string;
+    contraseña?: string;
+  }) {
+    const pass = credentials.password ?? credentials.contraseña ?? credentials.contrasena ?? '';
 
     // AuthApi ya traduce `password` al campo `contraseña` que espera el backend;
     // mandar las dos claves era duplicar esa decisión en dos capas.
-    return this.api.login({ correo: credentials.correo, password: pass }).pipe(
-      tap(({ token, usuario }) => this.setSession(token, usuario))
-    );
+    return this.api
+      .login({ correo: credentials.correo, password: pass })
+      .pipe(tap(({ token, usuario }) => this.setSession(token, usuario)));
   }
 
   /** ---- Logout ------------------------------------------------------ */
@@ -108,7 +109,7 @@ export class AuthService {
         // recién creada. Se veía como "he entrado y me ha echado al login".
         if (localStorage.getItem(this.TOKEN_KEY) !== tokenValidado) return;
         this.logout();
-      }
+      },
     });
   }
 }

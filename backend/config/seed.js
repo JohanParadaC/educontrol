@@ -34,8 +34,8 @@ async function ensureAdminSeed() {
     await Usuario.create({
       nombre: 'Admin',
       correo,
-      ['contraseña']: hash,   // el campo del schema lleva tilde
-      rol: 'admin'
+      ['contraseña']: hash, // el campo del schema lleva tilde
+      rol: 'admin',
     });
 
     console.log(`✅ Admin creado: ${correo}`);

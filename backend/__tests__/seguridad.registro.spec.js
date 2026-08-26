@@ -12,12 +12,12 @@ const { uniqueEmail } = require('./helpers');
 
 const CLAVE_PROFESOR = process.env.PROFESOR_CLAVE;
 
-const registrar = (body) => request(app).post('/api/usuarios').send(body);
+const registrar = body => request(app).post('/api/usuarios').send(body);
 
 const base = () => ({
   nombre: 'Nuevo',
   correo: uniqueEmail('registro'),
-  'contraseña': 'Secret123'
+  contraseña: 'Secret123',
 });
 
 describe('POST /api/usuarios (registro público)', () => {

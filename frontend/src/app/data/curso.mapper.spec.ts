@@ -40,7 +40,10 @@ describe('curso.mapper', () => {
 
   describe('deCurso (aplicación → API)', () => {
     it('traduce titulo a nombre', () => {
-      expect(deCurso({ titulo: 'Angular', descripcion: 'd' })).toEqual({ nombre: 'Angular', descripcion: 'd' });
+      expect(deCurso({ titulo: 'Angular', descripcion: 'd' })).toEqual({
+        nombre: 'Angular',
+        descripcion: 'd',
+      });
     });
 
     it('omite las claves ausentes para no pisar campos en ediciones parciales', () => {

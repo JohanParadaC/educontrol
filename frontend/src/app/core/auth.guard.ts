@@ -5,9 +5,8 @@ import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate {
-
   constructor(
-    private auth  : AuthService,
+    private auth: AuthService,
     private router: Router
   ) {}
 
@@ -19,8 +18,6 @@ export class AuthGuard implements CanActivate {
    * CAMBIO: usa el getter `isLoggedIn` (no es un método, no lleva paréntesis).
    */
   canActivate(): boolean | UrlTree {
-    return this.auth.isLoggedIn
-      ? true
-      : this.router.parseUrl('/login'); // CAMBIO
+    return this.auth.isLoggedIn ? true : this.router.parseUrl('/login'); // CAMBIO
   }
 }

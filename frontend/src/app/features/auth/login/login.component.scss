@@ -14,7 +14,9 @@
   gap: var(--sp-4);
 }
 
-.full { width: 100%; }
+.full {
+  width: 100%;
+}
 
 /* CTA a 48px: el objetivo táctil recomendado por Material, y por encima de los
    40px que trae el botón por defecto. */
@@ -60,5 +62,7 @@
   flex-wrap: wrap;
   gap: var(--sp-2);
 
-  button { flex: 1 1 auto; }
+  button {
+    flex: 1 1 auto;
+  }
 }

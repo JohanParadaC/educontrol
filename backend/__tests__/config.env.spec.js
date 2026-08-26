@@ -17,7 +17,9 @@ describe('verificarEntorno', () => {
     avisos = [];
     jest.spyOn(console, 'warn').mockImplementation(m => avisos.push(String(m)));
     jest.spyOn(console, 'error').mockImplementation(m => avisos.push(String(m)));
-    jest.spyOn(process, 'exit').mockImplementation(code => { salidas.push(code); });
+    jest.spyOn(process, 'exit').mockImplementation(code => {
+      salidas.push(code);
+    });
   });
 
   afterEach(() => {
@@ -26,7 +28,9 @@ describe('verificarEntorno', () => {
   });
 
   describe('en desarrollo', () => {
-    beforeEach(() => { process.env.NODE_ENV = 'development'; });
+    beforeEach(() => {
+      process.env.NODE_ENV = 'development';
+    });
 
     it('rellena JWT_SECRET si falta y avisa', () => {
       delete process.env.JWT_SECRET;
@@ -35,7 +39,7 @@ describe('verificarEntorno', () => {
 
       expect(process.env.JWT_SECRET).toBeTruthy();
       expect(avisos.join(' ')).toContain('JWT_SECRET');
-      expect(salidas).toEqual([]);   // no mata el proceso
+      expect(salidas).toEqual([]); // no mata el proceso
     });
 
     it('rellena PROFESOR_CLAVE si falta', () => {
@@ -58,7 +62,9 @@ describe('verificarEntorno', () => {
   });
 
   describe('en producción', () => {
-    beforeEach(() => { process.env.NODE_ENV = 'production'; });
+    beforeEach(() => {
+      process.env.NODE_ENV = 'production';
+    });
 
     it('sin JWT_SECRET aborta el arranque', () => {
       delete process.env.JWT_SECRET;

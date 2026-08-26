@@ -3,10 +3,10 @@ const Usuario = require('../models/Usuario');
 
 const validateJWT = async (req, res, next) => {
   // 1) Soportar Authorization: Bearer ...  y x-token (legacy)
-  const auth   = req.header('Authorization') || '';
+  const auth = req.header('Authorization') || '';
   const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : '';
   const legacy = req.header('x-token') || '';
-  const token  = bearer || legacy;
+  const token = bearer || legacy;
 
   if (!token) {
     return res.status(401).json({ ok: false, msg: 'No hay token en la petición' });
@@ -22,7 +22,7 @@ const validateJWT = async (req, res, next) => {
     }
 
     req.usuario = usuario; // ← objeto completo
-    req.uid = uid;         // ← compatibilidad con controladores antiguos
+    req.uid = uid; // ← compatibilidad con controladores antiguos
     req.rol = rol;
 
     next();

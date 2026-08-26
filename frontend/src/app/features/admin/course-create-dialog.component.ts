@@ -1,7 +1,13 @@
 import { Component, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { ReactiveFormsModule, Validators, FormBuilder, FormGroup, FormControl } from '@angular/forms';
+import {
+  ReactiveFormsModule,
+  Validators,
+  FormBuilder,
+  FormGroup,
+  FormControl,
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -59,15 +65,27 @@ interface DialogData {
       </button>
     </div>
   `,
-  styles: [`
-    .w-100{width:100%}
-    .form-wrap{display:grid;gap:12px}
-  `],
+  styles: [
+    `
+      .w-100 {
+        width: 100%;
+      }
+      .form-wrap {
+        display: grid;
+        gap: 12px;
+      }
+    `,
+  ],
   imports: [
-    CommonModule, MatDialogModule, ReactiveFormsModule,
-    MatFormFieldModule, MatInputModule, MatButtonModule,
-    MatSelectModule, TextFieldModule
-  ]
+    CommonModule,
+    MatDialogModule,
+    ReactiveFormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatSelectModule,
+    TextFieldModule,
+  ],
 })
 export class CourseCreateDialogComponent {
   soyAdmin = false;
@@ -84,24 +102,27 @@ export class CourseCreateDialogComponent {
     @Inject(MAT_DIALOG_DATA) public data: DialogData,
     private fb: FormBuilder
   ) {
-    this.soyAdmin   = !!data.soyAdmin;
+    this.soyAdmin = !!data.soyAdmin;
     this.profesores = Array.isArray(data.profesores) ? data.profesores : [];
 
     this.form = this.fb.nonNullable.group({
       titulo: ['', Validators.required],
       descripcion: ['', Validators.required],
-      profesorId: ['']
+      profesorId: [''],
     });
     if (this.soyAdmin) {
       this.form.controls.profesorId.addValidators(Validators.required);
     }
 
     if (data.initial) {
-      this.form.patchValue({
-        titulo: data.initial.titulo ?? '',
-        descripcion: data.initial.descripcion ?? '',
-        profesorId: data.initial.profesorId ?? ''
-      }, { emitEvent: false });
+      this.form.patchValue(
+        {
+          titulo: data.initial.titulo ?? '',
+          descripcion: data.initial.descripcion ?? '',
+          profesorId: data.initial.profesorId ?? '',
+        },
+        { emitEvent: false }
+      );
     }
   }
 

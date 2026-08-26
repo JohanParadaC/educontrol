@@ -30,10 +30,14 @@ function verificarEntorno() {
 
   if (!process.env.PROFESOR_CLAVE) {
     if (esProduccion) {
-      console.warn('⚠️  PROFESOR_CLAVE no configurada: nadie podrá ascender a profesor sin un admin.');
+      console.warn(
+        '⚠️  PROFESOR_CLAVE no configurada: nadie podrá ascender a profesor sin un admin.'
+      );
     } else {
       process.env.PROFESOR_CLAVE = DEV_PROFESOR_CLAVE;
-      console.warn(`⚠️  PROFESOR_CLAVE no configurada: usando "${DEV_PROFESOR_CLAVE}" en desarrollo.`);
+      console.warn(
+        `⚠️  PROFESOR_CLAVE no configurada: usando "${DEV_PROFESOR_CLAVE}" en desarrollo.`
+      );
     }
   }
 }

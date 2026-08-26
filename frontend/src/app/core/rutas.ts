@@ -12,8 +12,11 @@ export type Rol = 'estudiante' | 'profesor' | 'admin';
 /** Pantalla de inicio de cada rol. */
 export function rutaInicioPara(rol: Rol | string | null | undefined): string {
   switch (rol) {
-    case 'admin':    return '/admin';
-    case 'profesor': return '/profesor/dashboard';
-    default:         return '/estudiante/inicio';
+    case 'admin':
+      return '/admin';
+    case 'profesor':
+      return '/profesor/dashboard';
+    default:
+      return '/estudiante/inicio';
   }
 }

@@ -26,7 +26,7 @@ const CHROME = [
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
   `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`,
   '/usr/bin/google-chrome',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
 ].find(p => p && existsSync(p));
 
 /** Pantallas a capturar. `preparar` deja la app en el estado que queremos. */
@@ -35,48 +35,55 @@ const PANTALLAS = [
     fichero: '00-portada.png',
     titulo: 'Portada pública',
     ruta: '/',
-    ancho: 1280, alto: 900
+    ancho: 1280,
+    alto: 900,
   },
   {
     fichero: '01-login.png',
     titulo: 'Inicio de sesión',
     ruta: '/login',
-    ancho: 1280, alto: 900
+    ancho: 1280,
+    alto: 900,
   },
   {
     fichero: '02-admin.png',
     titulo: 'Panel de administración',
     ruta: '/login',
-    ancho: 1280, alto: 1000,
-    preparar: entrarComo('admin@educontrol.com', 'Admin123*')
+    ancho: 1280,
+    alto: 1000,
+    preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
   },
   {
     fichero: '03-profesor.png',
     titulo: 'Vista de profesor',
     ruta: '/login',
-    ancho: 1280, alto: 900,
-    preparar: entrarComo('lucia@educontrol.com', 'Demo1234')
+    ancho: 1280,
+    alto: 900,
+    preparar: entrarComo('lucia@educontrol.com', 'Demo1234'),
   },
   {
     fichero: '04-estudiante.png',
     titulo: 'Catálogo de cursos (estudiante)',
     ruta: '/login',
-    ancho: 1280, alto: 900,
-    preparar: entrarComo('ana@educontrol.com', 'Demo1234')
+    ancho: 1280,
+    alto: 900,
+    preparar: entrarComo('ana@educontrol.com', 'Demo1234'),
   },
   {
     fichero: '05-movil-login.png',
     titulo: 'Login en móvil',
     ruta: '/login',
-    ancho: 390, alto: 844
+    ancho: 390,
+    alto: 844,
   },
   {
     fichero: '06-movil-admin.png',
     titulo: 'Panel de administración en móvil (tarjetas)',
     ruta: '/login',
-    ancho: 390, alto: 844,
-    preparar: entrarComo('admin@educontrol.com', 'Admin123*')
-  }
+    ancho: 390,
+    alto: 844,
+    preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
+  },
 ];
 
 /** Devuelve un script que rellena el login y espera a salir de /login. */
@@ -112,11 +119,12 @@ function crearCliente(ws) {
       pendientes.delete(msg.id);
     }
   });
-  return (method, params = {}) => new Promise(resolve => {
-    const id = ++siguienteId;
-    pendientes.set(id, resolve);
-    ws.send(JSON.stringify({ id, method, params }));
-  });
+  return (method, params = {}) =>
+    new Promise(resolve => {
+      const id = ++siguienteId;
+      pendientes.set(id, resolve);
+      ws.send(JSON.stringify({ id, method, params }));
+    });
 }
 
 async function main() {
@@ -136,14 +144,18 @@ async function main() {
   await mkdir(DESTINO, { recursive: true });
 
   const perfil = join(RAIZ, '.chrome-capturas');
-  const chrome = spawn(CHROME, [
-    `--remote-debugging-port=${PUERTO_CDP}`,
-    `--user-data-dir=${perfil}`,
-    '--headless=new',
-    '--hide-scrollbars',
-    '--no-first-run',
-    '--force-device-scale-factor=2'   // capturas nítidas para el README
-  ], { stdio: 'ignore' });
+  const chrome = spawn(
+    CHROME,
+    [
+      `--remote-debugging-port=${PUERTO_CDP}`,
+      `--user-data-dir=${perfil}`,
+      '--headless=new',
+      '--hide-scrollbars',
+      '--no-first-run',
+      '--force-device-scale-factor=2', // capturas nítidas para el README
+    ],
+    { stdio: 'ignore' }
+  );
 
   // Esperar a que el puerto de depuración responda
   let objetivo = null;
@@ -151,9 +163,14 @@ async function main() {
     try {
       const r = await fetch(`http://127.0.0.1:${PUERTO_CDP}/json/list`);
       objetivo = (await r.json()).find(t => t.type === 'page');
-    } catch { await new Promise(r => setTimeout(r, 200)); }
+    } catch {
+      await new Promise(r => setTimeout(r, 200));
+    }
   }
-  if (!objetivo) { chrome.kill(); throw new Error('Chrome no expuso el puerto de depuración'); }
+  if (!objetivo) {
+    chrome.kill();
+    throw new Error('Chrome no expuso el puerto de depuración');
+  }
 
   const ws = new WebSocket(objetivo.webSocketDebuggerUrl);
   await new Promise(r => ws.addEventListener('open', r, { once: true }));
@@ -164,11 +181,16 @@ async function main() {
 
   for (const p of PANTALLAS) {
     await enviar('Emulation.setDeviceMetricsOverride', {
-      width: p.ancho, height: p.alto, deviceScaleFactor: 2, mobile: p.ancho < 700
+      width: p.ancho,
+      height: p.alto,
+      deviceScaleFactor: 2,
+      mobile: p.ancho < 700,
     });
 
     // Sesión limpia entre capturas
-    await enviar('Runtime.evaluate', { expression: 'try{localStorage.clear();sessionStorage.clear()}catch(e){}' });
+    await enviar('Runtime.evaluate', {
+      expression: 'try{localStorage.clear();sessionStorage.clear()}catch(e){}',
+    });
     await enviar('Page.navigate', { url: `${BASE}${p.ruta}` });
     await new Promise(r => setTimeout(r, 1500));
 
@@ -193,4 +215,7 @@ async function main() {
   console.log(`\n✅ Capturas en ${DESTINO}`);
 }
 
-main().catch(err => { console.error('❌', err.message); process.exit(1); });
+main().catch(err => {
+  console.error('❌', err.message);
+  process.exit(1);
+});

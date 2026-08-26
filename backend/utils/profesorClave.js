@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------------
 const crypto = require('crypto');
 
-const sha256 = (valor) => crypto.createHash('sha256').update(String(valor), 'utf8').digest();
+const sha256 = valor => crypto.createHash('sha256').update(String(valor), 'utf8').digest();
 
 /**
  * Acepta el nombre de campo que ya envía el frontend (`profesorClave`) y el
@@ -23,16 +23,15 @@ const sha256 = (valor) => crypto.createHash('sha256').update(String(valor), 'utf
  * @param {object} body cuerpo de la petición
  * @returns {string} clave enviada, sin espacios sobrantes
  */
-const extraerClave = (body = {}) =>
-  String(body.profesorClave ?? body.claveProfesor ?? '').trim();
+const extraerClave = (body = {}) => String(body.profesorClave ?? body.claveProfesor ?? '').trim();
 
 /**
  * @param {string} clave clave enviada por el cliente
  * @returns {boolean} true solo si coincide con PROFESOR_CLAVE
  */
-const claveProfesorValida = (clave) => {
+const claveProfesorValida = clave => {
   const esperada = process.env.PROFESOR_CLAVE;
-  if (!esperada) return false;          // no configurada → nadie asciende solo
+  if (!esperada) return false; // no configurada → nadie asciende solo
   if (!clave) return false;
   return crypto.timingSafeEqual(sha256(clave), sha256(esperada));
 };

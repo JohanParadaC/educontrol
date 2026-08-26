@@ -1,12 +1,12 @@
-const bcrypt  = require('bcryptjs');
-const jwt     = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const Usuario = require('../models/Usuario');
 
 // POST /api/auth/login
 const login = async (req, res) => {
   // 👇 Aceptamos cualquiera de estas claves desde el frontend
   const correo = req.body?.correo;
-  const pass   = req.body?.contraseña ?? req.body?.password ?? req.body?.contrasena;
+  const pass = req.body?.contraseña ?? req.body?.password ?? req.body?.contrasena;
 
   if (!correo || !pass) {
     return res.status(400).json({ ok: false, msg: 'Correo y contraseña son obligatorios' });
@@ -31,12 +31,12 @@ const login = async (req, res) => {
     res.json({
       ok: true,
       usuario: {
-        _id   : usuario.id,
+        _id: usuario.id,
         nombre: usuario.nombre,
         correo: usuario.correo,
-        rol   : usuario.rol
+        rol: usuario.rol,
       },
-      token
+      token,
     });
   } catch (error) {
     console.error('login error', error);
@@ -58,12 +58,12 @@ const renewToken = async (req, res) => {
     res.json({
       ok: true,
       usuario: {
-        _id   : uid,
+        _id: uid,
         nombre: usuario.nombre,
         correo: usuario.correo,
-        rol   : usuario.rol
+        rol: usuario.rol,
       },
-      token
+      token,
     });
   } catch (err) {
     console.error('renew error', err);

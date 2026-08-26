@@ -37,15 +37,26 @@ type ConfirmData = {
       </button>
     </div>
   `,
-  styles: [`
-    .title{display:flex;align-items:center;gap:8px;margin:0}
-    .content{margin-top:4px}
-  `]
+  styles: [
+    `
+      .title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+      }
+      .content {
+        margin-top: 4px;
+      }
+    `,
+  ],
 })
 export class ConfirmDialogComponent {
   constructor(
     private ref: MatDialogRef<ConfirmDialogComponent, boolean>,
     @Inject(MAT_DIALOG_DATA) public data: ConfirmData
   ) {}
-  close(v: boolean){ this.ref.close(v); }
+  close(v: boolean) {
+    this.ref.close(v);
+  }
 }

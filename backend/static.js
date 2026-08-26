@@ -13,7 +13,12 @@ const path = require('path');
 const fs = require('fs');
 
 const DIST_POR_DEFECTO = path.join(
-  __dirname, '..', 'frontend', 'dist', 'educontrol-frontend', 'browser'
+  __dirname,
+  '..',
+  'frontend',
+  'dist',
+  'educontrol-frontend',
+  'browser'
 );
 
 /** Ruta del build de Angular; `FRONTEND_DIST` la sobreescribe. */
@@ -32,18 +37,20 @@ function montarFrontend(app) {
 
   // Los ficheros llevan hash en el nombre: son inmutables y se cachean a lo
   // bruto. Cambiar el contenido cambia el nombre.
-  app.use(express.static(DIST, {
-    index: false,
-    maxAge: '1y',
-    immutable: true,
-    // ⚠️ index.html es la excepción: es quien apunta a los ficheros con hash.
-    // Si se cachea, tras un despliegue el navegador sigue pidiendo los chunks
-    // de la versión anterior, que ya no existen, y la aplicación se rompe con
-    // "Failed to fetch dynamically imported module".
-    setHeaders: (res, ruta) => {
-      if (ruta.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
-    }
-  }));
+  app.use(
+    express.static(DIST, {
+      index: false,
+      maxAge: '1y',
+      immutable: true,
+      // ⚠️ index.html es la excepción: es quien apunta a los ficheros con hash.
+      // Si se cachea, tras un despliegue el navegador sigue pidiendo los chunks
+      // de la versión anterior, que ya no existen, y la aplicación se rompe con
+      // "Failed to fetch dynamically imported module".
+      setHeaders: (res, ruta) => {
+        if (ruta.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+      },
+    })
+  );
 
   // Fallback de la SPA: cualquier ruta que no sea de API devuelve el index.
   app.get(/.*/, (req, res, next) => {

@@ -17,7 +17,7 @@ describe('AuthService — renovación de token en vuelo', () => {
   const crear = (api: Partial<ApiService>) => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
-      providers: [AuthService, { provide: ApiService, useValue: api }]
+      providers: [AuthService, { provide: ApiService, useValue: api }],
     });
     return TestBed.inject(AuthService);
   };
@@ -29,7 +29,7 @@ describe('AuthService — renovación de token en vuelo', () => {
 
     crear({
       renew: () => throwError(() => ({ status: 401 })),
-      login: () => of({ token: 'nuevo', usuario })
+      login: () => of({ token: 'nuevo', usuario }),
     } as any);
 
     expect(localStorage.getItem('token')).toBeNull();
@@ -42,7 +42,7 @@ describe('AuthService — renovación de token en vuelo', () => {
     const renovacion = new Subject<any>();
     const auth = crear({
       renew: () => renovacion.asObservable(),
-      login: () => of({ token: 'token-nuevo', usuario })
+      login: () => of({ token: 'token-nuevo', usuario }),
     } as any);
 
     // El usuario entra correctamente mientras la renovación sigue en vuelo.
@@ -63,7 +63,7 @@ describe('AuthService — renovación de token en vuelo', () => {
     const renovacion = new Subject<any>();
     const auth = crear({
       renew: () => renovacion.asObservable(),
-      login: () => of({ token: 'token-nuevo', usuario })
+      login: () => of({ token: 'token-nuevo', usuario }),
     } as any);
 
     auth.login({ correo: 'ana@mail.com', password: 'x' }).subscribe();

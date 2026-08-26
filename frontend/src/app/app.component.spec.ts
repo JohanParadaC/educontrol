@@ -11,7 +11,7 @@ describe('AppComponent', () => {
       imports: [AppComponent, RouterTestingModule],
       // Evitamos el encadenado hasta HttpClient mockeando AuthService
       providers: [
-        { provide: AuthService, useValue: { renew: () => EMPTY, validateToken: () => EMPTY } }
+        { provide: AuthService, useValue: { renew: () => EMPTY, validateToken: () => EMPTY } },
       ],
     }).compileComponents();
   });

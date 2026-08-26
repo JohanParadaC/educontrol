@@ -27,17 +27,14 @@ describe('AuthService', () => {
     apiSpy.renew.and.returnValue(EMPTY);
 
     TestBed.configureTestingModule({
-      providers: [
-        AuthService,
-        { provide: ApiService, useValue: apiSpy },
-      ],
+      providers: [AuthService, { provide: ApiService, useValue: apiSpy }],
     });
 
     localStorage.clear();
     service = TestBed.inject(AuthService);
   });
 
-  it('login guarda token y usuario en localStorage', (done) => {
+  it('login guarda token y usuario en localStorage', done => {
     // ✅ mapea 'rol' al union correcto
     const mockResp: { token: string; usuario: UsuarioLike } = {
       token: 'abc123',

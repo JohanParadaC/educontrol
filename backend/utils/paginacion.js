@@ -21,9 +21,8 @@ function leerPaginacion(query = {}) {
   const pagina = Math.max(1, Number.parseInt(query.page, 10) || 1);
 
   const pedido = Number.parseInt(query.limit, 10);
-  const limite = Number.isFinite(pedido) && pedido > 0
-    ? Math.min(pedido, LIMITE_MAXIMO)
-    : LIMITE_POR_DEFECTO;
+  const limite =
+    Number.isFinite(pedido) && pedido > 0 ? Math.min(pedido, LIMITE_MAXIMO) : LIMITE_POR_DEFECTO;
 
   return { pagina, limite, saltar: (pagina - 1) * limite };
 }
@@ -34,7 +33,7 @@ function metadatos({ total, pagina, limite }) {
     total,
     pagina,
     limite,
-    paginas: Math.max(1, Math.ceil(total / limite))
+    paginas: Math.max(1, Math.ceil(total / limite)),
   };
 }
 

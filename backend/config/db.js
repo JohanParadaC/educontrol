@@ -5,7 +5,7 @@ let connecting = null;
 
 function resolveUri(paramUri) {
   const envUri =
-    process.env.MONGO_CNN ||       // <— ahora sí lee MONGO_CNN (DO)
+    process.env.MONGO_CNN || // <— ahora sí lee MONGO_CNN (DO)
     process.env.MONGO_URI ||
     process.env.MONGODB_URI;
 
@@ -29,7 +29,9 @@ function conectar(uri, timeoutMs) {
 
 async function connectDB(uri) {
   const finalUri = resolveUri(uri);
-  const uriExplicita = Boolean(uri || process.env.MONGO_CNN || process.env.MONGO_URI || process.env.MONGODB_URI);
+  const uriExplicita = Boolean(
+    uri || process.env.MONGO_CNN || process.env.MONGO_URI || process.env.MONGODB_URI
+  );
 
   // Evita reconectar si ya está conectado
   if (mongoose.connection.readyState === 1) return mongoose.connection;
@@ -58,7 +60,9 @@ async function connectDB(uri) {
     const uriMemoria = await iniciarMongoEnMemoria();
     if (!uriMemoria) throw err;
 
-    console.warn('⚠️  No hay MongoDB local ni MONGO_URI: usando Mongo en memoria (datos efímeros).');
+    console.warn(
+      '⚠️  No hay MongoDB local ni MONGO_URI: usando Mongo en memoria (datos efímeros).'
+    );
     connecting = conectar(uriMemoria, 10000);
     await connecting;
   }

@@ -18,7 +18,9 @@ describe('config/db — resolveUri', () => {
     delete process.env.MONGODB_URI;
   };
 
-  afterEach(() => { process.env = { ...original }; });
+  afterEach(() => {
+    process.env = { ...original };
+  });
 
   it('la URI pasada por parámetro manda sobre todo lo demás', () => {
     process.env.MONGO_URI = 'mongodb://del-entorno/x';
@@ -70,7 +72,9 @@ describe('config/db — resolveUri', () => {
 
 describe('config/memoryDb', () => {
   const original = { ...process.env };
-  afterEach(() => { process.env = { ...original }; });
+  afterEach(() => {
+    process.env = { ...original };
+  });
 
   it('en producción no levanta ninguna base en memoria', async () => {
     jest.resetModules();

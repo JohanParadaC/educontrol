@@ -14,8 +14,12 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
-  FormBuilder, FormGroup, Validators, ReactiveFormsModule,
-  AbstractControl, ValidationErrors
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+  AbstractControl,
+  ValidationErrors,
 } from '@angular/forms';
 
 import { MatCardModule } from '@angular/material/card';
@@ -50,12 +54,17 @@ function coinciden(grupo: AbstractControl): ValidationErrors | null {
   standalone: true,
   selector: 'app-mi-cuenta',
   imports: [
-    CommonModule, ReactiveFormsModule,
-    MatCardModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatSnackBarModule
+    CommonModule,
+    ReactiveFormsModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+    MatIconModule,
+    MatSnackBarModule,
   ],
   templateUrl: './mi-cuenta.component.html',
-  styleUrls: ['./mi-cuenta.component.scss']
+  styleUrls: ['./mi-cuenta.component.scss'],
 })
 export class MiCuentaComponent {
   private fb = inject(FormBuilder);
@@ -76,17 +85,20 @@ export class MiCuentaComponent {
 
   perfil: FormGroup = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2)]],
-    correo: ['', [Validators.required, Validators.email]]
+    correo: ['', [Validators.required, Validators.email]],
   });
 
-  password: FormGroup = this.fb.group({
-    actual  : ['', [Validators.required]],
-    nueva   : ['', [Validators.required, Validators.minLength(6)]],
-    repetida: ['', [Validators.required]]
-  }, { validators: coinciden });
+  password: FormGroup = this.fb.group(
+    {
+      actual: ['', [Validators.required]],
+      nueva: ['', [Validators.required, Validators.minLength(6)]],
+      repetida: ['', [Validators.required]],
+    },
+    { validators: coinciden }
+  );
 
   profesor: FormGroup = this.fb.group({
-    clave: ['', [Validators.required]]
+    clave: ['', [Validators.required]],
   });
 
   constructor() {
@@ -94,9 +106,15 @@ export class MiCuentaComponent {
     if (u) this.perfil.patchValue({ nombre: u.nombre, correo: u.correo });
   }
 
-  get usuario() { return this.auth.usuario; }
-  get miId(): string { return (this.usuario as any)?._id ?? (this.usuario as any)?.id ?? ''; }
-  get soyEstudiante(): boolean { return this.usuario?.rol === 'estudiante'; }
+  get usuario() {
+    return this.auth.usuario;
+  }
+  get miId(): string {
+    return (this.usuario as any)?._id ?? (this.usuario as any)?.id ?? '';
+  }
+  get soyEstudiante(): boolean {
+    return this.usuario?.rol === 'estudiante';
+  }
 
   get etiquetaRol(): string {
     const rol = this.usuario?.rol;
@@ -108,70 +126,83 @@ export class MiCuentaComponent {
   // ---------------------------------------------------------------- perfil
   guardarPerfil(): void {
     this.errorPerfil = '';
-    if (this.perfil.invalid) { this.perfil.markAllAsTouched(); return; }
+    if (this.perfil.invalid) {
+      this.perfil.markAllAsTouched();
+      return;
+    }
     if (this.guardandoPerfil) return;
 
     this.guardandoPerfil = true;
     this.api.updateUsuario(this.miId, this.perfil.value).subscribe({
-      next: (resp) => {
+      next: resp => {
         this.guardandoPerfil = false;
         if (resp?.usuario) this.auth.usuario = resp.usuario;
         this.snack.open('Datos actualizados', 'OK', { duration: 2500 });
       },
-      error: (err) => {
+      error: err => {
         this.guardandoPerfil = false;
         this.errorPerfil = mensajeDeError(err, 'No se pudieron guardar los datos');
-      }
+      },
     });
   }
 
   // ------------------------------------------------------------ contraseña
   cambiarPassword(): void {
     this.errorPassword = '';
-    if (this.password.invalid) { this.password.markAllAsTouched(); return; }
+    if (this.password.invalid) {
+      this.password.markAllAsTouched();
+      return;
+    }
     if (this.guardandoPassword) return;
 
     this.guardandoPassword = true;
     const { actual, nueva } = this.password.value;
 
-    this.api.updateUsuario(this.miId, {
-      'contraseñaActual': actual,
-      'contraseña': nueva
-    }).subscribe({
-      next: () => {
-        this.guardandoPassword = false;
-        this.password.reset();
-        this.snack.open('Contraseña actualizada', 'OK', { duration: 2500 });
-      },
-      error: (err) => {
-        this.guardandoPassword = false;
-        this.errorPassword = mensajeDeError(err, 'No se pudo cambiar la contraseña');
-      }
-    });
+    this.api
+      .updateUsuario(this.miId, {
+        contraseñaActual: actual,
+        contraseña: nueva,
+      })
+      .subscribe({
+        next: () => {
+          this.guardandoPassword = false;
+          this.password.reset();
+          this.snack.open('Contraseña actualizada', 'OK', { duration: 2500 });
+        },
+        error: err => {
+          this.guardandoPassword = false;
+          this.errorPassword = mensajeDeError(err, 'No se pudo cambiar la contraseña');
+        },
+      });
   }
 
   // -------------------------------------------------------------- profesor
   activarProfesor(): void {
     this.errorProfesor = '';
-    if (this.profesor.invalid) { this.profesor.markAllAsTouched(); return; }
+    if (this.profesor.invalid) {
+      this.profesor.markAllAsTouched();
+      return;
+    }
     if (this.activandoProfesor) return;
 
     this.activandoProfesor = true;
-    this.api.updateUsuario(this.miId, {
-      rol: 'profesor' as any,
-      profesorClave: this.profesor.value.clave
-    }).subscribe({
-      next: (resp) => {
-        this.activandoProfesor = false;
-        if (resp?.usuario) this.auth.usuario = resp.usuario;
-        this.profesor.reset();
-        this.snack.open('Ya tienes perfil de profesor', 'OK', { duration: 3000 });
-        this.router.navigateByUrl('/profesor/dashboard');
-      },
-      error: (err) => {
-        this.activandoProfesor = false;
-        this.errorProfesor = mensajeDeError(err, 'No se pudo activar el perfil de profesor');
-      }
-    });
+    this.api
+      .updateUsuario(this.miId, {
+        rol: 'profesor' as any,
+        profesorClave: this.profesor.value.clave,
+      })
+      .subscribe({
+        next: resp => {
+          this.activandoProfesor = false;
+          if (resp?.usuario) this.auth.usuario = resp.usuario;
+          this.profesor.reset();
+          this.snack.open('Ya tienes perfil de profesor', 'OK', { duration: 3000 });
+          this.router.navigateByUrl('/profesor/dashboard');
+        },
+        error: err => {
+          this.activandoProfesor = false;
+          this.errorProfesor = mensajeDeError(err, 'No se pudo activar el perfil de profesor');
+        },
+      });
   }
 }

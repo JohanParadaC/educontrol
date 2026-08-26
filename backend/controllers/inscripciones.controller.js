@@ -10,12 +10,14 @@ const inscribirEstudiante = async (req, res, next) => {
     // validar que no exista ya la inscripción
     const yaInscrito = await Inscripcion.findOne({ curso: cursoId, estudiante: estudianteId });
     if (yaInscrito) {
-      return res.status(400).json({ ok: false, msg: 'El estudiante ya está inscrito en este curso' });
+      return res
+        .status(400)
+        .json({ ok: false, msg: 'El estudiante ya está inscrito en este curso' });
     }
 
     const inscripcion = new Inscripcion({
       curso: cursoId,
-      estudiante: estudianteId
+      estudiante: estudianteId,
     });
 
     await inscripcion.save();
@@ -61,13 +63,12 @@ const obtenerInscripcionPorId = async (req, res, next) => {
  */
 const actualizarInscripcion = async (req, res, next) => {
   try {
-    const inscripcionActualizada = await Inscripcion.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    )
-    .populate('estudiante', 'nombre correo')
-    .populate('curso', 'nombre descripcion');
+    const inscripcionActualizada = await Inscripcion.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    })
+      .populate('estudiante', 'nombre correo')
+      .populate('curso', 'nombre descripcion');
 
     if (!inscripcionActualizada) {
       return res.status(404).json({ ok: false, msg: 'Inscripción no encontrada' });
@@ -98,5 +99,5 @@ module.exports = {
   obtenerInscripciones,
   obtenerInscripcionPorId,
   actualizarInscripcion,
-  borrarInscripcion
+  borrarInscripcion,
 };

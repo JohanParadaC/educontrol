@@ -15,20 +15,36 @@ const PASSWORD_DEMO = process.env.DEMO_PASSWORD || 'Demo1234';
 
 const PROFESORES = [
   { nombre: 'Lucía Fernández', correo: 'lucia@educontrol.com' },
-  { nombre: 'Marcos Rivas',    correo: 'marcos@educontrol.com' }
+  { nombre: 'Marcos Rivas', correo: 'marcos@educontrol.com' },
 ];
 
 const ESTUDIANTES = [
-  { nombre: 'Ana Torres',   correo: 'ana@educontrol.com' },
-  { nombre: 'Diego Ruiz',   correo: 'diego@educontrol.com' },
-  { nombre: 'Sara Molina',  correo: 'sara@educontrol.com' }
+  { nombre: 'Ana Torres', correo: 'ana@educontrol.com' },
+  { nombre: 'Diego Ruiz', correo: 'diego@educontrol.com' },
+  { nombre: 'Sara Molina', correo: 'sara@educontrol.com' },
 ];
 
 const CURSOS = [
-  { nombre: 'Angular desde cero',        descripcion: 'Componentes, routing y formularios reactivos.', profesor: 0 },
-  { nombre: 'Node.js y APIs REST',       descripcion: 'Express, MongoDB y autenticación con JWT.',     profesor: 0 },
-  { nombre: 'Testing automatizado',      descripcion: 'Jest, Supertest y estrategia de cobertura.',    profesor: 1 },
-  { nombre: 'Bases de datos con MongoDB', descripcion: 'Modelado, índices y agregaciones.',            profesor: 1 }
+  {
+    nombre: 'Angular desde cero',
+    descripcion: 'Componentes, routing y formularios reactivos.',
+    profesor: 0,
+  },
+  {
+    nombre: 'Node.js y APIs REST',
+    descripcion: 'Express, MongoDB y autenticación con JWT.',
+    profesor: 0,
+  },
+  {
+    nombre: 'Testing automatizado',
+    descripcion: 'Jest, Supertest y estrategia de cobertura.',
+    profesor: 1,
+  },
+  {
+    nombre: 'Bases de datos con MongoDB',
+    descripcion: 'Modelado, índices y agregaciones.',
+    profesor: 1,
+  },
 ];
 
 async function crearSiNoExiste({ nombre, correo, rol, hash }) {
@@ -55,11 +71,13 @@ module.exports = async function seedDemo() {
 
     const cursos = [];
     for (const c of CURSOS) {
-      cursos.push(await Curso.create({
-        nombre: c.nombre,
-        descripcion: c.descripcion,
-        profesor: profesores[c.profesor]._id
-      }));
+      cursos.push(
+        await Curso.create({
+          nombre: c.nombre,
+          descripcion: c.descripcion,
+          profesor: profesores[c.profesor]._id,
+        })
+      );
     }
 
     // Unas cuantas inscripciones para que los listados no salgan vacíos.
@@ -67,7 +85,7 @@ module.exports = async function seedDemo() {
       { estudiante: estudiantes[0]._id, curso: cursos[0]._id },
       { estudiante: estudiantes[0]._id, curso: cursos[2]._id },
       { estudiante: estudiantes[1]._id, curso: cursos[0]._id },
-      { estudiante: estudiantes[2]._id, curso: cursos[3]._id }
+      { estudiante: estudiantes[2]._id, curso: cursos[3]._id },
     ]);
 
     console.log(`🌱 Datos de ejemplo creados. Contraseña para todos: ${PASSWORD_DEMO}`);

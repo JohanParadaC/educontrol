@@ -10,16 +10,13 @@ const app = require('../app');
 const { createUserAndLogin, crearUsuario, login } = require('./helpers');
 
 const put = (id, token, body) =>
-  request(app)
-    .put(`/api/usuarios/${id}`)
-    .set('Authorization', `Bearer ${token}`)
-    .send(body);
+  request(app).put(`/api/usuarios/${id}`).set('Authorization', `Bearer ${token}`).send(body);
 
 describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
   it('sin indicar la contraseña actual → 400 y la vieja sigue sirviendo', async () => {
     const yo = await createUserAndLogin('estudiante', { password: 'MiClave123' });
 
-    const res = await put(yo.id, yo.token, { 'contraseña': 'NuevaClave123' });
+    const res = await put(yo.id, yo.token, { contraseña: 'NuevaClave123' });
 
     expect(res.status).toBe(400);
     await expect(login(yo.correo, 'MiClave123')).resolves.toEqual(expect.any(String));
@@ -29,8 +26,8 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
     const yo = await createUserAndLogin('estudiante', { password: 'MiClave123' });
 
     const res = await put(yo.id, yo.token, {
-      'contraseñaActual': 'ESTA-NO-ES-LA-MIA',
-      'contraseña': 'NuevaClave123'
+      contraseñaActual: 'ESTA-NO-ES-LA-MIA',
+      contraseña: 'NuevaClave123',
     });
 
     expect(res.status).toBe(403);
@@ -38,7 +35,7 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
     // La contraseña que intentó imponer el atacante no funciona...
     const intento = await request(app)
       .post('/api/auth/login')
-      .send({ correo: yo.correo, 'contraseña': 'NuevaClave123' });
+      .send({ correo: yo.correo, contraseña: 'NuevaClave123' });
     expect(intento.status).toBe(400);
 
     // ...y la original sigue intacta.
@@ -49,8 +46,8 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
     const yo = await createUserAndLogin('estudiante', { password: 'MiClave123' });
 
     const res = await put(yo.id, yo.token, {
-      'contraseñaActual': 'MiClave123',
-      'contraseña': 'NuevaClave123'
+      contraseñaActual: 'MiClave123',
+      contraseña: 'NuevaClave123',
     });
 
     expect(res.status).toBe(200);
@@ -59,7 +56,7 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
 
     const vieja = await request(app)
       .post('/api/auth/login')
-      .send({ correo: yo.correo, 'contraseña': 'MiClave123' });
+      .send({ correo: yo.correo, contraseña: 'MiClave123' });
     expect(vieja.status).toBe(400);
   });
 
@@ -76,9 +73,9 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
     // Es una acción administrativa, no un cambio propio: el admin está
     // devolviéndole el acceso a alguien que lo ha perdido.
     const admin = await createUserAndLogin('admin');
-    const otro  = await crearUsuario({ rol: 'estudiante', password: 'LaSuya123' });
+    const otro = await crearUsuario({ rol: 'estudiante', password: 'LaSuya123' });
 
-    const res = await put(otro.id, admin.token, { 'contraseña': 'Restablecida1' });
+    const res = await put(otro.id, admin.token, { contraseña: 'Restablecida1' });
 
     expect(res.status).toBe(200);
     await expect(login(otro.correo, 'Restablecida1')).resolves.toEqual(expect.any(String));
@@ -87,7 +84,7 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
   it('el admin tampoco se libra al cambiar la SUYA propia', async () => {
     const admin = await createUserAndLogin('admin', { password: 'AdminClave1' });
 
-    const res = await put(admin.id, admin.token, { 'contraseña': 'OtraClave1' });
+    const res = await put(admin.id, admin.token, { contraseña: 'OtraClave1' });
 
     expect(res.status).toBe(400);
     await expect(login(admin.correo, 'AdminClave1')).resolves.toEqual(expect.any(String));
@@ -97,8 +94,8 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
     const yo = await createUserAndLogin('estudiante', { password: 'MiClave123' });
 
     const res = await put(yo.id, yo.token, {
-      'contraseñaActual': 'MiClave123',
-      'contraseña': 'abc'
+      contraseñaActual: 'MiClave123',
+      contraseña: 'abc',
     });
 
     expect(res.status).toBe(400);

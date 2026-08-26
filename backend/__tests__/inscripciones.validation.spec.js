@@ -5,11 +5,13 @@ async function loginEstudiante() {
   const correo = `estu_${Date.now()}@mail.com`;
   const pass = 'Estu123!';
   // Muchos setups permiten crear usuarios sin token:
-  await request(app).post('/api/usuarios')
+  await request(app)
+    .post('/api/usuarios')
     .send({ nombre: 'Estu', correo, contraseña: pass, rol: 'estudiante' })
     .expect([200, 201]);
 
-  const { body } = await request(app).post('/api/auth/login')
+  const { body } = await request(app)
+    .post('/api/auth/login')
     .send({ correo, contraseña: pass, password: pass })
     .expect(200);
 

@@ -268,8 +268,6 @@ describe('Regla de negocio: no se puede inscribir dos veces', () => {
 
     // La comprobación del controlador es una cortesía; la garantía real es el
     // índice compuesto único del modelo.
-    await expect(
-      Inscripcion.create({ estudiante: alumno.id, curso: curso._id })
-    ).rejects.toThrow();
+    await expect(Inscripcion.create({ estudiante: alumno.id, curso: curso._id })).rejects.toThrow();
   });
 });

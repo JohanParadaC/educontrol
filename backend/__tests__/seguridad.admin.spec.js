@@ -114,7 +114,7 @@ describe('POST /api/admin/seed-admin', () => {
     // La contraseña del atacante no sirve...
     const intentoAtacante = await request(app)
       .post('/api/auth/login')
-      .send({ correo: victima.correo, 'contraseña': 'AtacanteEligeEsta1' });
+      .send({ correo: victima.correo, contraseña: 'AtacanteEligeEsta1' });
     expect(intentoAtacante.status).toBe(400);
 
     // ...y la original sigue siendo válida.

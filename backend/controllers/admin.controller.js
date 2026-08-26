@@ -1,5 +1,5 @@
 // controllers/admin.controller.js
-const bcrypt  = require('bcryptjs');
+const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
 
 /**
@@ -16,9 +16,9 @@ const Usuario = require('../models/Usuario');
 exports.seedAdmin = async (req, res) => {
   try {
     const defaults = {
-      correo  : process.env.ADMIN_EMAIL    || 'admin@educontrol.com',
+      correo: process.env.ADMIN_EMAIL || 'admin@educontrol.com',
       password: process.env.ADMIN_PASSWORD || 'admin123',
-      nombre  : 'Administrador'
+      nombre: 'Administrador',
     };
     const { correo, password, nombre } = { ...defaults, ...(req.body || {}) };
 
@@ -29,7 +29,7 @@ exports.seedAdmin = async (req, res) => {
         ok: true,
         msg: 'El usuario ya existe; no se ha modificado',
         id: existente._id,
-        rol: existente.rol
+        rol: existente.rol,
       });
     }
 
@@ -38,10 +38,12 @@ exports.seedAdmin = async (req, res) => {
       nombre,
       correo,
       contraseña: hash,
-      rol: 'admin'
+      rol: 'admin',
     });
 
-    return res.status(201).json({ ok: true, msg: 'Admin creado', id: user._id, correo: user.correo });
+    return res
+      .status(201)
+      .json({ ok: true, msg: 'Admin creado', id: user._id, correo: user.correo });
   } catch (err) {
     console.error('seedAdmin error', err);
     return res.status(500).json({ ok: false, msg: 'Error creando el admin' });

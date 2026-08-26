@@ -14,8 +14,8 @@ async function sembrarUsuarios(n) {
   const docs = Array.from({ length: n }, (_, i) => ({
     nombre: `Usuario ${String(i).padStart(3, '0')}`,
     correo: `bulk_${i}_${Date.now()}@mail.com`,
-    'contraseña': 'x'.repeat(60),
-    rol: 'estudiante'
+    contraseña: 'x'.repeat(60),
+    rol: 'estudiante',
   }));
   await Usuario.insertMany(docs);
 }
@@ -35,7 +35,7 @@ describe('GET /api/usuarios — paginación', () => {
       total: expect.any(Number),
       pagina: 1,
       limite: expect.any(Number),
-      paginas: expect.any(Number)
+      paginas: expect.any(Number),
     });
   });
 
@@ -57,7 +57,9 @@ describe('GET /api/usuarios — paginación', () => {
     expect(p1.body.paginas).toBe(3);
 
     // Ningún usuario aparece en dos páginas distintas
-    const ids = [...p1.body.usuarios, ...p2.body.usuarios, ...p3.body.usuarios].map(u => u.id ?? u._id);
+    const ids = [...p1.body.usuarios, ...p2.body.usuarios, ...p3.body.usuarios].map(
+      u => u.id ?? u._id
+    );
     expect(new Set(ids).size).toBe(10);
   });
 
@@ -119,7 +121,7 @@ describe('GET /api/cursos — paginación', () => {
       Array.from({ length: 5 }, (_, i) => ({
         nombre: `Curso ${i}`,
         descripcion: 'demo',
-        profesor: profesor.id
+        profesor: profesor.id,
       }))
     );
 

@@ -9,7 +9,7 @@ const app = require('../app');
 const Usuario = require('../models/Usuario');
 const { createUserAndLogin } = require('./helpers');
 
-const renovar = (token) =>
+const renovar = token =>
   request(app).get('/api/auth/renew').set('Authorization', `Bearer ${token}`);
 
 describe('GET /api/auth/renew', () => {
@@ -64,7 +64,9 @@ describe('GET /api/auth/renew', () => {
 
   it('un token caducado → 401', async () => {
     const { id } = await createUserAndLogin('estudiante');
-    const caducado = jwt.sign({ uid: id, rol: 'estudiante' }, process.env.JWT_SECRET, { expiresIn: '-1s' });
+    const caducado = jwt.sign({ uid: id, rol: 'estudiante' }, process.env.JWT_SECRET, {
+      expiresIn: '-1s',
+    });
 
     expect((await renovar(caducado)).status).toBe(401);
   });

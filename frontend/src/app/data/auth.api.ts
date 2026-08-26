@@ -43,7 +43,7 @@ export class AuthApi {
       nombre: body.nombre,
       correo: body.correo,
       ['contraseña']: body.password,
-      rol: body.rol ?? 'estudiante'
+      rol: body.rol ?? 'estudiante',
     };
     if (body.profesorClave) payload.profesorClave = body.profesorClave;
 

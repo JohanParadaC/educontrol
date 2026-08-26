@@ -18,23 +18,23 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 
 **Backend**
 
-| Fichero | Responsabilidad |
-|---|---|
-| `app.js` | La aplicación Express y nada más: middlewares, rutas, 404, errores |
-| `server.js` | Arranque del proceso: conectar, sembrar, escuchar |
-| `static.js` | Servido de la SPA y cabeceras de caché |
-| `config/` | Entorno, conexión a Mongo, Mongo en memoria, seed del admin |
+| Fichero     | Responsabilidad                                                    |
+| ----------- | ------------------------------------------------------------------ |
+| `app.js`    | La aplicación Express y nada más: middlewares, rutas, 404, errores |
+| `server.js` | Arranque del proceso: conectar, sembrar, escuchar                  |
+| `static.js` | Servido de la SPA y cabeceras de caché                             |
+| `config/`   | Entorno, conexión a Mongo, Mongo en memoria, seed del admin        |
 
 `app.js` **no** conecta a la base ni llama a `listen()`. Los tests hacen `require('../app')` para Supertest y no deben provocar conexiones.
 
 **Frontend**
 
-| Carpeta | Responsabilidad |
-|---|---|
-| `core/` | Sesión, guards, interceptor, errores HTTP, rutas por rol |
-| `data/` | El contrato con el backend: un servicio por recurso, modelos y el mapper |
+| Carpeta     | Responsabilidad                                                          |
+| ----------- | ------------------------------------------------------------------------ |
+| `core/`     | Sesión, guards, interceptor, errores HTTP, rutas por rol                 |
+| `data/`     | El contrato con el backend: un servicio por recurso, modelos y el mapper |
 | `features/` | Una carpeta por área: landing, auth, cuenta, admin, profesor, estudiante |
-| `shared/` | Navbar, diálogos, estado-vista, módulo de Material |
+| `shared/`   | Navbar, diálogos, estado-vista, módulo de Material                       |
 
 ## Reglas que no hay que romper
 
@@ -44,7 +44,7 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - El registro público solo crea `estudiante` o `profesor`. **Nunca** `admin`: el rol jamás se toma del cuerpo de la petición sin filtrar.
 - Ascender a profesor exige `PROFESOR_CLAVE`. Sin esa variable, nadie se auto-asigna el rol.
 - Cambiar la **propia** contraseña exige la actual. Un admin sí puede restablecer la de otra persona: es una acción administrativa, no un cambio propio.
-- `/api/admin/purge` y `/api/admin/seed-admin` solo existen fuera de producción. La comprobación es *fail-closed*: si `NODE_ENV` no está definida se asume producción y devuelven 404, no 403.
+- `/api/admin/purge` y `/api/admin/seed-admin` solo existen fuera de producción. La comprobación es _fail-closed_: si `NODE_ENV` no está definida se asume producción y devuelven 404, no 403.
 
 **Datos**
 

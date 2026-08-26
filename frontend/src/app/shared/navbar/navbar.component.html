@@ -6,20 +6,21 @@
 
   <!-- Enlaces en línea (solo escritorio) -->
   <nav class="enlaces-escritorio" aria-label="Navegación principal">
-    <a mat-button *ngFor="let e of enlacesVisibles"
-       [routerLink]="e.ruta"
-       routerLinkActive="active">
+    <a mat-button *ngFor="let e of enlacesVisibles" [routerLink]="e.ruta" routerLinkActive="active">
       {{ e.etiqueta }}
     </a>
     <button mat-button *ngIf="isLoggedIn" (click)="logout()">Salir</button>
   </nav>
 
   <!-- Botón de menú (solo móvil) -->
-  <button mat-icon-button class="boton-menu"
-          (click)="alternarMenu()"
-          [attr.aria-expanded]="menuAbierto"
-          aria-controls="menu-movil"
-          [attr.aria-label]="menuAbierto ? 'Cerrar menú' : 'Abrir menú'">
+  <button
+    mat-icon-button
+    class="boton-menu"
+    (click)="alternarMenu()"
+    [attr.aria-expanded]="menuAbierto"
+    aria-controls="menu-movil"
+    [attr.aria-label]="menuAbierto ? 'Cerrar menú' : 'Abrir menú'"
+  >
     <mat-icon>{{ menuAbierto ? 'close' : 'menu' }}</mat-icon>
   </button>
 </mat-toolbar>
@@ -32,10 +33,13 @@
     <!-- (click) además de la suscripción a NavigationEnd: si tocas el enlace de
          la página en la que ya estás no hay navegación, y el menú se quedaba
          abierto tapando el contenido. -->
-    <a mat-button *ngFor="let e of enlacesVisibles"
-       [routerLink]="e.ruta"
-       routerLinkActive="active"
-       (click)="cerrarMenu()">
+    <a
+      mat-button
+      *ngFor="let e of enlacesVisibles"
+      [routerLink]="e.ruta"
+      routerLinkActive="active"
+      (click)="cerrarMenu()"
+    >
       <mat-icon>{{ e.icono }}</mat-icon>
       <span>{{ e.etiqueta }}</span>
     </a>

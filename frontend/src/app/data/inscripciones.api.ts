@@ -28,9 +28,7 @@ export class InscripcionesApi {
   createInscripcion(body: { curso: string; estudiante: string }): Observable<Inscripcion> {
     // El backend espera cursoId/estudianteId, no curso/estudiante.
     const payload = { cursoId: body.curso, estudianteId: body.estudiante };
-    return this.http
-      .post<any>(this.base, payload)
-      .pipe(map(r => r?.inscripcion ?? r));
+    return this.http.post<any>(this.base, payload).pipe(map(r => r?.inscripcion ?? r));
   }
 
   /** Matricula al usuario de la sesión actual en un curso. */

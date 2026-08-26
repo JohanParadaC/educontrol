@@ -9,10 +9,13 @@
       <h2>Usuarios</h2>
       <!-- Guardar es la acción principal de esta tabla: botón relleno, y solo
            visible cuando hay algo que guardar en lugar de gris permanente. -->
-      <button mat-flat-button color="primary"
-              *ngIf="totalPendientes"
-              [disabled]="savingBulk"
-              (click)="guardarTodos()">
+      <button
+        mat-flat-button
+        color="primary"
+        *ngIf="totalPendientes"
+        [disabled]="savingBulk"
+        (click)="guardarTodos()"
+      >
         <mat-icon>save</mat-icon>
         {{ savingBulk ? 'Guardando…' : 'Guardar ' + totalPendientes + ' cambio(s)' }}
       </button>
@@ -24,7 +27,8 @@
       [error]="errorUsuarios"
       mensajeVacio="No hay usuarios registrados."
       iconoVacio="group_off"
-      (reintentar)="cargarUsuarios(pagUsuarios)">
+      (reintentar)="cargarUsuarios(pagUsuarios)"
+    >
     </app-estado-vista>
 
     <!-- Móvil: una tarjeta por usuario. Una tabla de tres columnas en 375px es
@@ -42,7 +46,8 @@
             <mat-select
               [ngModel]="pendingRoles[id(u)] || u.rol"
               (ngModelChange)="onRolChange(u, $event)"
-              [attr.aria-label]="'Cambiar rol de ' + u.nombre">
+              [attr.aria-label]="'Cambiar rol de ' + u.nombre"
+            >
               <mat-option value="estudiante">Estudiante</mat-option>
               <mat-option value="profesor">Profesor</mat-option>
             </mat-select>
@@ -79,7 +84,8 @@
                 <mat-select
                   [ngModel]="pendingRoles[id(u)] || u.rol"
                   (ngModelChange)="onRolChange(u, $event)"
-                  [attr.aria-label]="'Cambiar rol de ' + u.nombre">
+                  [attr.aria-label]="'Cambiar rol de ' + u.nombre"
+                >
                   <mat-option value="estudiante">Estudiante</mat-option>
                   <mat-option value="profesor">Profesor</mat-option>
                 </mat-select>
@@ -93,7 +99,7 @@
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedUserCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedUserCols;"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedUserCols"></tr>
       </table>
     </div>
 
@@ -103,7 +109,8 @@
       [pageIndex]="pagUsuarios - 1"
       [pageSizeOptions]="[10, 20, 50, 100]"
       (page)="onPaginaUsuarios($event)"
-      aria-label="Páginas de usuarios">
+      aria-label="Páginas de usuarios"
+    >
     </mat-paginator>
   </mat-card>
 
@@ -122,7 +129,8 @@
       [error]="errorCursos"
       mensajeVacio="Todavía no hay cursos. Crea el primero con «Nuevo curso»."
       iconoVacio="menu_book"
-      (reintentar)="cargarCursos(pagCursos)">
+      (reintentar)="cargarCursos(pagCursos)"
+    >
     </app-estado-vista>
 
     <!-- Móvil: una tarjeta por curso, con las acciones a ancho completo. -->
@@ -141,8 +149,12 @@
           <button mat-stroked-button color="primary" (click)="abrirDialogMatricular(c)">
             <mat-icon>person_add</mat-icon><span>Matricular</span>
           </button>
-          <button mat-stroked-button color="warn" (click)="eliminarCurso(c)"
-                  [disabled]="eliminandoId === c._id">
+          <button
+            mat-stroked-button
+            color="warn"
+            (click)="eliminarCurso(c)"
+            [disabled]="eliminandoId === c._id"
+          >
             <mat-icon>delete</mat-icon>
             <span>{{ eliminandoId === c._id ? 'Eliminando…' : 'Eliminar' }}</span>
           </button>
@@ -181,15 +193,17 @@
                 <span>Editar</span>
               </button>
 
-              <button mat-stroked-button color="primary"
-                      (click)="abrirDialogMatricular(c)">
+              <button mat-stroked-button color="primary" (click)="abrirDialogMatricular(c)">
                 <mat-icon>person_add</mat-icon>
                 <span>Matricular</span>
               </button>
 
-              <button mat-stroked-button color="warn"
-                      (click)="eliminarCurso(c)"
-                      [disabled]="eliminandoId === c._id">
+              <button
+                mat-stroked-button
+                color="warn"
+                (click)="eliminarCurso(c)"
+                [disabled]="eliminandoId === c._id"
+              >
                 <mat-icon>delete</mat-icon>
                 <span>{{ eliminandoId === c._id ? 'Eliminando…' : 'Eliminar' }}</span>
               </button>
@@ -201,12 +215,22 @@
                 <mat-icon>edit</mat-icon>
               </button>
 
-              <button mat-icon-button color="primary" (click)="abrirDialogMatricular(c)" matTooltip="Matricular">
+              <button
+                mat-icon-button
+                color="primary"
+                (click)="abrirDialogMatricular(c)"
+                matTooltip="Matricular"
+              >
                 <mat-icon>person_add</mat-icon>
               </button>
 
-              <button mat-icon-button color="warn" (click)="eliminarCurso(c)"
-                      [disabled]="eliminandoId === c._id" matTooltip="Eliminar">
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="eliminarCurso(c)"
+                [disabled]="eliminandoId === c._id"
+                matTooltip="Eliminar"
+              >
                 <mat-icon>delete</mat-icon>
               </button>
             </ng-template>
@@ -214,7 +238,7 @@
         </ng-container>
 
         <tr mat-header-row *matHeaderRowDef="displayedCourseCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedCourseCols;"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedCourseCols"></tr>
       </table>
     </div>
 
@@ -224,7 +248,8 @@
       [pageIndex]="pagCursos - 1"
       [pageSizeOptions]="[10, 20, 50, 100]"
       (page)="onPaginaCursos($event)"
-      aria-label="Páginas de cursos">
+      aria-label="Páginas de cursos"
+    >
     </mat-paginator>
 
     <!-- Acceso rápido: Asignar profesor -->
@@ -248,9 +273,12 @@
         </mat-select>
       </mat-form-field>
 
-      <button mat-stroked-button color="primary"
-              (click)="asignarProfesor()"
-              [disabled]="!cursoCtrl.value || !profeCtrl.value || isAssigning">
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="asignarProfesor()"
+        [disabled]="!cursoCtrl.value || !profeCtrl.value || isAssigning"
+      >
         Asignar profesor
       </button>
     </div>

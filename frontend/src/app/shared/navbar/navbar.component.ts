@@ -23,15 +23,17 @@ interface Enlace {
 }
 
 @Component({
-  selector   : 'app-navbar',
-  standalone : true,
+  selector: 'app-navbar',
+  standalone: true,
   templateUrl: './navbar.component.html',
-  styleUrls  : ['./navbar.component.scss'],
-  imports    : [
-    CommonModule,          // ⭐️ incluye *ngIf, *ngFor, etc.
+  styleUrls: ['./navbar.component.scss'],
+  imports: [
+    CommonModule, // ⭐️ incluye *ngIf, *ngFor, etc.
     RouterModule,
-    MatToolbarModule, MatButtonModule, MatIconModule
-  ]
+    MatToolbarModule,
+    MatButtonModule,
+    MatIconModule,
+  ],
 })
 export class NavbarComponent {
   /** Menú desplegable en móvil. En escritorio no se usa. */
@@ -44,34 +46,51 @@ export class NavbarComponent {
    */
   readonly enlaces: Enlace[] = [
     {
-      etiqueta: 'Inicio', ruta: '/dashboard', icono: 'dashboard',
-      visible: () => this.isLoggedIn && this.role !== 'profesor'
+      etiqueta: 'Inicio',
+      ruta: '/dashboard',
+      icono: 'dashboard',
+      visible: () => this.isLoggedIn && this.role !== 'profesor',
     },
     {
-      etiqueta: 'Inicio', ruta: '/profesor/dashboard', icono: 'dashboard',
-      visible: () => this.isLoggedIn && this.role === 'profesor'
+      etiqueta: 'Inicio',
+      ruta: '/profesor/dashboard',
+      icono: 'dashboard',
+      visible: () => this.isLoggedIn && this.role === 'profesor',
     },
     {
-      etiqueta: 'Cursos', ruta: '/cursos', icono: 'school',
-      visible: () => this.isLoggedIn && this.role === 'estudiante'
+      etiqueta: 'Cursos',
+      ruta: '/cursos',
+      icono: 'school',
+      visible: () => this.isLoggedIn && this.role === 'estudiante',
     },
     {
-      etiqueta: 'Mis clases', ruta: '/profesor/clases', icono: 'groups',
-      visible: () => this.isLoggedIn && this.role === 'profesor'
+      etiqueta: 'Mis clases',
+      ruta: '/profesor/clases',
+      icono: 'groups',
+      visible: () => this.isLoggedIn && this.role === 'profesor',
     },
     {
-      etiqueta: 'Administración', ruta: '/admin', icono: 'admin_panel_settings',
-      visible: () => this.isLoggedIn && this.role === 'admin'
+      etiqueta: 'Administración',
+      ruta: '/admin',
+      icono: 'admin_panel_settings',
+      visible: () => this.isLoggedIn && this.role === 'admin',
     },
     // "Elegir rol" ya no está: era una acción puntual —activar el perfil de
     // profesor con una clave— ocupando un sitio fijo en la navegación y
     // compitiendo con los destinos reales. Ahora vive dentro de Mi cuenta.
     {
-      etiqueta: 'Mi cuenta', ruta: '/cuenta', icono: 'account_circle',
-      visible: () => this.isLoggedIn
+      etiqueta: 'Mi cuenta',
+      ruta: '/cuenta',
+      icono: 'account_circle',
+      visible: () => this.isLoggedIn,
     },
-    { etiqueta: 'Entrar',       ruta: '/login',    icono: 'login',        visible: () => !this.isLoggedIn },
-    { etiqueta: 'Crear cuenta', ruta: '/register', icono: 'person_add',   visible: () => !this.isLoggedIn }
+    { etiqueta: 'Entrar', ruta: '/login', icono: 'login', visible: () => !this.isLoggedIn },
+    {
+      etiqueta: 'Crear cuenta',
+      ruta: '/register',
+      icono: 'person_add',
+      visible: () => !this.isLoggedIn,
+    },
   ];
 
   constructor(
@@ -82,7 +101,7 @@ export class NavbarComponent {
     // abierto tapando la página a la que acabas de llegar.
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe(() => this.menuAbierto = false);
+      .subscribe(() => (this.menuAbierto = false));
   }
 
   get enlacesVisibles(): Enlace[] {
@@ -120,7 +139,7 @@ export class NavbarComponent {
   logout(): void {
     this.menuAbierto = false;
     try {
-      this.auth.logout();           // Limpia token/estado
+      this.auth.logout(); // Limpia token/estado
     } finally {
       // FIX: tu ruta real de login es '/login' (no '/auth/login')
       this.router.navigateByUrl('/login');

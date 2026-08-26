@@ -1,7 +1,7 @@
 // __tests__/helpers.js
 const request = require('supertest');
-const bcrypt  = require('bcryptjs');
-const app     = require('../app');
+const bcrypt = require('bcryptjs');
+const app = require('../app');
 const Usuario = require('../models/Usuario');
 
 const PASSWORD_POR_DEFECTO = 'Secret123';
@@ -21,10 +21,10 @@ function uniqueEmail(prefix = 'test') {
  * el endpoint de verdad, no este helper.
  */
 async function crearUsuario({
-  rol      = 'estudiante',
-  nombre   = 'Test',
-  correo   = uniqueEmail(rol),
-  password = PASSWORD_POR_DEFECTO
+  rol = 'estudiante',
+  nombre = 'Test',
+  correo = uniqueEmail(rol),
+  password = PASSWORD_POR_DEFECTO,
 } = {}) {
   const hash = await bcrypt.hash(password, 10);
   const usuario = await Usuario.create({ nombre, correo, contraseña: hash, rol });
@@ -33,9 +33,7 @@ async function crearUsuario({
 
 /** Hace login y devuelve el token; falla ruidosamente si el login no va bien. */
 async function login(correo, password = PASSWORD_POR_DEFECTO) {
-  const res = await request(app)
-    .post('/api/auth/login')
-    .send({ correo, 'contraseña': password });
+  const res = await request(app).post('/api/auth/login').send({ correo, contraseña: password });
 
   if (res.status !== 200) {
     throw new Error(`No pudo loguear (${res.status}): ${JSON.stringify(res.body)}`);
@@ -65,5 +63,5 @@ module.exports = {
   login,
   adminToken,
   uniqueEmail,
-  PASSWORD_POR_DEFECTO
+  PASSWORD_POR_DEFECTO,
 };

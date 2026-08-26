@@ -1,21 +1,20 @@
-
 const mongoose = require('mongoose');
 
 const InscripcionSchema = new mongoose.Schema({
   estudiante: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Usuario',
-    required: true
+    required: true,
   },
   curso: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Curso',
-    required: true
+    required: true,
   },
   fecha: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 // índice compuesto único para prevenir inscripciones duplicadas

@@ -23,7 +23,7 @@ import { rutaInicioPara } from '../../core/rutas';
   selector: 'app-landing',
   imports: [CommonModule, RouterModule, MatButtonModule, MatIconModule, MatCardModule],
   templateUrl: './landing.component.html',
-  styleUrls: ['./landing.component.scss']
+  styleUrls: ['./landing.component.scss'],
 })
 export class LandingComponent {
   private auth = inject(AuthService);
@@ -33,18 +33,18 @@ export class LandingComponent {
     {
       icono: 'school',
       titulo: 'Estudiantes',
-      texto: 'Busca en el catálogo, matricúlate y consulta en qué cursos estás.'
+      texto: 'Busca en el catálogo, matricúlate y consulta en qué cursos estás.',
     },
     {
       icono: 'groups',
       titulo: 'Profesores',
-      texto: 'Consulta los cursos que impartes y quién se ha matriculado en ellos.'
+      texto: 'Consulta los cursos que impartes y quién se ha matriculado en ellos.',
     },
     {
       icono: 'admin_panel_settings',
       titulo: 'Administración',
-      texto: 'Gestiona usuarios y roles, crea cursos, asigna profesores y matricula alumnos.'
-    }
+      texto: 'Gestiona usuarios y roles, crea cursos, asigna profesores y matricula alumnos.',
+    },
   ];
 
   constructor() {

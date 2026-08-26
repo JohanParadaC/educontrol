@@ -11,15 +11,8 @@ describe('LoginComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       // Standalone → en imports
-      imports: [
-        LoginComponent,
-        ReactiveFormsModule,
-        HttpClientTestingModule,
-        RouterTestingModule
-      ],
-      providers: [
-        { provide: AuthService, useValue: { login: () => of({}) } }
-      ],
+      imports: [LoginComponent, ReactiveFormsModule, HttpClientTestingModule, RouterTestingModule],
+      providers: [{ provide: AuthService, useValue: { login: () => of({}) } }],
     }).compileComponents();
   });
 

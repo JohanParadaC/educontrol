@@ -11,16 +11,20 @@
     <form [formGroup]="perfil" (ngSubmit)="guardarPerfil()" novalidate>
       <mat-form-field appearance="outline" class="full">
         <mat-label>Nombre</mat-label>
-        <input matInput formControlName="nombre" autocomplete="name">
+        <input matInput formControlName="nombre" autocomplete="name" />
         <mat-error *ngIf="perfil.get('nombre')?.hasError('required')">Escribe tu nombre</mat-error>
-        <mat-error *ngIf="perfil.get('nombre')?.hasError('minlength')">Mínimo 2 caracteres</mat-error>
+        <mat-error *ngIf="perfil.get('nombre')?.hasError('minlength')"
+          >Mínimo 2 caracteres</mat-error
+        >
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full">
         <mat-label>Correo</mat-label>
-        <input matInput formControlName="correo" type="email" autocomplete="email">
+        <input matInput formControlName="correo" type="email" autocomplete="email" />
         <mat-error *ngIf="perfil.get('correo')?.hasError('required')">Escribe tu correo</mat-error>
-        <mat-error *ngIf="perfil.get('correo')?.hasError('email')">Ese correo no tiene un formato válido</mat-error>
+        <mat-error *ngIf="perfil.get('correo')?.hasError('email')"
+          >Ese correo no tiene un formato válido</mat-error
+        >
       </mat-form-field>
 
       <div class="error" *ngIf="errorPerfil" role="alert">{{ errorPerfil }}</div>
@@ -35,35 +39,65 @@
   <mat-card>
     <h2>Contraseña</h2>
     <p class="ayuda">
-      Para cambiarla necesitas escribir la actual. Es la forma de asegurarnos de
-      que eres tú y no alguien que ha encontrado tu sesión abierta.
+      Para cambiarla necesitas escribir la actual. Es la forma de asegurarnos de que eres tú y no
+      alguien que ha encontrado tu sesión abierta.
     </p>
 
     <form [formGroup]="password" (ngSubmit)="cambiarPassword()" novalidate>
       <mat-form-field appearance="outline" class="full">
         <mat-label>Contraseña actual</mat-label>
-        <input matInput [type]="ocultar ? 'password' : 'text'" formControlName="actual" autocomplete="current-password">
-        <button mat-icon-button matSuffix type="button" (click)="ocultar = !ocultar"
-                [attr.aria-label]="ocultar ? 'Mostrar contraseñas' : 'Ocultar contraseñas'"
-                [attr.aria-pressed]="!ocultar">
+        <input
+          matInput
+          [type]="ocultar ? 'password' : 'text'"
+          formControlName="actual"
+          autocomplete="current-password"
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          (click)="ocultar = !ocultar"
+          [attr.aria-label]="ocultar ? 'Mostrar contraseñas' : 'Ocultar contraseñas'"
+          [attr.aria-pressed]="!ocultar"
+        >
           <mat-icon>{{ ocultar ? 'visibility' : 'visibility_off' }}</mat-icon>
         </button>
-        <mat-error *ngIf="password.get('actual')?.hasError('required')">Escribe tu contraseña actual</mat-error>
+        <mat-error *ngIf="password.get('actual')?.hasError('required')"
+          >Escribe tu contraseña actual</mat-error
+        >
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full">
         <mat-label>Contraseña nueva</mat-label>
-        <input matInput [type]="ocultar ? 'password' : 'text'" formControlName="nueva" autocomplete="new-password">
+        <input
+          matInput
+          [type]="ocultar ? 'password' : 'text'"
+          formControlName="nueva"
+          autocomplete="new-password"
+        />
         <mat-hint>Mínimo 6 caracteres</mat-hint>
-        <mat-error *ngIf="password.get('nueva')?.hasError('required')">Escribe la contraseña nueva</mat-error>
-        <mat-error *ngIf="password.get('nueva')?.hasError('minlength')">Mínimo 6 caracteres</mat-error>
+        <mat-error *ngIf="password.get('nueva')?.hasError('required')"
+          >Escribe la contraseña nueva</mat-error
+        >
+        <mat-error *ngIf="password.get('nueva')?.hasError('minlength')"
+          >Mínimo 6 caracteres</mat-error
+        >
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="full">
         <mat-label>Repite la nueva</mat-label>
-        <input matInput [type]="ocultar ? 'password' : 'text'" formControlName="repetida" autocomplete="new-password">
-        <mat-error *ngIf="password.get('repetida')?.hasError('required')">Repite la contraseña nueva</mat-error>
-        <mat-error *ngIf="password.get('repetida')?.hasError('noCoincide')">Las contraseñas no coinciden</mat-error>
+        <input
+          matInput
+          [type]="ocultar ? 'password' : 'text'"
+          formControlName="repetida"
+          autocomplete="new-password"
+        />
+        <mat-error *ngIf="password.get('repetida')?.hasError('required')"
+          >Repite la contraseña nueva</mat-error
+        >
+        <mat-error *ngIf="password.get('repetida')?.hasError('noCoincide')"
+          >Las contraseñas no coinciden</mat-error
+        >
       </mat-form-field>
 
       <div class="error" *ngIf="errorPassword" role="alert">{{ errorPassword }}</div>
@@ -81,14 +115,19 @@
   <mat-card *ngIf="soyEstudiante" class="ancho-completo">
     <h2>¿Eres profesor?</h2>
     <p class="ayuda">
-      Si el centro te ha dado una clave de profesor, actívala aquí para poder
-      gestionar tus clases. Tu cuenta y tus matrículas actuales se mantienen.
+      Si el centro te ha dado una clave de profesor, actívala aquí para poder gestionar tus clases.
+      Tu cuenta y tus matrículas actuales se mantienen.
     </p>
 
     <form [formGroup]="profesor" (ngSubmit)="activarProfesor()" novalidate class="en-linea">
       <mat-form-field appearance="outline">
         <mat-label>Clave de profesor</mat-label>
-        <input matInput [type]="ocultar ? 'password' : 'text'" formControlName="clave" autocomplete="off">
+        <input
+          matInput
+          [type]="ocultar ? 'password' : 'text'"
+          formControlName="clave"
+          autocomplete="off"
+        />
         <mat-error *ngIf="profesor.get('clave')?.hasError('required')">Escribe la clave</mat-error>
       </mat-form-field>
 

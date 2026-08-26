@@ -10,7 +10,12 @@ describe('RegisterComponent — confirmación de contraseña', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RegisterComponent, ReactiveFormsModule, HttpClientTestingModule, RouterTestingModule]
+      imports: [
+        RegisterComponent,
+        ReactiveFormsModule,
+        HttpClientTestingModule,
+        RouterTestingModule,
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(RegisterComponent);
@@ -19,11 +24,12 @@ describe('RegisterComponent — confirmación de contraseña', () => {
   });
 
   /** Rellena todo el formulario menos la confirmación. */
-  const rellenarBase = () => comp.form.patchValue({
-    nombre: 'Ana',
-    correo: 'ana@mail.com',
-    password: 'Secret123'
-  });
+  const rellenarBase = () =>
+    comp.form.patchValue({
+      nombre: 'Ana',
+      correo: 'ana@mail.com',
+      password: 'Secret123',
+    });
 
   it('el formulario es inválido si las contraseñas no coinciden', () => {
     rellenarBase();

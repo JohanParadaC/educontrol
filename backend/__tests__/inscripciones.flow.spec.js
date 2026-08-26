@@ -69,7 +69,8 @@ async function intentarInscribir(estToken, cursoId) {
     .set('Authorization', `Bearer ${estToken}`)
     .send({ cursoId });
   tried.push({ attempt: 'body:cursoId', status: res.status, body: res.body });
-  if ([200, 201].includes(res.status)) return { ok: true, attempt: 'body:cursoId', status: res.status, res, tried };
+  if ([200, 201].includes(res.status))
+    return { ok: true, attempt: 'body:cursoId', status: res.status, res, tried };
 
   // B) body.curso
   res = await request(app)
@@ -77,7 +78,8 @@ async function intentarInscribir(estToken, cursoId) {
     .set('Authorization', `Bearer ${estToken}`)
     .send({ curso: cursoId });
   tried.push({ attempt: 'body:curso', status: res.status, body: res.body });
-  if ([200, 201].includes(res.status)) return { ok: true, attempt: 'body:curso', status: res.status, res, tried };
+  if ([200, 201].includes(res.status))
+    return { ok: true, attempt: 'body:curso', status: res.status, res, tried };
 
   // C) param /:cursoId
   res = await request(app)
@@ -85,7 +87,8 @@ async function intentarInscribir(estToken, cursoId) {
     .set('Authorization', `Bearer ${estToken}`)
     .send({});
   tried.push({ attempt: 'param', status: res.status, body: res.body });
-  if ([200, 201].includes(res.status)) return { ok: true, attempt: 'param', status: res.status, res, tried };
+  if ([200, 201].includes(res.status))
+    return { ok: true, attempt: 'param', status: res.status, res, tried };
 
   return { ok: false, attempt: 'none', status: res.status, res, tried };
 }

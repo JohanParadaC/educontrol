@@ -14,9 +14,9 @@ module.exports = function (config) {
     reporters: ['progress', 'kjhtml'],
     coverageReporter: {
       dir: require('path').join(__dirname, './coverage'),
-      reporters: [{ type: 'html' }, { type: 'text-summary' }]
+      reporters: [{ type: 'html' }, { type: 'text-summary' }],
     },
     browsers: ['ChromeHeadless'],
-    restartOnFileChange: true
+    restartOnFileChange: true,
   });
 };

@@ -1,6 +1,6 @@
 // controllers/usuarios.controller.js
 const Usuario = require('../models/Usuario');
-const bcrypt  = require('bcryptjs');
+const bcrypt = require('bcryptjs');
 const { claveProfesorValida, extraerClave } = require('../utils/profesorClave');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 
@@ -31,7 +31,9 @@ const crearUsuario = async (req, res, next) => {
 
     const { contraseña: _, ...data } = usuario.toObject();
     res.status(201).json({ ok: true, usuario: data });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Listar usuarios (paginado, con filtro opcional por rol)
@@ -46,13 +48,15 @@ const obtenerUsuarios = async (req, res, next) => {
 
     const [usuarios, total] = await Promise.all([
       Usuario.find(filtro).select('-contraseña').sort({ nombre: 1 }).skip(saltar).limit(limite),
-      Usuario.countDocuments(filtro)
+      Usuario.countDocuments(filtro),
     ]);
 
     // `usuarios` sigue siendo un array en la misma clave de siempre: los
     // clientes que no paginan no se enteran del cambio.
     res.json({ ok: true, usuarios, ...metadatos({ total, pagina, limite }) });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Obtener por ID
@@ -61,7 +65,9 @@ const obtenerUsuarioPorId = async (req, res, next) => {
     const usuario = await Usuario.findById(req.params.id).select('-contraseña');
     if (!usuario) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
     res.json({ ok: true, usuario });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Actualizar (self o admin). Permite cambios parciales.
@@ -73,7 +79,7 @@ const updateUsuario = async (req, res, next) => {
     if (!solicitante) return res.status(401).json({ ok: false, msg: 'No autenticado' });
 
     const soyElMismo = String(solicitante._id) === String(id);
-    const soyAdmin   = solicitante.rol === 'admin';
+    const soyAdmin = solicitante.rol === 'admin';
 
     // 🔒 Propiedad, ANTES de mirar el body.
     // Antes esta comprobación solo se hacía dentro del bloque de 'rol': nombre,
@@ -101,7 +107,7 @@ const updateUsuario = async (req, res, next) => {
         if (!contraseñaActual) {
           return res.status(400).json({
             ok: false,
-            msg: 'Indica tu contraseña actual para poder cambiarla'
+            msg: 'Indica tu contraseña actual para poder cambiarla',
           });
         }
 
@@ -135,11 +141,15 @@ const updateUsuario = async (req, res, next) => {
       cambios.rol = rol;
     }
 
-    const updated = await Usuario.findByIdAndUpdate(id, cambios, { new: true }).select('-contraseña');
+    const updated = await Usuario.findByIdAndUpdate(id, cambios, { new: true }).select(
+      '-contraseña'
+    );
     if (!updated) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
 
     res.json({ ok: true, usuario: updated });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Borrar
@@ -148,13 +158,15 @@ const borrarUsuario = async (req, res, next) => {
     const usuario = await Usuario.findByIdAndDelete(req.params.id);
     if (!usuario) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
     res.json({ ok: true, msg: 'Usuario eliminado' });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 };
 
 module.exports = {
   crearUsuario,
   obtenerUsuarios,
   obtenerUsuarioPorId,
-  updateUsuario,          // 👈 export correcto
-  borrarUsuario
+  updateUsuario, // 👈 export correcto
+  borrarUsuario,
 };

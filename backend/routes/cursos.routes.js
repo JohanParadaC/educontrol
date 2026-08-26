@@ -1,14 +1,14 @@
-const { Router }      = require('express');
-const { check }       = require('express-validator');
-const validateFields  = require('../middlewares/validateFields');
+const { Router } = require('express');
+const { check } = require('express-validator');
+const validateFields = require('../middlewares/validateFields');
 const { validateJWT } = require('../middlewares/auth');
-const { roleCheck }   = require('../middlewares/roleCheck');
+const { roleCheck } = require('../middlewares/roleCheck');
 const {
   crearCurso,
   obtenerCursos,
   obtenerCursoPorId,
   actualizarCurso,
-  borrarCurso
+  borrarCurso,
 } = require('../controllers/cursos.controller');
 
 const router = Router();
@@ -31,26 +31,18 @@ router.post(
     roleCheck('profesor', 'admin'),
     check('nombre', 'El nombre es obligatorio').not().isEmpty(),
     check('profesor').optional().isMongoId(),
-    validateFields
+    validateFields,
   ],
   crearCurso
 );
 
 // Listar cursos (cualquier usuario autenticado)
-router.get(
-  '/',
-  [ validateJWT ],
-  obtenerCursos
-);
+router.get('/', [validateJWT], obtenerCursos);
 
 // Obtener un curso por ID (cualquier usuario autenticado)
 router.get(
   '/:id',
-  [
-    validateJWT,
-    check('id', 'ID no válido').isMongoId(),
-    validateFields
-  ],
+  [validateJWT, check('id', 'ID no válido').isMongoId(), validateFields],
   obtenerCursoPorId
 );
 
@@ -65,7 +57,7 @@ router.put(
     // Sin esto, un nombre vacío llegaba al modelo y reventaba en 500 en vez de 400.
     check('nombre', 'El nombre no puede estar vacío').optional().notEmpty(),
     check('profesor').optional().isMongoId(),
-    validateFields
+    validateFields,
   ],
   actualizarCurso
 );
@@ -75,9 +67,9 @@ router.delete(
   '/:id',
   [
     validateJWT,
-    roleCheck('profesor','admin'),
+    roleCheck('profesor', 'admin'),
     check('id', 'ID no válido').isMongoId(),
-    validateFields
+    validateFields,
   ],
   borrarCurso
 );

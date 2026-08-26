@@ -9,8 +9,11 @@
 
 /** Usuario de la sesión actual, tal y como lo dejó AuthService. */
 export function usuarioLocal(): any | null {
-  try { return JSON.parse(localStorage.getItem('usuario') || 'null'); }
-  catch { return null; }
+  try {
+    return JSON.parse(localStorage.getItem('usuario') || 'null');
+  } catch {
+    return null;
+  }
 }
 
 /** Id de un documento que puede llegar poblado, como string, o no llegar. */
@@ -22,10 +25,5 @@ export function idDe(x: any): string {
 
 /** Compara nombres ignorando tildes y mayúsculas. */
 export function normalizar(s: string): string {
-  return (s || '')
-    .toString()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
+  return (s || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }

@@ -17,11 +17,7 @@ describe('Modelo Usuario (contraseña almacenada)', () => {
     expect(saved).toBeTruthy();
 
     // Detecta qué campo usa el modelo realmente
-    const stored =
-      saved.contraseña ??
-      saved.password ??
-      saved.passwordHash ??
-      null;
+    const stored = saved.contraseña ?? saved.password ?? saved.passwordHash ?? null;
 
     expect(typeof stored).toBe('string'); // debe existir algún campo string
 

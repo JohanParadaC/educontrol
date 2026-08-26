@@ -32,10 +32,7 @@ describe('Cursos', () => {
   it('GET /api/cursos/:id -> 400 con id inválido (con token)', async () => {
     const token = await seedAdminYToken();
 
-    await request(app)
-      .get('/api/cursos/xxx')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(400);
+    await request(app).get('/api/cursos/xxx').set('Authorization', `Bearer ${token}`).expect(400);
   });
 
   it('POST /api/cursos crea curso (201/200) [admin]', async () => {

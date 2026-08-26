@@ -22,13 +22,18 @@ export interface Pagina<T> {
  * Tolera que llegue un array pelado (sin metadatos) por si algún endpoint
  * todavía no pagina.
  */
-export function aPagina<T>(respuesta: any, clave: string, pagina: number, limite: number): Pagina<T> {
+export function aPagina<T>(
+  respuesta: any,
+  clave: string,
+  pagina: number,
+  limite: number
+): Pagina<T> {
   const items: T[] = Array.isArray(respuesta) ? respuesta : (respuesta?.[clave] ?? []);
   return {
     items,
-    total  : respuesta?.total   ?? items.length,
-    pagina : respuesta?.pagina  ?? pagina,
-    limite : respuesta?.limite  ?? limite,
-    paginas: respuesta?.paginas ?? 1
+    total: respuesta?.total ?? items.length,
+    pagina: respuesta?.pagina ?? pagina,
+    limite: respuesta?.limite ?? limite,
+    paginas: respuesta?.paginas ?? 1,
   };
 }

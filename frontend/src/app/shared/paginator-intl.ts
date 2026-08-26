@@ -12,10 +12,10 @@ export function paginatorIntlEs(): MatPaginatorIntl {
   const intl = new MatPaginatorIntl();
 
   intl.itemsPerPageLabel = 'Por página:';
-  intl.nextPageLabel     = 'Página siguiente';
+  intl.nextPageLabel = 'Página siguiente';
   intl.previousPageLabel = 'Página anterior';
-  intl.firstPageLabel    = 'Primera página';
-  intl.lastPageLabel     = 'Última página';
+  intl.firstPageLabel = 'Primera página';
+  intl.lastPageLabel = 'Última página';
 
   intl.getRangeLabel = (pagina: number, tamano: number, total: number): string => {
     if (total === 0) return 'Sin resultados';

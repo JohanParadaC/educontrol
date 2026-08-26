@@ -15,25 +15,20 @@ const { createUserAndLogin, crearUsuario, login } = require('./helpers');
 const CLAVE_PROFESOR = process.env.PROFESOR_CLAVE;
 
 const put = (id, token, body) =>
-  request(app)
-    .put(`/api/usuarios/${id}`)
-    .set('Authorization', `Bearer ${token}`)
-    .send(body);
+  request(app).put(`/api/usuarios/${id}`).set('Authorization', `Bearer ${token}`).send(body);
 
 describe('PUT /api/usuarios/:id — propiedad', () => {
   it('sin token → 401', async () => {
     const otro = await crearUsuario({ rol: 'admin' });
 
-    const res = await request(app)
-      .put(`/api/usuarios/${otro.id}`)
-      .send({ nombre: 'Hackeado' });
+    const res = await request(app).put(`/api/usuarios/${otro.id}`).send({ nombre: 'Hackeado' });
 
     expect(res.status).toBe(401);
   });
 
   it('un estudiante no puede cambiar el nombre de otro usuario → 403', async () => {
     const atacante = await createUserAndLogin('estudiante');
-    const victima  = await crearUsuario({ rol: 'admin', nombre: 'Admin' });
+    const victima = await crearUsuario({ rol: 'admin', nombre: 'Admin' });
 
     const res = await put(victima.id, atacante.token, { nombre: 'Hackeado' });
 
@@ -43,7 +38,7 @@ describe('PUT /api/usuarios/:id — propiedad', () => {
 
   it('un estudiante no puede cambiar el correo de otro usuario → 403', async () => {
     const atacante = await createUserAndLogin('estudiante');
-    const victima  = await crearUsuario({ rol: 'admin' });
+    const victima = await crearUsuario({ rol: 'admin' });
 
     const res = await put(victima.id, atacante.token, { correo: 'atacante@mail.com' });
 
@@ -53,16 +48,16 @@ describe('PUT /api/usuarios/:id — propiedad', () => {
 
   it('un estudiante no puede cambiar la contraseña del admin → 403 y la vieja sigue sirviendo', async () => {
     const atacante = await createUserAndLogin('estudiante');
-    const victima  = await crearUsuario({ rol: 'admin', password: 'AdminSeguro1' });
+    const victima = await crearUsuario({ rol: 'admin', password: 'AdminSeguro1' });
 
-    const res = await put(victima.id, atacante.token, { 'contraseña': 'AhoraEsMia1' });
+    const res = await put(victima.id, atacante.token, { contraseña: 'AhoraEsMia1' });
 
     expect(res.status).toBe(403);
 
     // La contraseña del atacante no funciona...
     const intento = await request(app)
       .post('/api/auth/login')
-      .send({ correo: victima.correo, 'contraseña': 'AhoraEsMia1' });
+      .send({ correo: victima.correo, contraseña: 'AhoraEsMia1' });
     expect(intento.status).toBe(400);
 
     // ...y el admin conserva la suya.
@@ -80,7 +75,7 @@ describe('PUT /api/usuarios/:id — propiedad', () => {
 
   it('un admin puede editar a cualquiera → 200', async () => {
     const admin = await createUserAndLogin('admin');
-    const otro  = await crearUsuario({ rol: 'estudiante' });
+    const otro = await crearUsuario({ rol: 'estudiante' });
 
     const res = await put(otro.id, admin.token, { nombre: 'Renombrado por admin' });
 
@@ -128,7 +123,7 @@ describe('PUT /api/usuarios/:id — cambio de rol', () => {
 
   it('un admin puede asignar el rol profesor sin clave', async () => {
     const admin = await createUserAndLogin('admin');
-    const otro  = await crearUsuario({ rol: 'estudiante' });
+    const otro = await crearUsuario({ rol: 'estudiante' });
 
     const res = await put(otro.id, admin.token, { rol: 'profesor' });
 

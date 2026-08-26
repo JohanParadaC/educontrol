@@ -17,9 +17,7 @@ const crearCurso = async (req, res, next) => {
       if (req.usuario?.rol === 'profesor') {
         profesorId = req.uid;
       } else {
-        return res
-          .status(400)
-          .json({ ok: false, msg: 'El campo "profesor" es requerido' });
+        return res.status(400).json({ ok: false, msg: 'El campo "profesor" es requerido' });
       }
     }
 
@@ -46,8 +44,12 @@ const obtenerCursos = async (req, res, next) => {
     const { pagina, limite, saltar } = leerPaginacion(req.query);
 
     const [cursos, total] = await Promise.all([
-      Curso.find().populate('profesor', 'nombre correo').sort({ nombre: 1 }).skip(saltar).limit(limite),
-      Curso.countDocuments()
+      Curso.find()
+        .populate('profesor', 'nombre correo')
+        .sort({ nombre: 1 })
+        .skip(saltar)
+        .limit(limite),
+      Curso.countDocuments(),
     ]);
 
     return res.json({ ok: true, cursos, ...metadatos({ total, pagina, limite }) });
@@ -89,9 +91,10 @@ const actualizarCurso = async (req, res, next) => {
       update.profesor = profesor;
     }
 
-    const curso = await Curso
-      .findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true })
-      .populate('profesor', 'nombre correo');
+    const curso = await Curso.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+      runValidators: true,
+    }).populate('profesor', 'nombre correo');
 
     if (!curso) {
       return res.status(404).json({ ok: false, msg: 'Curso no encontrado' });
@@ -120,5 +123,5 @@ module.exports = {
   obtenerCursos,
   obtenerCursoPorId,
   actualizarCurso,
-  borrarCurso
+  borrarCurso,
 };

@@ -19,7 +19,9 @@ $movil: 767px;
 
 .table-wrap {
   overflow: auto;
-  @media (max-width: $movil) { display: none; }
+  @media (max-width: $movil) {
+    display: none;
+  }
 }
 
 .lista-tarjetas {
@@ -42,15 +44,19 @@ $movil: 767px;
   border-radius: 12px;
 
   /* Los chips son etiquetas, no barras: sin esto el grid los estira a lo ancho. */
-  > .chip { justify-self: start; }
+  > .chip {
+    justify-self: start;
+  }
 }
 
 .tarjeta-datos {
   display: grid;
   gap: 2px;
-  min-width: 0;              /* permite que el texto largo se ajuste */
+  min-width: 0; /* permite que el texto largo se ajuste */
 
-  strong { font: var(--mat-sys-title-small); }
+  strong {
+    font: var(--mat-sys-title-small);
+  }
 
   .secundario {
     color: var(--mat-sys-on-surface-variant);
@@ -88,8 +94,14 @@ $movil: 767px;
   background: color-mix(in srgb, var(--mat-sys-on-surface) 10%, transparent);
   color: var(--mat-sys-on-surface);
 }
-.chip.pro { background: #1b5e20; color: #fff; }
-.chip.adm { background: #283593; color: #fff; }
+.chip.pro {
+  background: #1b5e20;
+  color: #fff;
+}
+.chip.adm {
+  background: #283593;
+  color: #fff;
+}
 .chip.pending {
   background: color-mix(in srgb, var(--mat-sys-tertiary) 25%, transparent);
   color: var(--mat-sys-on-surface);
@@ -119,4 +131,6 @@ $movil: 767px;
   width: 180px;
   vertical-align: middle;
 }
-.rol-select + .chip { margin-left: var(--sp-2); }
+.rol-select + .chip {
+  margin-left: var(--sp-2);
+}

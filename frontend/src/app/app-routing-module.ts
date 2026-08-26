@@ -36,15 +36,17 @@ export const routes: Routes = [
     path: 'profesor/dashboard',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./features/profesor/professor-dashboard.component')
-        .then(m => m.ProfessorDashboardComponent),
+      import('./features/profesor/professor-dashboard.component').then(
+        m => m.ProfessorDashboardComponent
+      ),
   },
   {
     path: 'profesor/clases',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./features/profesor/professor-classes.component')
-        .then(m => m.ProfessorClassesComponent),
+      import('./features/profesor/professor-classes.component').then(
+        m => m.ProfessorClassesComponent
+      ),
   },
   // Alias para compatibilidad: /mis-clases -> /profesor/clases
   { path: 'mis-clases', redirectTo: 'profesor/clases', pathMatch: 'full' },
@@ -62,19 +64,25 @@ export const routes: Routes = [
     path: 'estudiante/inicio',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./features/estudiante/student-dashboard.component').then(m => m.StudentDashboardComponent),
+      import('./features/estudiante/student-dashboard.component').then(
+        m => m.StudentDashboardComponent
+      ),
   },
   {
     path: 'cursos',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./features/estudiante/student-courses.component').then(m => m.StudentCoursesComponent),
+      import('./features/estudiante/student-courses.component').then(
+        m => m.StudentCoursesComponent
+      ),
   },
   {
     path: 'mis-cursos',
     canActivate: [AuthGuard],
     loadComponent: () =>
-      import('./features/estudiante/student-my-courses.component').then(m => m.StudentMyCoursesComponent),
+      import('./features/estudiante/student-my-courses.component').then(
+        m => m.StudentMyCoursesComponent
+      ),
   },
 
   // ===== Mi cuenta =====
@@ -104,8 +112,7 @@ export const routes: Routes = [
   // Comodín real, no una redirección silenciosa a /dashboard.
   {
     path: '**',
-    loadComponent: () =>
-      import('./shared/not-found.component').then(m => m.NotFoundComponent),
+    loadComponent: () => import('./shared/not-found.component').then(m => m.NotFoundComponent),
   },
 ];
 
