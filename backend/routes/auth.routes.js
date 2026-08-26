@@ -6,11 +6,17 @@ const { login, renewToken } = require('../controllers/auth.controller');
 const validateFields = require('../middlewares/validateFields');
 // IMPORTA validateJWT **solo** por destructuring:
 const { validateJWT } = require('../middlewares/auth');
+const { limiteLogin } = require('../middlewares/seguridadHttp');
 
 const router = Router();
 
+// El límite va delante de los validadores: si no, bastaría con mandar cuerpos
+// mal formados para que los intentos no contaran.
+const frenoLogin = limiteLogin();
+
 router.post(
   '/login',
+  frenoLogin,
   check('correo', 'El correo es obligatorio').isEmail(),
   check('contraseña', 'La contraseña es obligatoria').notEmpty(),
   validateFields,

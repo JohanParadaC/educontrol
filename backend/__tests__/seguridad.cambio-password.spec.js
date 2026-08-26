@@ -36,7 +36,7 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
     const intento = await request(app)
       .post('/api/auth/login')
       .send({ correo: yo.correo, contraseña: 'NuevaClave123' });
-    expect(intento.status).toBe(400);
+    expect(intento.status).toBe(401);
 
     // ...y la original sigue intacta.
     await expect(login(yo.correo, 'MiClave123')).resolves.toEqual(expect.any(String));
@@ -57,7 +57,7 @@ describe('PUT /api/usuarios/:id — cambio de la propia contraseña', () => {
     const vieja = await request(app)
       .post('/api/auth/login')
       .send({ correo: yo.correo, contraseña: 'MiClave123' });
-    expect(vieja.status).toBe(400);
+    expect(vieja.status).toBe(401);
   });
 
   it('cambiar solo el nombre no exige contraseña actual', async () => {

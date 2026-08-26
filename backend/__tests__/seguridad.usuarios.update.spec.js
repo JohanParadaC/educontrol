@@ -58,7 +58,7 @@ describe('PUT /api/usuarios/:id — propiedad', () => {
     const intento = await request(app)
       .post('/api/auth/login')
       .send({ correo: victima.correo, contraseña: 'AhoraEsMia1' });
-    expect(intento.status).toBe(400);
+    expect(intento.status).toBe(401);
 
     // ...y el admin conserva la suya.
     await expect(login(victima.correo, 'AdminSeguro1')).resolves.toEqual(expect.any(String));

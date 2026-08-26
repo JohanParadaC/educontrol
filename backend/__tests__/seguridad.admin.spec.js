@@ -115,7 +115,9 @@ describe('POST /api/admin/seed-admin', () => {
     const intentoAtacante = await request(app)
       .post('/api/auth/login')
       .send({ correo: victima.correo, contraseña: 'AtacanteEligeEsta1' });
-    expect(intentoAtacante.status).toBe(400);
+    // 401 desde que el login dejó de distinguir "correo no registrado" de
+    // "contraseña incorrecta": ahora es una sola respuesta para las dos ramas.
+    expect(intentoAtacante.status).toBe(401);
 
     // ...y la original sigue siendo válida.
     await expect(login(victima.correo, 'MiClave123')).resolves.toEqual(expect.any(String));
