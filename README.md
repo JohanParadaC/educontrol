@@ -118,11 +118,11 @@ cualquier `any` nuevo rompe la build.
 ## Tests
 
 ```bash
-npm test        # backend: 186 tests (Jest + Supertest)
+npm test        # backend: 202 tests (Jest + Supertest)
 npm run test:web  # frontend: 28 tests (Karma + Jasmine)
 ```
 
-Cobertura del backend, medida con `npm run test:cov`: **85,5 % sentencias · 76,9 % ramas · 97,8 % funciones · 86,9 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
+Cobertura del backend, medida con `npm run test:cov`: **85,7 % sentencias · 76,9 % ramas · 97,8 % funciones · 87,1 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
@@ -149,6 +149,10 @@ El backend cubre el CRUD completo, la validación de payloads, el manejo de erro
 | Cabecera legacy `x-token`                               | 401: solo vale `Authorization`        |
 | `DELETE /api/inscripciones/:id` de una matrícula ajena  | 403, sigue matriculado                |
 | `?buscar=C++` en el catálogo                            | texto literal, no patrón              |
+| Dos correos que solo difieren en mayúsculas             | colisionan: es la misma cuenta        |
+| Matricular en un curso inexistente                      | 404, no se crea nada                  |
+| Matricular a un profesor o a un admin                   | 400                                   |
+| Dos matrículas iguales a la vez                         | una 201 y otra 400, nunca un 500      |
 
 Los tests no solo comprueban el código de estado: verifican también que el efecto no ocurrió. Tras un 403 al intentar cambiar la contraseña del administrador, la contraseña original sigue siendo válida y la del atacante no.
 

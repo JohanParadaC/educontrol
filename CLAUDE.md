@@ -60,6 +60,10 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - `GET /api/inscripciones` devuelve `estudiante` y `curso` **poblados**. No hace falta cruzar con la lista de usuarios.
 - Ese listado también pagina, como los demás. El frontend pide `limit=100` (el tope) porque ninguna de sus pantallas tiene paginador propio todavía.
 - **Filtrar es cosa del servidor.** `GET /api/cursos` acepta `?profesor=me`, `?profesor=<id>` y `?buscar=texto` (busca en nombre y descripción). Nada de descargar 100 cursos y filtrarlos en el navegador: con 101, el filtro miente sin decirlo. El texto de `?buscar=` se escapa antes de convertirlo en regex.
+- **Los esquemas llevan `timestamps`.** Cuándo se creó algo no se puede reconstruir después: o se guarda desde el principio o se pierde. En `Inscripcion`, `fecha` sigue por compatibilidad, pero para código nuevo es `createdAt`.
+- **El correo se guarda en minúsculas y sin espacios**, y cualquier búsqueda por correo pasa por `utils/correo.js`. Sin eso, `Ana@x.com` y `ana@x.com` eran dos cuentas distintas pese al índice único —para Mongo son valores diferentes— y quien se registraba en mayúsculas no podía entrar escribiendo su correo normal.
+- **Lo que se pinta se acota en el modelo.** `Curso.nombre` 120 y `Curso.descripcion` 500. El panel de administración tenía un `DESC_LARGA = 200` para compactar los botones cuando el texto se desbordaba: un parche visual a un dato que nadie había acotado.
+- **Matricular valida el contenido, no solo el formato.** Que un `ObjectId` esté bien escrito no quiere decir que exista: el curso tiene que estar (404) y el estudiante tiene que ser un estudiante (400). El duplicado lo decide el índice único capturando `E11000`, no un `findOne` previo: entre leer y escribir cabe otra petición.
 - **El modelo del frontend copia al del backend, no lo inventa.** `data/inscripcion.model.ts` declaraba `estado` y `createdAt`, que no existen en `models/Inscripcion.js`: TypeScript dejaba escribirlos y en tiempo de ejecución eran `undefined`. Un contrato inventado es peor que no tener tipos.
 
 **Superficie HTTP**

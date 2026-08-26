@@ -26,6 +26,10 @@ npm-debug.log*
 # Salida de graphify (grafo de conocimiento generado a partir del código)
 graphify-out/
 
+# Ajustes locales de Claude Code (permisos de cada máquina, configuración del
+# navegador de previsualización). No son del proyecto.
+.claude/
+
 # Sistema operativo / editor
 .DS_Store
 Thumbs.db

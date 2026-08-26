@@ -26,7 +26,7 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
 
   // Umbrales ajustados a la cobertura real, medida con `npm run test:cov`:
-  // 85,49 sentencias / 76,89 ramas / 97,82 funciones / 86,86 líneas.
+  // 85,74 sentencias / 76,86 ramas / 97,77 funciones / 87,12 líneas.
   // (Los tests de control de acceso de agosto de 2026 subieron las ramas casi
   // ocho puntos: cada regla nueva es una rama que antes no se recorría.)
   //
@@ -43,7 +43,7 @@ module.exports = {
       statements: 85,
       branches: 76,
       functions: 97,
-      lines: 86,
+      lines: 87,
     },
   },
 
