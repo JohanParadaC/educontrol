@@ -69,17 +69,28 @@ npm run dev:web    # Angular dev server con proxy a la API, puerto 4200
 
 ```
 backend/
+  app.js         la aplicación Express: middlewares, rutas, 404, errores
+  server.js      arranque del proceso: conectar, sembrar, escuchar
+  static.js      servido de la SPA y cabeceras de caché
+  config/        entorno, conexión a Mongo, Mongo en memoria, seed del admin
   controllers/   lógica de cada recurso
   middlewares/   validateJWT, roleCheck, validación de campos, errores
   models/        esquemas de Mongoose
-  routes/        definición de endpoints y sus validadores
-  utils/         clave de profesor, generación de JWT
-  __tests__/     62 tests, incluidos los de regresión de seguridad
+  routes/        endpoints y sus validadores
+  utils/         clave de profesor, paginación, generación de JWT
+  scripts/       datos de demostración
+  __tests__/     119 tests, incluidos los de regresión de seguridad
+
 frontend/src/app/
-  core/          servicios de API y sesión, guards, interceptor
-  admin/ professor/ student/    vistas por rol
-  shared/        navbar, diálogos, módulo de Material
+  core/          sesión, guards, interceptor, errores HTTP, rutas por rol
+  data/          el contrato con el backend: un servicio por recurso,
+                 modelos y el mapper nombre↔titulo
+  features/      una carpeta por área: landing, auth, cuenta,
+                 admin, profesor, estudiante
+  shared/        navbar, diálogos, estado-vista, módulo de Material
 ```
+
+`app.js` no conecta a la base ni llama a `listen()`: eso vive en `server.js`. Los tests importan `app` para Supertest y no deben provocar conexiones.
 
 ---
 
@@ -87,7 +98,7 @@ frontend/src/app/
 
 ```bash
 npm test        # backend: 119 tests (Jest + Supertest)
-npm run test:web  # frontend: 26 tests (Karma + Jasmine)
+npm run test:web  # frontend: 25 tests (Karma + Jasmine)
 ```
 
 Cobertura del backend: **85 % sentencias · 73 % ramas · 100 % funciones · 87 % líneas**. Los umbrales de `jest.config.js` están puestos unos puntos por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
