@@ -2,6 +2,19 @@ const Inscripcion = require('../models/Inscripcion');
 const Curso = require('../models/Curso');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 
+/**
+ * El curso, con su profesor dentro.
+ *
+ * El profesor anidado hace falta para pintar "Mis cursos": sin él la pantalla
+ * sabe el título pero no quién lo imparte, y la alternativa era pedir el
+ * catálogo entero solo para cruzar un nombre.
+ */
+const POBLAR_CURSO = {
+  path: 'curso',
+  select: 'nombre descripcion',
+  populate: { path: 'profesor', select: 'nombre correo' },
+};
+
 /** No coincide con nada. Es la forma de decir "esto no lo puedes ver" sin revelar si existe. */
 const NADA = { $in: [] };
 
@@ -92,7 +105,7 @@ const obtenerInscripciones = async (req, res, next) => {
     const [inscripciones, total] = await Promise.all([
       Inscripcion.find(filtro)
         .populate('estudiante', 'nombre correo')
-        .populate('curso', 'nombre descripcion')
+        .populate(POBLAR_CURSO)
         .sort({ fecha: -1 })
         .skip(saltar)
         .limit(limite),
@@ -116,7 +129,7 @@ const obtenerInscripcionPorId = async (req, res, next) => {
 
     const inscripcion = await Inscripcion.findOne({ _id: req.params.id, ...alcance })
       .populate('estudiante', 'nombre correo')
-      .populate('curso', 'nombre descripcion');
+      .populate(POBLAR_CURSO);
 
     // 404 y no 403 a propósito: quien no puede verla tampoco tiene por qué
     // saber que existe.
@@ -139,7 +152,7 @@ const actualizarInscripcion = async (req, res, next) => {
       runValidators: true,
     })
       .populate('estudiante', 'nombre correo')
-      .populate('curso', 'nombre descripcion');
+      .populate(POBLAR_CURSO);
 
     if (!inscripcionActualizada) {
       return res.status(404).json({ ok: false, msg: 'Inscripción no encontrada' });
@@ -151,14 +164,30 @@ const actualizarInscripcion = async (req, res, next) => {
 };
 
 /**
- * Elimina una inscripción
+ * Elimina una inscripción.
+ *
+ * Un estudiante puede darse de baja de la suya; un admin, de cualquiera. Antes
+ * la ruta era solo de admin y el estudiante podía entrar en un curso pero no
+ * salir: la pantalla "Mis cursos" tenía un botón de cancelar que solo sabía
+ * decir que el backend no tenía endpoint.
+ *
+ * El profesor sigue sin poder: dar de baja a un alumno de su clase es otra
+ * cosa —una expulsión, no una baja voluntaria— y no está decidida.
  */
 const borrarInscripcion = async (req, res, next) => {
   try {
-    const inscripcion = await Inscripcion.findByIdAndDelete(req.params.id);
+    const inscripcion = await Inscripcion.findById(req.params.id);
     if (!inscripcion) {
       return res.status(404).json({ ok: false, msg: 'Inscripción no encontrada' });
     }
+
+    const rol = req.usuario?.rol;
+    const esSuya = String(inscripcion.estudiante) === String(req.usuario?._id);
+    if (rol !== 'admin' && !(rol === 'estudiante' && esSuya)) {
+      return res.status(403).json({ ok: false, msg: 'Esta matrícula no es tuya' });
+    }
+
+    await Inscripcion.findByIdAndDelete(inscripcion._id);
     res.json({ ok: true, msg: 'Inscripción eliminada' });
   } catch (err) {
     next(err);

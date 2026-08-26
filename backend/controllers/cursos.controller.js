@@ -2,6 +2,7 @@ const Curso = require('../models/Curso');
 const Usuario = require('../models/Usuario'); // CAMBIO: lo usamos para validar el profesor
 const Inscripcion = require('../models/Inscripcion');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
+const { escaparRegex } = require('../utils/regex');
 
 /**
  * ¿Puede este usuario tocar este curso?
@@ -52,18 +53,42 @@ const crearCurso = async (req, res, next) => {
   }
 };
 
-// Obtener todos los cursos (paginado)
+/**
+ * Listado de cursos, paginado y con filtros de servidor.
+ *
+ *   ?profesor=me   → los que imparte quien pregunta
+ *   ?profesor=<id> → los de ese profesor
+ *   ?buscar=texto  → busca en nombre y descripción
+ *
+ * Los dos filtros existían antes en el navegador: "mis clases" se descargaba
+ * hasta 100 cursos y comparaba identificadores, y la búsqueda del catálogo
+ * filtraba sobre esos mismos 100. Con 101 cursos, las dos mienten sin decirlo.
+ */
 const obtenerCursos = async (req, res, next) => {
   try {
     const { pagina, limite, saltar } = leerPaginacion(req.query);
 
+    const filtro = {};
+
+    if (req.query.profesor) {
+      filtro.profesor = req.query.profesor === 'me' ? req.usuario._id : req.query.profesor;
+    }
+
+    // El texto del usuario es literal, no un patrón: se escapa antes de
+    // convertirlo en regex.
+    const buscar = String(req.query.buscar ?? '').trim();
+    if (buscar) {
+      const patron = new RegExp(escaparRegex(buscar), 'i');
+      filtro.$or = [{ nombre: patron }, { descripcion: patron }];
+    }
+
     const [cursos, total] = await Promise.all([
-      Curso.find()
+      Curso.find(filtro)
         .populate('profesor', 'nombre correo')
         .sort({ nombre: 1 })
         .skip(saltar)
         .limit(limite),
-      Curso.countDocuments(),
+      Curso.countDocuments(filtro),
     ]);
 
     return res.json({ ok: true, cursos, ...metadatos({ total, pagina, limite }) });

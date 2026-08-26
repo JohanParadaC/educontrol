@@ -36,8 +36,25 @@ router.post(
   crearCurso
 );
 
-// Listar cursos (cualquier usuario autenticado)
-router.get('/', [validateJWT], obtenerCursos);
+// Listar cursos (cualquier usuario autenticado), con filtros de servidor.
+router.get(
+  '/',
+  [
+    validateJWT,
+    // 'me' o un identificador: cualquier otra cosa llegaría a Mongoose como
+    // CastError y saldría por el manejador de errores.
+    check('profesor')
+      .optional()
+      .custom(v => v === 'me' || /^[0-9a-fA-F]{24}$/.test(v))
+      .withMessage('El filtro "profesor" debe ser "me" o un ID válido'),
+    check('buscar')
+      .optional()
+      .isLength({ max: 100 })
+      .withMessage('La búsqueda no puede pasar de 100 caracteres'),
+    validateFields,
+  ],
+  obtenerCursos
+);
 
 // Obtener un curso por ID (cualquier usuario autenticado)
 router.get(

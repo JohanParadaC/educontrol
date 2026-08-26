@@ -56,10 +56,12 @@ router.put(
   actualizarInscripcion
 );
 
-// 5) Eliminar inscripción (solo admin) (original)
+// 5) Eliminar inscripción. Sin roleCheck a propósito: quien puede borrarla
+//    depende de quién es su dueño, y eso solo se sabe leyendo la inscripción.
+//    Lo decide el controlador.
 router.delete(
   '/:id',
-  [validateJWT, roleCheck('admin'), check('id', 'ID no válido').isMongoId(), validateFields],
+  [validateJWT, check('id', 'ID no válido').isMongoId(), validateFields],
   borrarInscripcion
 );
 

@@ -220,10 +220,14 @@ describe('DELETE /api/inscripciones/:id', () => {
     expect(await Inscripcion.countDocuments()).toBe(1);
   });
 
-  it('un estudiante no puede borrarla → 403 y sigue ahí', async () => {
+  // Antes esta ruta era solo de admin y aquí se comprobaba que un estudiante
+  // no podía borrar ni la suya. Ahora sí puede darse de baja: lo que no puede
+  // es tocar la de otro.
+  it('un estudiante no puede borrar la matrícula de otro → 403 y sigue ahí', async () => {
     const alumno = await createUserAndLogin('estudiante');
+    const otro = await crearUsuario({ rol: 'estudiante' });
     const { curso } = await crearCurso();
-    const ins = await Inscripcion.create({ estudiante: alumno.id, curso: curso._id });
+    const ins = await Inscripcion.create({ estudiante: otro.id, curso: curso._id });
 
     const res = await request(app)
       .delete(`/api/inscripciones/${ins._id}`)
