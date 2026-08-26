@@ -21,17 +21,15 @@ import { CanMatchFn, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { catchError, map, of } from 'rxjs';
 
-import { ApiService } from './api.service';
 import { AuthService } from './auth.service';
 import { rutaInicioPara } from './rutas';
 
 export const adminGuard: CanMatchFn = () => {
-  const api = inject(ApiService);
   const auth = inject(AuthService);
   const router = inject(Router);
   const snack = inject(MatSnackBar);
 
-  return api.renew().pipe(
+  return auth.renovar().pipe(
     map(({ usuario }) => {
       // La respuesta trae el rol de verdad: se aprovecha para poner al día la
       // sesión, por si a alguien le han cambiado el rol mientras navegaba.

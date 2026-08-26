@@ -9,7 +9,9 @@
 // construir el servicio, y a partir de ahí manda la señal.
 // ---------------------------------------------------------------------------
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { tap } from 'rxjs';
+import { Observable, finalize, shareReplay, tap } from 'rxjs';
+
+import { RespuestaSesion } from '../data/auth.api';
 
 import { ApiService } from './api.service';
 import { Usuario } from '../data/usuario.model';
@@ -31,6 +33,9 @@ function usuarioGuardado(): Usuario | null {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private api = inject(ApiService);
+
+  /** Renovación en curso, si la hay: sirve para no pedir dos veces lo mismo. */
+  private enVuelo: Observable<RespuestaSesion> | null = null;
 
   /** Escritura solo desde aquí dentro; fuera se lee. */
   private readonly _usuario = signal<Usuario | null>(usuarioGuardado());
@@ -85,6 +90,27 @@ export class AuthService {
     this._usuario.set(usuario);
   }
 
+  /**
+   * Renovación compartida.
+   *
+   * Al abrir /admin salían DOS peticiones a /api/auth/renew: una del arranque
+   * de este servicio y otra del guard del panel, que pregunta al servidor
+   * antes de dejar entrar. Son la misma pregunta hecha con medio segundo de
+   * diferencia. Si ya hay una en vuelo, la segunda se engancha a ella.
+   *
+   * No se cachea más allá de eso: en cuanto termina, la siguiente llamada
+   * vuelve a preguntar. Un rol que cambia tiene que notarse.
+   */
+  renovar(): Observable<RespuestaSesion> {
+    if (this.enVuelo) return this.enVuelo;
+
+    this.enVuelo = this.api.renew().pipe(
+      finalize(() => (this.enVuelo = null)),
+      shareReplay({ bufferSize: 1, refCount: false })
+    );
+    return this.enVuelo;
+  }
+
   /** Token en crudo. Lo usa quien tenga que hablar con la API por su cuenta. */
   get token(): string | null {
     return this._token();
@@ -103,7 +129,7 @@ export class AuthService {
     // puede haber iniciado sesión de nuevo.
     const tokenValidado = localStorage.getItem(CLAVE_TOKEN);
 
-    this.api.renew().subscribe({
+    this.renovar().subscribe({
       next: ({ token, usuario }) => {
         // Si la sesión ya cambió, no pisamos la nueva con una respuesta vieja.
         if (localStorage.getItem(CLAVE_TOKEN) !== tokenValidado) return;
