@@ -86,6 +86,9 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - Los mensajes de error salen de `core/http-error.ts`, que distingue el fallo de red del rechazo del servidor. Un mensaje que dice "contraseña incorrecta" cuando el servidor está caído manda al usuario a arreglar lo que no está roto.
 - En móvil las tablas se convierten en tarjetas (`lista-tarjetas`), no se encogen.
 - La ruta de inicio de cada rol la decide `core/rutas.ts`. Un solo sitio.
+- **Los colores y las formas salen de los tokens de `styles.scss`**, nunca escritos a mano. Un `#fff` no existe en modo oscuro y un `rgba(0,0,0,.6)` es invisible ahí. La tabla completa está en `docs/DISENO.md`.
+- **Los tokens se declaran en claro y el bloque oscuro solo redefine.** Un color cuya única definición esté dentro de un `@media` queda `unset` en claro y el componente sale transparente.
+- **El color del rol tiñe fondos; para escribir encima está `--rol-*-texto`.** El ámbar sobre blanco da 2,3:1.
 
 ## Convenciones
 

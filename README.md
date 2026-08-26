@@ -192,6 +192,22 @@ Copia `backend/.env.example` a `backend/.env`. En desarrollo todas tienen valor 
 
 ---
 
+## Diseño
+
+Dirección **A — «consola académica»**: neutros fríos, acento contenido, densidad
+real y modo oscuro. Va encima de Angular Material 3, no en su lugar: los tokens
+propios reapuntan las variables `--mat-sys-*`, así que las tablas, los diálogos y
+el paginador siguen la paleta sin tocarlos uno a uno.
+
+El vocabulario completo —superficies, texto, acento, roles, estado, radios y
+sombras, con su valor en claro y en oscuro— está en
+[docs/DISENO.md](docs/DISENO.md).
+
+Cero colores literales fuera de `styles.scss`, y contraste **AA comprobado en las
+ocho pantallas y en los dos modos**, midiendo cada texto contra su fondo real.
+
+---
+
 ## Rendimiento
 
 Medido antes y después de la pasada de agosto de 2026. El bundle sale de
