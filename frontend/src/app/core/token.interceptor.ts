@@ -1,16 +1,25 @@
+// src/app/core/token.interceptor.ts
+// ---------------------------------------------------------------------------
+// Pone la cabecera Authorization en las peticiones a la API.
+//
+// El token se lee del almacenamiento local y NO de AuthService, aunque quede
+// raro. Inyectar AuthService aquí formaba un ciclo: AuthService valida el
+// token en su constructor, esa validación dispara una petición HTTP, la
+// petición construye este interceptor y el interceptor pide AuthService, que
+// aún se está construyendo. Angular responde NG0200 y la petición muere ahí,
+// sin llegar al servidor: como la renovación "fallaba", AuthService cerraba la
+// sesión. En la práctica, iniciar sesión y refrescar la página te echaba fuera.
+// ---------------------------------------------------------------------------
 import { Injectable } from '@angular/core';
 import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthService } from '../core/auth.service';
 import { environment } from '../../environments/environment';
+import { tokenLocal } from '../data/sesion-local';
 
 @Injectable()
 export class TokenInterceptor implements HttpInterceptor {
-  constructor(private auth: AuthService) {}
-
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token =
-      this.auth?.token || localStorage.getItem('token') || localStorage.getItem('jwt') || '';
+    const token = tokenLocal();
 
     // Considera API si:
     // - es absoluta y empieza por environment.apiBase

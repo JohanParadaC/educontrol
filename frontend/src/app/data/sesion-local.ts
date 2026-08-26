@@ -16,6 +16,18 @@ export function usuarioLocal(): any | null {
   }
 }
 
+/**
+ * Token de la sesión actual, tal y como lo dejó AuthService.
+ *
+ * Existe para que el interceptor no tenga que inyectar AuthService: hacerlo
+ * creaba una dependencia circular —AuthService valida el token en su
+ * constructor, eso dispara una petición, la petición construye el interceptor
+ * y el interceptor pide AuthService, que todavía se está construyendo—.
+ */
+export function tokenLocal(): string {
+  return localStorage.getItem('token') || localStorage.getItem('jwt') || '';
+}
+
 /** Id de un documento que puede llegar poblado, como string, o no llegar. */
 export function idDe(x: any): string {
   if (!x) return '';
