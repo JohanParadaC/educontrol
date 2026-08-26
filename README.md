@@ -108,35 +108,41 @@ formato, los tests del backend con cobertura y los del frontend en Chrome sin
 interfaz, más el build de producción.
 
 Dos reglas de ESLint están como aviso y no como error, porque su deuda es
-anterior: `no-explicit-any` (70 usos heredados) y `prefer-inject` (27
-componentes que aún inyectan por constructor). El script de lint del frontend
-lleva `--max-warnings=118`, el número exacto de hoy: los avisos solo pueden
-bajar, y cualquier `any` nuevo rompe la build.
+anterior: `no-explicit-any` (usos heredados) y `prefer-inject` (27 componentes
+que aún inyectan por constructor). El script de lint del frontend lleva
+`--max-warnings=116`, el número exacto de hoy: los avisos solo pueden bajar, y
+cualquier `any` nuevo rompe la build.
 
 ---
 
 ## Tests
 
 ```bash
-npm test        # backend: 119 tests (Jest + Supertest)
+npm test        # backend: 151 tests (Jest + Supertest)
 npm run test:web  # frontend: 25 tests (Karma + Jasmine)
 ```
 
-Cobertura del backend, medida con `npm run test:cov`: **81,5 % sentencias · 68,1 % ramas · 97,2 % funciones · 83,3 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
+Cobertura del backend, medida con `npm run test:cov`: **84,0 % sentencias · 75,4 % ramas · 97,4 % funciones · 85,5 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
 
-El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de una auditoría del propio proyecto: se encontraron cuatro fallos de control de acceso y cada arreglo se fijó con tests de regresión que fallan contra el código anterior.
+El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
-| Comprobación                                            | Resultado esperado             |
-| ------------------------------------------------------- | ------------------------------ |
-| `DELETE /api/admin/purge` sin token                     | 401                            |
-| `DELETE /api/admin/purge` con token de estudiante       | 403                            |
-| `POST /api/admin/seed-admin` sobre una cuenta existente | no la modifica                 |
-| `POST /api/usuarios` con `rol: admin`                   | 400                            |
-| `PUT /api/usuarios/:id` de un tercero                   | 403, sin efecto                |
-| Auto-ascenso a profesor sin clave                       | 403                            |
-| Cambiar la propia contraseña sin indicar la actual      | 400                            |
-| Cambiarla con una contraseña actual equivocada          | 403, la antigua sigue valiendo |
-| `?limit=999999` en un listado                           | recortado al máximo permitido  |
+| Comprobación                                            | Resultado esperado                    |
+| ------------------------------------------------------- | ------------------------------------- |
+| `DELETE /api/admin/purge` sin token                     | 401                                   |
+| `DELETE /api/admin/purge` con token de estudiante       | 403                                   |
+| `POST /api/admin/seed-admin` sobre una cuenta existente | no la modifica                        |
+| `POST /api/usuarios` con `rol: admin`                   | 400                                   |
+| `PUT /api/usuarios/:id` de un tercero                   | 403, sin efecto                       |
+| Auto-ascenso a profesor sin clave                       | 403                                   |
+| Cambiar la propia contraseña sin indicar la actual      | 400                                   |
+| Cambiarla con una contraseña actual equivocada          | 403, la antigua sigue valiendo        |
+| `?limit=999999` en un listado                           | recortado al máximo permitido         |
+| `PUT`/`DELETE /api/cursos/:id` de un curso ajeno        | 403, el curso intacto                 |
+| `GET /api/inscripciones` como estudiante                | solo las suyas, sin correos ajenos    |
+| `GET /api/inscripciones?curso=` de un curso ajeno       | lista vacía, no 403 explicativo       |
+| `GET /api/inscripciones/:id` de una matrícula ajena     | 404, ni confirma que existe           |
+| `DELETE` de un curso o un estudiante                    | se van también sus inscripciones      |
+| `DELETE` de un profesor con cursos                      | 409 diciendo cuántos, sin borrar nada |
 
 Los tests no solo comprueban el código de estado: verifican también que el efecto no ocurrió. Tras un 403 al intentar cambiar la contraseña del administrador, la contraseña original sigue siendo válida y la del atacante no.
 
@@ -152,6 +158,9 @@ Decisiones que conviene conocer si vas a desplegarlo:
 - **La autorización lee el rol de la base de datos, no del token.** Un usuario degradado pierde el acceso de inmediato en lugar de conservarlo hasta que caduque su JWT.
 - **Sin `ADMIN_PASSWORD` no se siembra el administrador en producción**, para no crear una cuenta con contraseña conocida.
 - **Cambiar la propia contraseña exige la actual.** Una sesión olvidada abierta no basta para quedarse la cuenta. Un administrador sí puede restablecer la de otra persona: eso es una acción administrativa, no un cambio propio.
+- **El rol autoriza, y la propiedad también.** `roleCheck` dice qué clase de usuario puede entrar por una ruta; de quién es el recurso lo decide el controlador. Un profesor edita y borra sus cursos, no los de sus compañeros; el administrador, cualquiera.
+- **Cada quien lista lo suyo.** `GET /api/inscripciones` filtra en el servidor según quién pregunta: un estudiante recibe sus matrículas, un profesor las de los cursos que imparte y un administrador todas. Los filtros `?curso=` y `?estudiante=` se cruzan con esa regla y nunca la amplían. Pedir una matrícula ajena por su id devuelve 404, no 403: quien no puede verla tampoco tiene por qué saber que existe.
+- **Los borrados no dejan huérfanos.** Borrar un curso se lleva sus inscripciones; borrar un estudiante, las suyas. Borrar un profesor que imparte cursos devuelve **409** diciendo cuántos son: hacerlo en cascada destruiría las matrículas de todos sus alumnos sin avisar, así que primero hay que reasignar.
 - **Los listados están paginados y con un tope duro** (100 por página). Sin ese tope, `?limit=999999` reintroduce desde fuera el problema que la paginación viene a evitar.
 
 ### Variables de entorno

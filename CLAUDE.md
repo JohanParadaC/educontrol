@@ -45,12 +45,16 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - Ascender a profesor exige `PROFESOR_CLAVE`. Sin esa variable, nadie se auto-asigna el rol.
 - Cambiar la **propia** contraseña exige la actual. Un admin sí puede restablecer la de otra persona: es una acción administrativa, no un cambio propio.
 - `/api/admin/purge` y `/api/admin/seed-admin` solo existen fuera de producción. La comprobación es _fail-closed_: si `NODE_ENV` no está definida se asume producción y devuelven 404, no 403.
+- El **rol autoriza, la propiedad también**. `roleCheck` dice qué clase de usuario puede entrar; de quién es el recurso lo decide el controlador, que para eso lo lee. Un profesor solo edita o borra los cursos donde `curso.profesor` es él; el admin, cualquiera.
+- **Nadie lista lo que no le toca.** `GET /api/inscripciones` filtra por rol en el servidor: estudiante → las suyas, profesor → las de los cursos que imparte, admin → todas. Los filtros `?curso=` y `?estudiante=` se **cruzan** con esa regla, nunca la amplían. La misma regla se aplica al `GET /:id`: si filtras solo el listado, la fuga sigue abierta de una en una.
+- **Borrar arrastra lo que cuelga.** Borrar un curso borra sus inscripciones; borrar un estudiante, las suyas. Borrar un profesor con cursos devuelve **409** diciendo cuántos: en cascada se llevaría por delante las matrículas de todos sus alumnos sin avisar.
 
 **Datos**
 
 - El backend llama `nombre` a lo que la interfaz llama `titulo`. La traducción vive en `data/curso.mapper.ts` y **solo ahí**. No añadas `?? nombre` en ningún otro sitio: eso es lo que había antes, repetido nueve veces.
 - Los listados están paginados con un tope duro de 100 por página. Sin ese tope, `?limit=999999` reintroduce el problema desde fuera.
 - `GET /api/inscripciones` devuelve `estudiante` y `curso` **poblados**. No hace falta cruzar con la lista de usuarios.
+- Ese listado también pagina, como los demás. El frontend pide `limit=100` (el tope) porque ninguna de sus pantallas tiene paginador propio todavía.
 
 **Interfaz**
 
