@@ -1,63 +1,82 @@
-<div class="wrap">
-  <!-- ===== Cabecera con saludo + CTA ===== -->
-  <div class="header">
-    <div>
-      <h1 class="title">Hola, {{ auth.usuario()?.nombre || 'Profesor' }} 👋</h1>
-      <div class="subtitle">Bienvenido a tu panel</div>
-    </div>
-    <!-- CAMBIO: el CTA te lleva a la lista /profesor/clases -->
-    <a mat-stroked-button color="primary" [routerLink]="classesLink">
-      <mat-icon>class</mat-icon>&nbsp;Ver mis clases
-    </a>
-  </div>
+<!-- Carga, error y vacío: los tres, y distinguibles entre sí -->
+@if (loading() || error() || !cursos().length) {
+  <app-estado-vista
+    [cargando]="loading()"
+    [error]="error()"
+    mensajeVacio="Todavía no tienes cursos asignados. Administración te los asigna."
+    ilustracion="cursos"
+    (reintentar)="cargar()"
+  >
+  </app-estado-vista>
+}
 
-  <mat-divider></mat-divider>
+@if (!loading() && !error() && cursos().length) {
+  <!-- Fila de KPI. Antes eran dos números sueltos en la franja superior y el
+       resto de la pantalla en blanco. -->
+  <section class="kpis" aria-label="Resumen">
+    <app-kpi
+      [valor]="cursos().length"
+      etiqueta="Cursos activos"
+      icono="menu_book"
+      tono="profesor"
+    />
+    <app-kpi
+      [valor]="totalEstudiantes()"
+      etiqueta="Estudiantes inscritos"
+      icono="group"
+      [variacion]="variacionSemana()"
+    />
+    <app-kpi [valor]="mediaPorCurso()" etiqueta="Media por curso" icono="equalizer" />
+  </section>
 
-  <!-- Carga, error y vacío: los tres, y distinguibles entre sí -->
-  @if (loading() || error() || !cursos().length) {
-    <app-estado-vista
-      [cargando]="loading()"
-      [error]="error()"
-      mensajeVacio="Todavía no tienes cursos asignados. Administración te los asigna."
-      iconoVacio="menu_book"
-      (reintentar)="cargar()"
-    >
-    </app-estado-vista>
-  }
+  <!-- 8 columnas de contenido + 4 de contexto. La página deja de ser dos
+       tarjetas arriba y dos tercios en blanco. -->
+  <div class="rejilla">
+    <section class="principal" aria-labelledby="titulo-clases">
+      <h2 id="titulo-clases" class="seccion">Tus clases</h2>
 
-  @if (!loading() && !error() && cursos().length) {
-    <div>
-      <div class="kpis">
-        <div class="kpi">
-          <div class="num">{{ cursos().length }}</div>
-          <div class="lbl">Cursos activos</div>
-        </div>
-        <div class="kpi">
-          <div class="num">{{ totalEstudiantes() }}</div>
-          <div class="lbl">Estudiantes inscritos</div>
-        </div>
-      </div>
-      <!-- ===== Tus clases (tarjetas) ===== -->
-      <h3 class="section"><mat-icon>menu_book</mat-icon>&nbsp;Tus clases</h3>
-      <div class="cards">
+      <div class="cursos">
         @for (c of cursos(); track trackById($index, c)) {
-          <mat-card class="course">
+          <mat-card class="curso">
             <mat-card-title>{{ courseTitle(c) }}</mat-card-title>
             <mat-card-subtitle>{{ courseDesc(c) || '—' }}</mat-card-subtitle>
             <mat-card-content>
-              <!-- CAMBIO: tooltip requiere MatTooltipModule -->
-              <div class="chip" matTooltip="Total de alumnos inscritos">
-                <mat-icon>group</mat-icon>
+              <span class="chip" matTooltip="Total de alumnos inscritos">
+                <mat-icon aria-hidden="true">group</mat-icon>
                 {{ inscritosPorCurso().get(idOf(c)) || 0 }} estudiantes
-              </div>
+              </span>
             </mat-card-content>
             <mat-card-actions>
-              <!-- Si tienes detalle, cambia a: ['/curso', idOf(c)] -->
-              <a mat-button color="primary" [routerLink]="classesLink">Ir al curso</a>
+              <a mat-button color="primary" [routerLink]="classesLink">Ver la clase</a>
             </mat-card-actions>
           </mat-card>
         }
       </div>
-    </div>
-  }
-</div>
+    </section>
+
+    <aside class="lateral-contenido" aria-labelledby="titulo-recientes">
+      <mat-card class="panel">
+        <h2 id="titulo-recientes" class="seccion">Últimas matrículas</h2>
+
+        @if (recientes().length) {
+          <ul class="recientes">
+            @for (r of recientes(); track r.id) {
+              <li class="reciente">
+                <span class="avatar" aria-hidden="true">{{ r.iniciales }}</span>
+                <span class="reciente__datos">
+                  <span class="reciente__nombre">{{ r.nombre }}</span>
+                  <span class="reciente__curso">{{ r.curso }}</span>
+                </span>
+                <span class="reciente__fecha">{{ r.cuando }}</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="vacio">Todavía no hay alumnos matriculados en tus clases.</p>
+        }
+
+        <a mat-button color="primary" [routerLink]="classesLink">Ver todas</a>
+      </mat-card>
+    </aside>
+  </div>
+}

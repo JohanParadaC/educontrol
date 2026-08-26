@@ -1,81 +1,145 @@
-.wrap {
-  padding: 0 4px;
+/* Rejilla de 12 columnas: el contenido a 8 y el contexto a 4.
+   Por debajo de 1100 px la lateral se va abajo, a ancho completo. */
+$dos-columnas: 1100px;
+
+:host {
+  display: block;
 }
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.title {
-  /* Antes: font-size 40px y weight 800 a pelo, mientras el resto del proyecto
-     usaba los tokens de tipografía. Dos escalas conviviendo. */
-  margin: 0;
-  font: var(--mat-sys-headline-large);
-}
-.subtitle {
-  /* Antes: rgba(0,0,0,.6), que en modo oscuro es invisible. */
-  color: var(--texto-suave);
-  margin-top: var(--sp-1);
-}
+
 .kpis {
-  display: flex;
-  gap: 16px;
-  padding: 12px 0;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
 }
-.kpi {
-  /* Antes: blanco al 4 %, o sea invisible sobre un fondo claro. El KPI se leía
-     como texto suelto en medio de la página. */
-  background: var(--superficie-0);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-md);
-  box-shadow: var(--sombra-1);
-  padding: var(--sp-3) var(--sp-4);
-  min-width: 180px;
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--sp-4);
+
+  @media (max-width: $dos-columnas) {
+    grid-template-columns: 1fr;
+  }
 }
-.kpi .num {
-  font: var(--mat-sys-headline-small);
+
+.principal {
+  grid-column: span 8;
+  min-width: 0;
+
+  @media (max-width: $dos-columnas) {
+    grid-column: 1 / -1;
+  }
+}
+
+.lateral-contenido {
+  grid-column: span 4;
+  min-width: 0;
+
+  @media (max-width: $dos-columnas) {
+    grid-column: 1 / -1;
+  }
+}
+
+.seccion {
+  margin: 0 0 var(--sp-3);
+  font: var(--mat-sys-title-medium);
   color: var(--texto);
 }
-.kpi .lbl {
-  opacity: 0.8;
-}
-.section {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 12px 0 8px;
-}
-.cards {
+
+.cursos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-3);
 }
-.course {
-  border-radius: var(--radio-lg);
+
+.curso {
+  padding: var(--sp-4);
 }
+
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-1);
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--superficie-2);
   color: var(--texto-suave);
+  font: var(--mat-sys-label-medium);
+
+  mat-icon {
+    /* Tamaño del glifo del icono, no tipografía de texto. */
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
 }
-.empty {
-  opacity: 0.7;
+
+/* ---------------------------------------------------------------------------
+   Últimas matrículas
+   --------------------------------------------------------------------------- */
+.panel {
+  padding: var(--sp-4);
+}
+
+.recientes {
+  list-style: none;
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.reciente {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 0;
+  gap: var(--sp-3);
+  min-width: 0;
 }
-.mt-2 {
-  margin-top: 12px;
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rol-estudiante) 14%, transparent);
+  color: var(--rol-estudiante-texto);
+  font: var(--mat-sys-label-large);
 }
-@media (max-width: 900px) {
-  .header a {
-    display: none;
-  }
+
+.reciente__datos {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.reciente__nombre {
+  font: var(--mat-sys-body-medium);
+  color: var(--texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reciente__curso {
+  font: var(--mat-sys-body-small);
+  color: var(--texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reciente__fecha {
+  flex: none;
+  font: var(--mat-sys-label-small);
+  color: var(--texto-suave);
+  white-space: nowrap;
+}
+
+.vacio {
+  margin: 0 0 var(--sp-2);
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-small);
 }

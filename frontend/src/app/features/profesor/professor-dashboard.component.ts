@@ -1,23 +1,29 @@
-// src/app/professor/professor-dashboard.component.ts
-// -------------------------------------------------------------------
-// Cambios claves:
-// 1) forkJoin para cursos+inscripciones en paralelo (no anidar suscripciones).
-// 2) KPIs: cursos activos y total de estudiantes.
-// 3) UI: saludo + tarjetas como en dashboard de alumno.
-// 4) Tolerancia a esquemas (titulo/nombre, id variables).
-// 5) Enlace "Ver mis clases" -> /profesor/clases.
-// 6) CAMBIO: se añade MatTooltipModule para usar matTooltip en la "chip".
-// -------------------------------------------------------------------
+// src/app/features/profesor/professor-dashboard.component.ts
+// ---------------------------------------------------------------------------
+// El panel del profesor, en formato consola.
+//
+// Antes: un saludo enorme, dos números sueltos en la franja de arriba y dos
+// tercios de pantalla en blanco. Ahora una fila de KPI con tarjetas reales y
+// una rejilla de 12 columnas: las clases a 8 y las últimas matrículas a 4.
+//
+// El saludo se fue con la cabecera: el nombre ya está en la barra lateral y en
+// el avatar, y ocupaba el sitio de la información.
+// ---------------------------------------------------------------------------
 
-import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  ChangeDetectionStrategy,
+  computed,
+  signal,
+} from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ CAMBIO: tooltip
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { forkJoin } from 'rxjs';
 
@@ -25,6 +31,9 @@ import { AuthService } from '../../core/auth.service';
 import { ApiService } from '../../core/api.service';
 import { Curso } from '../../data/curso.model';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
+import { KpiComponent } from '../../shared/kpi.component';
+import { Inscripcion } from '../../data/inscripcion.model';
+import { idDe } from '../../data/sesion-local';
 import { mensajeDeError } from '../../core/http-error';
 
 @Component({
@@ -36,10 +45,9 @@ import { mensajeDeError } from '../../core/http-error';
     MatCardModule,
     MatIconModule,
     MatButtonModule,
-    MatDividerModule,
-    MatProgressBarModule,
     MatTooltipModule,
     EstadoVistaComponent,
+    KpiComponent,
   ],
   templateUrl: './professor-dashboard.component.html',
   styleUrls: ['./professor-dashboard.component.scss'],
@@ -55,6 +63,26 @@ export class ProfessorDashboardComponent implements OnInit {
   readonly cursos = signal<Curso[]>([]);
   readonly inscritosPorCurso = signal(new Map<string, number>());
   readonly totalEstudiantes = signal(0);
+
+  /** Alumnos matriculados hace menos de siete días, para la variación del KPI. */
+  private readonly ultimaSemana = signal(0);
+
+  /** Las cinco matrículas más recientes de sus cursos. */
+  readonly recientes = signal<
+    Array<{ id: string; nombre: string; iniciales: string; curso: string; cuando: string }>
+  >([]);
+
+  /** Media de alumnos por curso, redondeada. Con cero cursos, cero. */
+  readonly mediaPorCurso = computed(() => {
+    const n = this.cursos().length;
+    return n ? Math.round(this.totalEstudiantes() / n) : 0;
+  });
+
+  /** Solo se pinta si hay algo que contar: un "+0" no dice nada. */
+  readonly variacionSemana = computed(() => {
+    const n = this.ultimaSemana();
+    return n ? `+${n} esta semana` : '';
+  });
 
   // CAMBIO: el CTA ahora apunta a la ruta de profesor
   classesLink = '/profesor/clases';
@@ -96,6 +124,8 @@ export class ProfessorDashboardComponent implements OnInit {
 
         this.inscritosPorCurso.set(conteo);
         this.totalEstudiantes.set(total);
+        this.ultimaSemana.set(this.contarUltimaSemana(ins || [], idsCursos));
+        this.recientes.set(this.ultimasMatriculas(ins || [], idsCursos));
         this.loading.set(false);
       },
       error: err => {
@@ -123,6 +153,59 @@ export class ProfessorDashboardComponent implements OnInit {
   /** Descripción corta del curso (si existe) */
   courseDesc(c: any): string {
     return c?.descripcion || c?.descripcionCorta || c?.desc || '';
+  }
+
+  /** Cuántas matrículas de sus cursos son de los últimos siete días. */
+  private contarUltimaSemana(ins: Inscripcion[], mios: Set<string>): number {
+    const hace7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return ins.filter(i => mios.has(idDe(i.curso)) && this.fechaDe(i) >= hace7).length;
+  }
+
+  /** Las cinco matrículas más recientes, ya listas para pintar. */
+  private ultimasMatriculas(ins: Inscripcion[], mios: Set<string>) {
+    return ins
+      .filter(i => mios.has(idDe(i.curso)))
+      .sort((a, b) => this.fechaDe(b) - this.fechaDe(a))
+      .slice(0, 5)
+      .map(i => {
+        const alumno = typeof i.estudiante === 'string' ? null : i.estudiante;
+        const nombre = alumno?.nombre ?? 'Alumno';
+        return {
+          id: i._id,
+          nombre,
+          iniciales: this.iniciales(nombre),
+          curso: typeof i.curso === 'string' ? '' : (i.curso?.titulo ?? ''),
+          cuando: this.hace(this.fechaDe(i)),
+        };
+      });
+  }
+
+  /** `createdAt` es lo bueno; `fecha` se queda por los documentos antiguos. */
+  private fechaDe(i: Inscripcion): number {
+    const cruda = (i as { createdAt?: string }).createdAt ?? i.fecha;
+    const t = cruda ? Date.parse(cruda) : NaN;
+    return Number.isNaN(t) ? 0 : t;
+  }
+
+  private iniciales(nombre: string): string {
+    return (
+      nombre
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(p => p[0]?.toUpperCase() ?? '')
+        .join('') || '?'
+    );
+  }
+
+  /** "hoy", "ayer", "hace 4 días"… Sin librería de fechas para tres casos. */
+  private hace(t: number): string {
+    if (!t) return '';
+    const dias = Math.floor((Date.now() - t) / (24 * 60 * 60 * 1000));
+    if (dias <= 0) return 'hoy';
+    if (dias === 1) return 'ayer';
+    if (dias < 30) return `hace ${dias} días`;
+    return new Date(t).toLocaleDateString('es');
   }
 
   /** Identidad estable para el `track` de @for */

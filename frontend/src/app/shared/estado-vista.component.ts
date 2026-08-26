@@ -49,7 +49,40 @@ import { MatIconModule } from '@angular/material/icon';
     <!-- 3) Vacío: distinto de un fallo -->
     @if (!cargando && !error) {
       <div class="estado centrado">
-        <mat-icon aria-hidden="true">{{ iconoVacio }}</mat-icon>
+        <!-- Ilustración monocroma en línea, dibujada con los tokens: el icono
+             gris de Material que había antes decía "aquí falta algo" con el
+             mismo tono con el que un error dice "aquí se ha roto algo". -->
+        <svg class="ilustracion" viewBox="0 0 120 90" role="img" [attr.aria-label]="mensajeVacio">
+          @switch (ilustracion) {
+            @case ('cursos') {
+              <!-- Tres libros: uno abierto y dos apilados detrás. -->
+              <rect class="trazo tenue" x="18" y="20" width="34" height="46" rx="4" />
+              <rect class="trazo tenue" x="30" y="14" width="34" height="52" rx="4" />
+              <path class="trazo relleno" d="M46 26h30a6 6 0 0 1 6 6v34H52a6 6 0 0 1-6-6z" />
+              <path class="trazo" d="M60 34h14M60 44h14M60 54h9" />
+            }
+            @case ('gente') {
+              <!-- Dos siluetas: una delante y otra detrás. -->
+              <circle class="trazo tenue" cx="44" cy="32" r="11" />
+              <path class="trazo tenue" d="M26 68a18 18 0 0 1 36 0z" />
+              <circle class="trazo relleno" cx="72" cy="36" r="13" />
+              <path class="trazo relleno" d="M52 72a20 20 0 0 1 40 0z" />
+            }
+            @case ('busqueda') {
+              <!-- Lupa vacía. -->
+              <circle class="trazo relleno" cx="54" cy="40" r="20" />
+              <path class="trazo" d="M69 55l16 16" />
+              <path class="trazo tenue" d="M44 40h20" />
+            }
+            @default {
+              <!-- Bandeja vacía. -->
+              <path class="trazo relleno" d="M24 34h72l-10 32H34z" />
+              <path class="trazo" d="M24 34l6-14h60l6 14" />
+              <path class="trazo tenue" d="M46 48h28" />
+            }
+          }
+        </svg>
+
         <p>{{ mensajeVacio }}</p>
       </div>
     }
@@ -97,6 +130,31 @@ import { MatIconModule } from '@angular/material/icon';
       .corta {
         width: 30%;
       }
+      /* La ilustración se dibuja con los tokens: en oscuro cambia sola y no
+         hay una versión clara y otra oscura que mantener. */
+      .ilustracion {
+        width: 120px;
+        height: 90px;
+        margin-bottom: var(--sp-1);
+      }
+
+      .trazo {
+        fill: none;
+        stroke: var(--texto-suave);
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .relleno {
+        fill: var(--acento-suave);
+        stroke: var(--acento);
+      }
+
+      .tenue {
+        opacity: 0.45;
+      }
+
       @keyframes latido {
         0%,
         100% {
@@ -119,7 +177,9 @@ export class EstadoVistaComponent {
   /** Texto del error, o cadena vacía si no lo hubo. */
   @Input() error = '';
   @Input() mensajeVacio = 'No hay nada que mostrar.';
-  @Input() iconoVacio = 'inbox';
+
+  /** Qué se dibuja cuando no hay datos. */
+  @Input() ilustracion: 'bandeja' | 'cursos' | 'gente' | 'busqueda' = 'bandeja';
   @Input() textoCargando = 'Cargando…';
   /** Cuántas filas de esqueleto pintar mientras carga. */
   @Input() filas = [1, 2, 3];

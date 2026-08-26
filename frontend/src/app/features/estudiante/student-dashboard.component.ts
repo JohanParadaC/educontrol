@@ -8,13 +8,18 @@
 // métodos existe en ApiService, que está en este mismo repositorio y se puede
 // leer. Ahora llama a los reales.
 // ---------------------------------------------------------------------------
-import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  ChangeDetectionStrategy,
+  computed,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatDividerModule } from '@angular/material/divider';
 import { RouterModule } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { of, forkJoin } from 'rxjs';
@@ -27,6 +32,8 @@ import { mensajeDeError } from '../../core/http-error';
 
 import { Inscripcion } from '../../data/inscripcion.model';
 import { idDe } from '../../data/sesion-local';
+import { EstadoVistaComponent } from '../../shared/estado-vista.component';
+import { KpiComponent } from '../../shared/kpi.component';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,9 +45,9 @@ import { idDe } from '../../data/sesion-local';
     MatCardModule,
     MatIconModule,
     MatButtonModule,
-    MatProgressBarModule,
-    MatDividerModule,
     MatSnackBarModule,
+    EstadoVistaComponent,
+    KpiComponent,
   ],
   templateUrl: './student-dashboard.component.html',
   styleUrls: ['./student-dashboard.component.scss'],
@@ -61,6 +68,21 @@ export class StudentDashboardComponent implements OnInit {
   readonly loadingIns = signal(false);
   /** Controla el "Matriculando…" de la tarjeta que se está enviando. */
   readonly matriculandoId = signal<string | null>(null);
+
+  /**
+   * El siguiente paso sale de los datos, no de una lista fija de tareas de
+   * mentira: un panel que sugiere lo mismo pase lo que pase no sugiere nada.
+   */
+  readonly siguientePaso = computed(() => {
+    const mios = this.misCursosCards().length;
+    const libres = this.cursosDisponibles().length;
+
+    if (!mios && libres)
+      return `Todavía no te has matriculado en nada. Hay ${libres} cursos esperando.`;
+    if (!mios) return 'Todavía no hay cursos publicados en los que matricularte.';
+    if (!libres) return `Estás en los ${mios} cursos del catálogo. No queda ninguno por probar.`;
+    return `Vas por ${mios} ${mios === 1 ? 'curso' : 'cursos'}. Quedan ${libres} por explorar.`;
+  });
 
   ngOnInit() {
     this.loadData();

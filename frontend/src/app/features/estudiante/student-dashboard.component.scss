@@ -1,53 +1,130 @@
-.wrap {
+/* Rejilla de 12 columnas: tus cursos a 8 y el contexto a 4.
+   Por debajo de 1100 px la lateral baja, a ancho completo. */
+$dos-columnas: 1100px;
+
+:host {
+  display: block;
+}
+
+.kpis {
   display: grid;
-  gap: 16px;
-  padding: 0 4px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
 }
-.brand .brand-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.brand h1 {
-  margin: 0;
-}
-.actions a {
-  margin-left: 8px;
-}
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 8px;
-}
-.cards-grid {
+
+.rejilla {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-.course {
-  min-height: 140px;
-}
-.desc {
-  margin: 0.25rem 0 0.5rem;
-  opacity: 0.9;
-}
-.progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.progress mat-progress-bar {
-  flex: 1;
-}
-.empty {
-  opacity: 0.7;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-@media (max-width: 900px) {
-  .actions {
-    display: none;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+
+  @media (max-width: $dos-columnas) {
+    grid-template-columns: 1fr;
   }
+}
+
+.principal {
+  grid-column: span 8;
+  min-width: 0;
+
+  @media (max-width: $dos-columnas) {
+    grid-column: 1 / -1;
+  }
+}
+
+.lateral-contenido {
+  grid-column: span 4;
+  min-width: 0;
+
+  @media (max-width: $dos-columnas) {
+    grid-column: 1 / -1;
+  }
+}
+
+.seccion {
+  margin: 0 0 var(--sp-3);
+  font: var(--mat-sys-title-medium);
+  color: var(--texto);
+}
+
+.cursos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--sp-3);
+}
+
+.curso {
+  padding: var(--sp-4);
+}
+
+.desc {
+  margin: var(--sp-1) 0 0;
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-small);
+
+  /* Dos líneas y elipsis: con descripciones de distinto largo, las tarjetas de
+     la fila dejaban de medir lo mismo. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+   Columna de contexto
+   --------------------------------------------------------------------------- */
+.panel {
+  padding: var(--sp-4);
+}
+
+.sugerencia {
+  margin: 0 0 var(--sp-4);
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-medium);
+}
+
+.accesos {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.acceso {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+  color: var(--texto);
+  text-decoration: none;
+
+  mat-icon {
+    flex: none;
+    color: var(--acento);
+  }
+
+  &:hover {
+    background: var(--superficie-1);
+    border-color: color-mix(in srgb, var(--acento) 30%, var(--borde));
+  }
+
+  span {
+    display: grid;
+    min-width: 0;
+  }
+}
+
+.acceso__titulo {
+  font: var(--mat-sys-body-medium);
+}
+
+.acceso__pie {
+  font: var(--mat-sys-body-small);
+  color: var(--texto-suave);
+}
+
+.disponibles {
+  min-width: 0;
 }
