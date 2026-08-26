@@ -1,0 +1,102 @@
+# Integración continua de EduControl.
+#
+# Tres trabajos en paralelo, porque fallan por motivos distintos y conviene
+# saber cuál de los tres se ha roto sin leer un log de diez minutos:
+#   · calidad  → ESLint y Prettier
+#   · backend  → 119 tests con cobertura (los umbrales viven en jest.config.js)
+#   · frontend → 25 tests en Chrome sin interfaz
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Un push nuevo sobre la misma rama cancela la ejecución anterior.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  calidad:
+    name: Lint y formato
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: |
+          npm ci
+          npm ci --prefix backend
+          npm ci --prefix frontend
+
+      - name: ESLint (backend y frontend)
+        run: npm run lint
+
+      - name: Prettier
+        run: npm run format:check
+
+  backend:
+    name: Tests del backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # mongodb-memory-server descarga un binario de mongod la primera vez.
+      # Sin esta caché, cada ejecución vuelve a bajarlo.
+      - name: Caché del mongod en memoria
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}
+
+      - name: Instalar dependencias
+        run: npm ci --prefix backend
+
+      # test:cov añade --coverage, así que los coverageThreshold de
+      # jest.config.js (82/68/95/84) hacen fallar el trabajo si la cobertura baja.
+      - name: Jest con cobertura
+        run: npm run test:cov --prefix backend
+
+  frontend:
+    name: Tests del frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci --prefix frontend
+
+      # El runner de GitHub trae Chrome y no corre como root, así que
+      # ChromeHeadless arranca con su sandbox puesto: no hace falta
+      # --no-sandbox. (karma.conf.js no se usa: el builder @angular/build:karma
+      # trae su propia configuración salvo que se le indique otra.)
+      - name: Karma en Chrome sin interfaz
+        run: npm test --prefix frontend -- --watch=false --browsers=ChromeHeadless
+
+      - name: Build de producción
+        run: npm run build --prefix frontend
