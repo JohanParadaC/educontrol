@@ -10,11 +10,13 @@
 
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
+const compression = require('compression');
+const morgan = require('morgan');
 
 const { verificarEntorno } = require('./config/env');
 const { montarFrontend } = require('./static');
 const errorHandler = require('./middlewares/errorHandler');
+const { cabecerasSeguras, limiteGeneral } = require('./middlewares/seguridadHttp');
 
 const usuariosRoutes = require('./routes/usuarios.routes');
 const authRoutes = require('./routes/auth.routes');
@@ -30,8 +32,28 @@ const app = express();
  * 1) Middlewares globales
  * =========================== */
 app.disable('x-powered-by');
-app.use(cors());
+
+// Cabeceras de seguridad. Sin ellas no había X-Content-Type-Options, ni HSTS,
+// ni CSP: la SPA se podía incrustar en un iframe ajeno.
+app.use(cabecerasSeguras());
+
+// Aquí iba `app.use(cors())`. No hacía ninguna falta: el backend sirve el
+// propio frontend desde este mismo origen (static.js), así que no hay petición
+// cruzada que permitir. Lo único que aportaba era abrir la API a cualquier
+// origen que quisiera llamarla desde un navegador.
+
+app.use(compression());
+
+// Un log por petición. En test estorba más que ayuda: son cientos por fichero.
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+}
+
 app.use(express.json());
+
+// Freno general de la API. El del login, mucho más estricto, se monta dentro
+// de routes/auth.routes.js, junto a la ruta que protege.
+app.use('/api', limiteGeneral());
 
 /* ===========================
  * 2) Rutas de la API

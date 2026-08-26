@@ -20,12 +20,9 @@ export class TokenInterceptor implements HttpInterceptor {
     if (token && isApi) {
       const setHeaders: Record<string, string> = {};
 
-      // No pisar si ya vienen
+      // Una sola cabecera. Antes se mandaba también `x-token` con el mismo
+      // valor porque el backend aceptaba las dos; ya no lo hace.
       if (!req.headers.has('Authorization')) setHeaders['Authorization'] = `Bearer ${token}`;
-      if (!req.headers.has('x-token')) setHeaders['x-token'] = token;
-
-      // 🔎 log (puedes quitarlo luego)
-      // console.debug('[TokenInterceptor]', { url: req.url, headers: setHeaders });
 
       const authReq = req.clone({ setHeaders });
       return next.handle(authReq);
