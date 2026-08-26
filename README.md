@@ -192,6 +192,50 @@ Copia `backend/.env.example` a `backend/.env`. En desarrollo todas tienen valor 
 
 ---
 
+## Rendimiento
+
+Medido antes y después de la pasada de agosto de 2026. El bundle sale de
+`npm run build`; las peticiones, de una carga limpia de `/admin` en el
+navegador; Lighthouse, en modo escritorio contra `/login`, que es la única
+ruta que puede visitar sin sesión.
+
+| Medida                             | Antes  | Después   |
+| ---------------------------------- | ------ | --------- |
+| Bundle inicial (crudo)             | 770 kB | 700,33 kB |
+| Bundle inicial (transferido, gzip) | 189 kB | 172,75 kB |
+| Peticiones al abrir `/admin`       | 7      | 5         |
+| Lighthouse `/login` — puntuación   | 99     | 98-99     |
+| Lighthouse `/login` — LCP          | 0,9 s  | 0,9-1,1 s |
+| Lighthouse `/login` — TBT          | 50 ms  | 10-40 ms  |
+
+Sobre Lighthouse: la diferencia está dentro del ruido de la máquina —tres
+ejecuciones seguidas del mismo build dan 98-99, 0,9-1,1 s y 10-40 ms—, y era
+de esperar: ninguno de los cambios toca la pantalla de login. Lo que sí se
+mueve es el panel de administración, y ahí Lighthouse no llega porque hace
+falta sesión.
+
+De dónde salen los 70 kB: se fueron `@angular-devkit/build-angular`,
+`@angular/platform-browser-dynamic` y `express` del frontend, y con ellos 300
+paquetes transitivos.
+
+Lo que **no** se hizo, con la medición delante: se probó `@defer` sobre la
+sección de "asignar profesor" del panel. El bloque diferido no saca nada del
+chunk del panel —todo lo que usa ya está dentro por la tabla— y a cambio mete
+el motor de `@defer` en el bundle inicial, que paga todo el mundo, incluida la
+portada: 700,33 kB sin él contra 707,38 kB con él. Diferir tiene sentido
+cuando aparta código, no cuando solo retrasa un render.
+
+Otras decisiones que se ven en el código:
+
+- El texto de los botones de la tabla lo esconde una **consulta de contenedor**,
+  no un método de TypeScript que lea `window.innerWidth` una vez por fila y por
+  ciclo de detección.
+- Todos los `@for` llevan `track` por identificador estable.
+- El backend sirve con `compression`: el chunk mayor pasa de 165 kB a 55 kB por
+  el cable.
+
+---
+
 ## Limitaciones conocidas
 
 Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
@@ -200,7 +244,7 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
 - **No hay pantalla de detalle de un curso:** desde las tarjetas se navega al listado, no a una ficha propia.
 - **`POST /api/inscripciones` acepta el `estudianteId` del cuerpo sin comprobar de quién es.** Lo necesita el panel de administración para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
-- **El bundle inicial pesa ~700 kB** (173 kB transferidos con compresión). Es lo que cuesta Angular con Material; el presupuesto del build está puesto en 800 kB para que avise de regresiones reales en vez de saltar siempre.
+- **El bundle inicial pesa ~700 kB** (173 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
 
 ## Licencia
 
