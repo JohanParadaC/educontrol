@@ -1,0 +1,9 @@
+# Un solo final de línea en el repositorio (LF), sea cual sea el sistema desde
+# el que se trabaja. Sin esto, cada `git status` en Windows avisa de la
+# conversión CRLF en cada fichero.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.woff  binary
+*.woff2 binary
