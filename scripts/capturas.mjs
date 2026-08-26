@@ -18,6 +18,9 @@ import { fileURLToPath } from 'node:url';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DESTINO = join(RAIZ, 'docs');
+// La portada enseña una captura real del panel, así que esa imagen no es
+// documentación: es un asset del frontend y se sirve con la aplicación.
+const PUBLICO = join(RAIZ, 'frontend', 'public');
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const PUERTO_CDP = 9222;
 
@@ -29,7 +32,13 @@ const CHROME = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
 ].find(p => p && existsSync(p));
 
-/** Pantallas a capturar. `preparar` deja la app en el estado que queremos. */
+/**
+ * Pantallas a capturar. `preparar` deja la app en el estado que queremos.
+ *
+ * Por defecto van a docs/ en PNG a escala 2 —nítidas para el README—, pero se
+ * puede mandar una a otra `carpeta`, en otro `formato` y a otra `escala`: la
+ * del héroe de la portada se descarga de verdad y ahí el peso sí importa.
+ */
 const PANTALLAS = [
   {
     fichero: '00-portada.png',
@@ -95,7 +104,60 @@ const PANTALLAS = [
     tema: 'dark',
     preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
   },
+
+  // --- Assets de la portada ---------------------------------------------
+  // El héroe enseña el panel de verdad. Van en webp y a escala 1 porque estas
+  // dos sí las descarga quien abre la página —son el LCP de la portada—, y en
+  // el hueco más ancho que tiene el héroe la imagen se pinta a unos 570 px:
+  // 1280 de origen ya sobran para una pantalla de doble densidad. La misma
+  // captura en PNG a escala 2 pesa 250 kB.
+  //
+  // Dos ficheros y no uno: en oscuro, una captura blanca de 1280 px es una
+  // linterna. El <picture> de la portada elige según prefers-color-scheme.
+  {
+    fichero: 'captura-panel.webp',
+    carpeta: PUBLICO,
+    formato: 'webp',
+    calidad: 82,
+    escala: 1,
+    titulo: 'Panel para el héroe de la portada',
+    ruta: '/login',
+    ancho: 1280,
+    alto: 860,
+    preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
+  },
+  {
+    fichero: 'captura-panel-oscuro.webp',
+    carpeta: PUBLICO,
+    formato: 'webp',
+    calidad: 82,
+    escala: 1,
+    titulo: 'Panel para el héroe, en oscuro',
+    ruta: '/login',
+    ancho: 1280,
+    alto: 860,
+    tema: 'dark',
+    preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
+  },
 ];
+
+/**
+ * Espera a que Angular haya pintado la página, en vez de dormir a ciegas.
+ *
+ * La portada salía en blanco: es la primera captura de la tanda, o sea la que
+ * paga el arranque en frío, y 1500 ms no le llegaban.
+ */
+const ESPERAR_PINTADO = `
+  (async () => {
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    for (let i = 0; i < 100; i++) {
+      const pagina = document.querySelector('main.pagina');
+      if (pagina && pagina.textContent.trim()) return true;
+      await esperar(100);
+    }
+    return false;
+  })()
+`;
 
 /** Devuelve un script que rellena el login y espera a salir de /login. */
 function entrarComo(correo, password) {
@@ -194,14 +256,21 @@ async function main() {
     // El tema se fija a mano en cada captura. Sin esto, Chrome hereda el
     // esquema del sistema y las mismas capturas salen claras u oscuras según
     // quién las regenere.
+    // Y de paso se pide "menos movimiento": las animaciones de entrada de la
+    // portada dejaban la captura a medio camino según lo que tardara el
+    // arranque. Además comprueba que con esa preferencia no se queda nada
+    // invisible, que es el fallo clásico de animar con opacidad.
     await enviar('Emulation.setEmulatedMedia', {
-      features: [{ name: 'prefers-color-scheme', value: p.tema ?? 'light' }],
+      features: [
+        { name: 'prefers-color-scheme', value: p.tema ?? 'light' },
+        { name: 'prefers-reduced-motion', value: 'reduce' },
+      ],
     });
 
     await enviar('Emulation.setDeviceMetricsOverride', {
       width: p.ancho,
       height: p.alto,
-      deviceScaleFactor: 2,
+      deviceScaleFactor: p.escala ?? 2,
       mobile: p.ancho < 700,
     });
 
@@ -210,15 +279,19 @@ async function main() {
       expression: 'try{localStorage.clear();sessionStorage.clear()}catch(e){}',
     });
     await enviar('Page.navigate', { url: `${BASE}${p.ruta}` });
-    await new Promise(r => setTimeout(r, 1500));
+    await enviar('Runtime.evaluate', { expression: ESPERAR_PINTADO, awaitPromise: true });
+    await new Promise(r => setTimeout(r, 600));
 
     if (p.preparar) {
       await enviar('Runtime.evaluate', { expression: p.preparar, awaitPromise: true });
     }
     await new Promise(r => setTimeout(r, 600));
 
-    const { result } = await enviar('Page.captureScreenshot', { format: 'png' });
-    await writeFile(join(DESTINO, p.fichero), Buffer.from(result.data, 'base64'));
+    const { result } = await enviar('Page.captureScreenshot', {
+      format: p.formato ?? 'png',
+      ...(p.calidad ? { quality: p.calidad } : {}),
+    });
+    await writeFile(join(p.carpeta ?? DESTINO, p.fichero), Buffer.from(result.data, 'base64'));
     console.log(`📸 ${p.fichero.padEnd(22)} ${p.titulo}`);
   }
 
