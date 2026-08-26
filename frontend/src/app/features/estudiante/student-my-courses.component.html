@@ -1,9 +1,9 @@
 <h2 class="titulo">Mis cursos</h2>
 
-@if (cargando || error || !inscripciones.length) {
+@if (cargando() || error() || !inscripciones().length) {
   <app-estado-vista
-    [cargando]="cargando"
-    [error]="error"
+    [cargando]="cargando()"
+    [error]="error()"
     mensajeVacio="Aún no tienes cursos."
     iconoVacio="school"
     (reintentar)="cargar()"
@@ -11,9 +11,9 @@
   </app-estado-vista>
 }
 
-@if (!cargando && !error && inscripciones.length) {
+@if (!cargando() && !error() && inscripciones().length) {
   <div class="grid gap-3">
-    @for (i of inscripciones; track trackIns($index, i)) {
+    @for (i of inscripciones(); track trackIns($index, i)) {
       <mat-card class="course">
         <div class="head">
           <div>
@@ -23,11 +23,11 @@
           <button
             mat-stroked-button
             color="warn"
-            [disabled]="cancelandoId === i._id"
+            [disabled]="cancelandoId() === i._id"
             (click)="desmatricular(i)"
           >
             <mat-icon>cancel</mat-icon>
-            {{ cancelandoId === i._id ? 'Cancelando…' : 'Cancelar matrícula' }}
+            {{ cancelandoId() === i._id ? 'Cancelando…' : 'Cancelar matrícula' }}
           </button>
         </div>
       </mat-card>
@@ -35,7 +35,7 @@
   </div>
 }
 
-@if (!cargando && !error) {
+@if (!cargando() && !error()) {
   <p class="pie">
     <a routerLink="/cursos">Explorar el catálogo</a>
   </p>

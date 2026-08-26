@@ -6,7 +6,7 @@
 // aparecías en otro sitio sin que nada explicara por qué. Peor aún, sin sesión
 // esa redirección acababa en el login, y parecía que te habían echado.
 // ---------------------------------------------------------------------------
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +16,7 @@ import { AuthService } from '../core/auth.service';
 import { rutaInicioPara } from '../core/rutas';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-not-found',
   imports: [RouterModule, MatButtonModule, MatIconModule],
@@ -67,11 +68,11 @@ export class NotFoundComponent {
   private auth = inject(AuthService);
 
   get destino(): string {
-    if (!this.auth.isLoggedIn) return '/';
-    return rutaInicioPara(this.auth.usuario?.rol);
+    if (!this.auth.estaAutenticado()) return '/';
+    return rutaInicioPara(this.auth.rol());
   }
 
   get etiquetaDestino(): string {
-    return this.auth.isLoggedIn ? 'Volver a mi panel' : 'Volver al inicio';
+    return this.auth.estaAutenticado() ? 'Volver a mi panel' : 'Volver al inicio';
   }
 }

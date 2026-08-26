@@ -3,7 +3,7 @@
   <mat-card class="brand">
     <div class="brand-wrap">
       <div>
-        <h1>Hola{{ auth.usuario?.nombre ? ', ' + auth.usuario?.nombre : '' }} 👋</h1>
+        <h1>Hola{{ auth.usuario()?.nombre ? ', ' + auth.usuario()?.nombre : '' }} 👋</h1>
         <span>Bienvenido a tu panel</span>
       </div>
       <div class="actions">
@@ -18,12 +18,12 @@
   <mat-card>
     <h3 class="card-title"><mat-icon>playlist_add_check</mat-icon> Tus cursos</h3>
 
-    @if (loadingIns) {
+    @if (loadingIns()) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     } @else {
-      @if (misCursosCards.length) {
+      @if (misCursosCards().length) {
         <div class="cards-grid">
-          @for (c of misCursosCards; track trackCurso($index, c)) {
+          @for (c of misCursosCards(); track trackCurso($index, c)) {
             <mat-card class="course">
               <mat-card-title>{{ c.titulo }}</mat-card-title>
               <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
@@ -52,12 +52,12 @@
   <mat-card>
     <h3 class="card-title"><mat-icon>library_books</mat-icon> Cursos disponibles</h3>
 
-    @if (loadingCursos) {
+    @if (loadingCursos()) {
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     } @else {
-      @if (cursosDisponibles.length) {
+      @if (cursosDisponibles().length) {
         <div class="cards-grid">
-          @for (c of cursosDisponibles | slice: 0 : 6; track trackCurso($index, c)) {
+          @for (c of cursosDisponibles() | slice: 0 : 6; track trackCurso($index, c)) {
             <mat-card class="course">
               <mat-card-title>{{ c.titulo }}</mat-card-title>
               <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
@@ -72,9 +72,9 @@
                   mat-stroked-button
                   color="primary"
                   (click)="matricular(c)"
-                  [disabled]="matriculandoId === idOf(c)"
+                  [disabled]="matriculandoId() === idOf(c)"
                 >
-                  {{ matriculandoId === idOf(c) ? 'Matriculando…' : 'Matricular' }}
+                  {{ matriculandoId() === idOf(c) ? 'Matriculando…' : 'Matricular' }}
                 </button>
               </mat-card-actions>
             </mat-card>

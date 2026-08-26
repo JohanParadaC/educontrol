@@ -7,7 +7,7 @@
 // Quien entra tiene que poder responderse "¿qué es y me sirve?" antes de decidir
 // si se molesta en entrar.
 // ---------------------------------------------------------------------------
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { Router, RouterModule } from '@angular/router';
 
@@ -19,6 +19,7 @@ import { AuthService } from '../../core/auth.service';
 import { rutaInicioPara } from '../../core/rutas';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-landing',
   imports: [RouterModule, MatButtonModule, MatIconModule, MatCardModule],
@@ -49,8 +50,8 @@ export class LandingComponent {
 
   constructor() {
     // Con sesión iniciada esta página no aporta nada: al panel directamente.
-    if (this.auth.isLoggedIn) {
-      const rol = this.auth.usuario?.rol;
+    if (this.auth.estaAutenticado()) {
+      const rol = this.auth.usuario()?.rol;
       this.router.navigateByUrl(rutaInicioPara(rol));
     }
   }

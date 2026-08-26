@@ -7,7 +7,7 @@
   </div>
 
   <!-- 1) Cargando: esqueletos, para que el salto de vacío a lleno no dé tirón -->
-  @if (cargando) {
+  @if (cargando()) {
     <div class="grid cards" aria-busy="true" aria-label="Cargando cursos">
       @for (_ of [1, 2, 3]; track _) {
         <mat-card class="course esqueleto">
@@ -20,16 +20,16 @@
   }
 
   <!-- 2) Error de carga: distinto de "no hay cursos", y con salida -->
-  @if (!cargando && errorCarga) {
+  @if (!cargando() && errorCarga()) {
     <div class="estado error" role="alert">
       <mat-icon>error_outline</mat-icon>
-      <p>{{ errorCarga }}</p>
+      <p>{{ errorCarga() }}</p>
       <button mat-stroked-button (click)="reintentar()">Reintentar</button>
     </div>
   }
 
-  @if (!cargando && !errorCarga) {
-    @if (cursos; as lista) {
+  @if (!cargando() && !errorCarga()) {
+    @if (cursos(); as lista) {
       <div class="grid cards">
         @for (c of lista; track trackCurso($index, c)) {
           <mat-card class="course">

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import {
@@ -22,6 +22,7 @@ import { MatButtonModule } from '@angular/material/button';
  *    IMPORTANTE: _id debe venir como string.
  */
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-enroll-student-dialog',
   template: `

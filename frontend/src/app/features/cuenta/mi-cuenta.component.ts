@@ -10,7 +10,7 @@
 // Además recoge el cambio de contraseña, que el backend soportaba desde hace
 // tiempo y no tenía ninguna pantalla.
 // ---------------------------------------------------------------------------
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 
 import { Router } from '@angular/router';
 import {
@@ -52,6 +52,7 @@ function coinciden(grupo: AbstractControl): ValidationErrors | null {
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-mi-cuenta',
   imports: [
@@ -73,15 +74,15 @@ export class MiCuentaComponent {
   private router = inject(Router);
   auth = inject(AuthService);
 
-  ocultar = true;
+  readonly ocultar = signal(true);
 
-  guardandoPerfil = false;
-  guardandoPassword = false;
-  activandoProfesor = false;
+  readonly guardandoPerfil = signal(false);
+  readonly guardandoPassword = signal(false);
+  readonly activandoProfesor = signal(false);
 
-  errorPerfil = '';
-  errorPassword = '';
-  errorProfesor = '';
+  readonly errorPerfil = signal('');
+  readonly errorPassword = signal('');
+  readonly errorProfesor = signal('');
 
   perfil: FormGroup = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2)]],
@@ -102,12 +103,12 @@ export class MiCuentaComponent {
   });
 
   constructor() {
-    const u = this.auth.usuario;
+    const u = this.auth.usuario();
     if (u) this.perfil.patchValue({ nombre: u.nombre, correo: u.correo });
   }
 
   get usuario() {
-    return this.auth.usuario;
+    return this.auth.usuario();
   }
   get miId(): string {
     return idDe(this.usuario);
@@ -125,37 +126,37 @@ export class MiCuentaComponent {
 
   // ---------------------------------------------------------------- perfil
   guardarPerfil(): void {
-    this.errorPerfil = '';
+    this.errorPerfil.set('');
     if (this.perfil.invalid) {
       this.perfil.markAllAsTouched();
       return;
     }
-    if (this.guardandoPerfil) return;
+    if (this.guardandoPerfil()) return;
 
-    this.guardandoPerfil = true;
+    this.guardandoPerfil.set(true);
     this.api.updateUsuario(this.miId, this.perfil.value).subscribe({
       next: resp => {
-        this.guardandoPerfil = false;
-        if (resp?.usuario) this.auth.usuario = resp.usuario;
+        this.guardandoPerfil.set(false);
+        if (resp?.usuario) this.auth.actualizarUsuario(resp.usuario);
         this.snack.open('Datos actualizados', 'OK', { duration: 2500 });
       },
       error: err => {
-        this.guardandoPerfil = false;
-        this.errorPerfil = mensajeDeError(err, 'No se pudieron guardar los datos');
+        this.guardandoPerfil.set(false);
+        this.errorPerfil.set(mensajeDeError(err, 'No se pudieron guardar los datos'));
       },
     });
   }
 
   // ------------------------------------------------------------ contraseña
   cambiarPassword(): void {
-    this.errorPassword = '';
+    this.errorPassword.set('');
     if (this.password.invalid) {
       this.password.markAllAsTouched();
       return;
     }
-    if (this.guardandoPassword) return;
+    if (this.guardandoPassword()) return;
 
-    this.guardandoPassword = true;
+    this.guardandoPassword.set(true);
     const { actual, nueva } = this.password.value;
 
     this.api
@@ -165,27 +166,27 @@ export class MiCuentaComponent {
       })
       .subscribe({
         next: () => {
-          this.guardandoPassword = false;
+          this.guardandoPassword.set(false);
           this.password.reset();
           this.snack.open('Contraseña actualizada', 'OK', { duration: 2500 });
         },
         error: err => {
-          this.guardandoPassword = false;
-          this.errorPassword = mensajeDeError(err, 'No se pudo cambiar la contraseña');
+          this.guardandoPassword.set(false);
+          this.errorPassword.set(mensajeDeError(err, 'No se pudo cambiar la contraseña'));
         },
       });
   }
 
   // -------------------------------------------------------------- profesor
   activarProfesor(): void {
-    this.errorProfesor = '';
+    this.errorProfesor.set('');
     if (this.profesor.invalid) {
       this.profesor.markAllAsTouched();
       return;
     }
-    if (this.activandoProfesor) return;
+    if (this.activandoProfesor()) return;
 
-    this.activandoProfesor = true;
+    this.activandoProfesor.set(true);
     this.api
       .updateUsuario(this.miId, {
         rol: 'profesor',
@@ -193,15 +194,15 @@ export class MiCuentaComponent {
       })
       .subscribe({
         next: resp => {
-          this.activandoProfesor = false;
-          if (resp?.usuario) this.auth.usuario = resp.usuario;
+          this.activandoProfesor.set(false);
+          if (resp?.usuario) this.auth.actualizarUsuario(resp.usuario);
           this.profesor.reset();
           this.snack.open('Ya tienes perfil de profesor', 'OK', { duration: 3000 });
           this.router.navigateByUrl('/profesor/dashboard');
         },
         error: err => {
-          this.activandoProfesor = false;
-          this.errorProfesor = mensajeDeError(err, 'No se pudo activar el perfil de profesor');
+          this.activandoProfesor.set(false);
+          this.errorProfesor.set(mensajeDeError(err, 'No se pudo activar el perfil de profesor'));
         },
       });
   }

@@ -1,5 +1,5 @@
 // src/app/admin/admin-dashboard.component.ts
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, signal } from '@angular/core';
 
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 
@@ -32,6 +32,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 type Rol = 'estudiante' | 'profesor';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-admin-dashboard',
   templateUrl: './admin-dashboard.component.html',
@@ -51,24 +52,24 @@ type Rol = 'estudiante' | 'profesor';
   ],
 })
 export class AdminDashboardComponent implements OnInit {
-  usuarios: Usuario[] = [];
-  profesores: Usuario[] = [];
-  estudiantes: Usuario[] = [];
-  cursos: Curso[] = [];
+  readonly usuarios = signal<Usuario[]>([]);
+  readonly profesores = signal<Usuario[]>([]);
+  readonly estudiantes = signal<Usuario[]>([]);
+  readonly cursos = signal<Curso[]>([]);
 
   // Opciones planas para selects (ID ya normalizado a string)
-  profesoresOpt: Array<{ _id: string; nombre: string; correo: string }> = [];
-  estudiantesOpt: Array<{ _id: string; nombre: string; correo: string }> = [];
+  readonly profesoresOpt = signal<Array<{ _id: string; nombre: string; correo: string }>>([]);
+  readonly estudiantesOpt = signal<Array<{ _id: string; nombre: string; correo: string }>>([]);
 
   // Controles rápidos para "Asignar profesor"
   cursoCtrl = new FormControl<string | null>(null);
   profeCtrl = new FormControl<string | null>(null);
 
-  isAssigning = false;
+  readonly isAssigning = signal(false);
 
   // Cambios de rol en lote
-  pendingRoles: Record<string, Rol> = {};
-  savingBulk = false;
+  readonly pendingRoles = signal<Record<string, Rol>>({});
+  readonly savingBulk = signal(false);
 
   // Sin columna de ID: en usuarios salía vacía (el backend serializa `id`, no
   // `_id`) y en cursos mostraba el ObjectId crudo, que no le sirve a nadie y en
@@ -78,22 +79,20 @@ export class AdminDashboardComponent implements OnInit {
   displayedCourseCols = ['titulo', 'descripcion', 'profesor', 'acciones'];
 
   // Estado de cada tabla por separado: que falle una no debe borrar la otra.
-  cargandoUsuarios = false;
-  cargandoCursos = false;
-  errorUsuarios = '';
-  errorCursos = '';
+  readonly cargandoUsuarios = signal(false);
+  readonly cargandoCursos = signal(false);
+  readonly errorUsuarios = signal('');
+  readonly errorCursos = signal('');
 
   // Paginación de las dos tablas
   tamPagina = 20;
-  pagUsuarios = 1;
-  pagCursos = 1;
-  totalUsuarios = 0;
-  totalCursos = 0;
+  readonly pagUsuarios = signal(1);
+  readonly pagCursos = signal(1);
+  readonly totalUsuarios = signal(0);
+  readonly totalCursos = signal(0);
 
   /** Cursos para el selector de "asignar profesor" (no es la página visible). */
   cursosOpt: Curso[] = [];
-
-  loading = false;
 
   /** ID del curso que se está eliminando (para deshabilitar solo ese botón) */
   eliminandoId: string | null = null;
@@ -130,63 +129,64 @@ export class AdminDashboardComponent implements OnInit {
 
   /** Reconstruye opciones para selects */
   private buildOptions() {
-    this.profesoresOpt = this.profesores.map(p => ({
-      _id: this.id(p),
-      nombre: p.nombre,
-      correo: p.correo,
-    }));
-    this.estudiantesOpt = this.estudiantes.map(e => ({
-      _id: this.id(e),
-      nombre: e.nombre,
-      correo: e.correo,
-    }));
+    this.profesoresOpt.set(
+      this.profesores().map(p => ({
+        _id: this.id(p),
+        nombre: p.nombre,
+        correo: p.correo,
+      }))
+    );
+    this.estudiantesOpt.set(
+      this.estudiantes().map(e => ({
+        _id: this.id(e),
+        nombre: e.nombre,
+        correo: e.correo,
+      }))
+    );
   }
 
   cargarTodo() {
-    this.loading = true;
-    this.cargarUsuarios(this.pagUsuarios);
-    this.cargarCursos(this.pagCursos);
+    this.cargarUsuarios(this.pagUsuarios());
+    this.cargarCursos(this.pagCursos());
     this.cargarOpciones();
   }
 
   /** Tabla de usuarios: solo la página que se está mirando. */
   cargarUsuarios(pagina: number) {
-    this.pagUsuarios = pagina;
-    this.cargandoUsuarios = true;
-    this.errorUsuarios = '';
+    this.pagUsuarios.set(pagina);
+    this.cargandoUsuarios.set(true);
+    this.errorUsuarios.set('');
 
     this.api.listUsuariosPaginado(pagina, this.tamPagina).subscribe({
       next: p => {
-        this.usuarios = p.items;
-        this.totalUsuarios = p.total;
-        this.cargandoUsuarios = false;
+        this.usuarios.set(p.items);
+        this.totalUsuarios.set(p.total);
+        this.cargandoUsuarios.set(false);
       },
       error: err => {
         // Un snackbar se va solo a los 2,5 s y deja una tabla vacía que parece
         // "no hay usuarios". El error tiene que quedarse en pantalla.
-        this.cargandoUsuarios = false;
-        this.errorUsuarios = mensajeDeError(err, 'No se pudieron cargar los usuarios');
+        this.cargandoUsuarios.set(false);
+        this.errorUsuarios.set(mensajeDeError(err, 'No se pudieron cargar los usuarios'));
       },
     });
   }
 
   /** Tabla de cursos: ídem. */
   cargarCursos(pagina: number) {
-    this.pagCursos = pagina;
-    this.cargandoCursos = true;
-    this.errorCursos = '';
+    this.pagCursos.set(pagina);
+    this.cargandoCursos.set(true);
+    this.errorCursos.set('');
 
     this.api.listCursosPaginado(pagina, this.tamPagina).subscribe({
       next: p => {
-        this.cursos = p.items;
-        this.totalCursos = p.total;
-        this.cargandoCursos = false;
-        this.loading = false;
+        this.cursos.set(p.items);
+        this.totalCursos.set(p.total);
+        this.cargandoCursos.set(false);
       },
       error: err => {
-        this.cargandoCursos = false;
-        this.loading = false;
-        this.errorCursos = mensajeDeError(err, 'No se pudieron cargar los cursos');
+        this.cargandoCursos.set(false);
+        this.errorCursos.set(mensajeDeError(err, 'No se pudieron cargar los cursos'));
       },
     });
   }
@@ -200,11 +200,11 @@ export class AdminDashboardComponent implements OnInit {
    */
   private cargarOpciones() {
     this.api.listUsuariosPorRol('profesor').subscribe(us => {
-      this.profesores = us;
+      this.profesores.set(us);
       this.buildOptions();
     });
     this.api.listUsuariosPorRol('estudiante').subscribe(us => {
-      this.estudiantes = us;
+      this.estudiantes.set(us);
       this.buildOptions();
     });
     this.api.listCursos().subscribe(cs => (this.cursosOpt = cs));
@@ -226,7 +226,7 @@ export class AdminDashboardComponent implements OnInit {
     this.dialog
       .open(CourseCreateDialogComponent, {
         width: '520px',
-        data: { profesores: this.profesoresOpt, soyAdmin: true },
+        data: { profesores: this.profesoresOpt(), soyAdmin: true },
       })
       .afterClosed()
       .subscribe((data?: { titulo: string; descripcion: string; profesor?: string | null }) => {
@@ -261,7 +261,7 @@ export class AdminDashboardComponent implements OnInit {
       .open(CourseCreateDialogComponent, {
         width: '520px',
         data: {
-          profesores: this.profesoresOpt,
+          profesores: this.profesoresOpt(),
           soyAdmin: true,
           initial: {
             titulo: curso.titulo,
@@ -306,7 +306,7 @@ export class AdminDashboardComponent implements OnInit {
         width: '460px',
         data: {
           cursoTitulo: curso.titulo,
-          estudiantes: this.estudiantesOpt, // ids en string
+          estudiantes: this.estudiantesOpt(), // ids en string
         },
       })
       .afterClosed()
@@ -340,11 +340,11 @@ export class AdminDashboardComponent implements OnInit {
       this.snack.open('Selecciona curso y profesor', 'Cerrar', { duration: 2000 });
       return;
     }
-    this.isAssigning = true;
+    this.isAssigning.set(true);
 
     this.api
       .asignarProfesor(curso, prof)
-      .pipe(finalize(() => (this.isAssigning = false)))
+      .pipe(finalize(() => this.isAssigning.set(false)))
       .subscribe({
         next: () => {
           this.snack.open('Profesor asignado', 'OK', { duration: 1800 });
@@ -361,20 +361,20 @@ export class AdminDashboardComponent implements OnInit {
     const value: Rol = typeof ev === 'string' ? ev : ev.value;
     const key = this.id(u);
     if (!key) return;
-    if (value === u.rol) delete this.pendingRoles[key];
-    else this.pendingRoles[key] = value;
+    if (value === u.rol) delete this.pendingRoles()[key];
+    else this.pendingRoles()[key] = value;
   }
 
   tieneCambio(u: Usuario): boolean {
     const key = this.id(u);
-    return !!(key && this.pendingRoles[key] && this.pendingRoles[key] !== u.rol);
+    return !!(key && this.pendingRoles()[key] && this.pendingRoles()[key] !== u.rol);
   }
 
   guardarTodos() {
-    const entries = Object.entries(this.pendingRoles);
+    const entries = Object.entries(this.pendingRoles());
     if (!entries.length) return;
 
-    this.savingBulk = true;
+    this.savingBulk.set(true);
 
     const reqs = entries.map(([id, rol]) =>
       this.api.updateUsuario(id, { rol }).pipe(
@@ -386,10 +386,10 @@ export class AdminDashboardComponent implements OnInit {
     );
 
     forkJoin(reqs)
-      .pipe(finalize(() => (this.savingBulk = false)))
+      .pipe(finalize(() => this.savingBulk.set(false)))
       .subscribe(() => {
         this.snack.open('Cambios guardados', 'OK', { duration: 1600 });
-        this.pendingRoles = {};
+        this.pendingRoles.set({});
         this.cargarTodo();
       });
   }
@@ -420,7 +420,7 @@ export class AdminDashboardComponent implements OnInit {
           .pipe(finalize(() => (this.eliminandoId = null)))
           .subscribe({
             next: () => {
-              this.cursos = this.cursos.filter(c => c._id !== curso._id);
+              this.cursos.set(this.cursos().filter(c => c._id !== curso._id));
               this.snack.open('Curso eliminado', 'OK', { duration: 1800 });
             },
             error: e => {
@@ -449,6 +449,6 @@ export class AdminDashboardComponent implements OnInit {
   trackOpt = (_: number, item: { _id: string }) => item._id;
 
   get totalPendientes() {
-    return Object.keys(this.pendingRoles).length;
+    return Object.keys(this.pendingRoles()).length;
   }
 }

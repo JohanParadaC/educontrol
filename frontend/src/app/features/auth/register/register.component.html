@@ -28,7 +28,7 @@
       <mat-label>Contraseña</mat-label>
       <input
         matInput
-        [type]="hide ? 'password' : 'text'"
+        [type]="hide() ? 'password' : 'text'"
         formControlName="password"
         autocomplete="new-password"
       />
@@ -38,11 +38,11 @@
         mat-icon-button
         matSuffix
         type="button"
-        (click)="hide = !hide"
-        [attr.aria-label]="hide ? 'Mostrar contraseña' : 'Ocultar contraseña'"
-        [attr.aria-pressed]="!hide"
+        (click)="hide.set(!hide())"
+        [attr.aria-label]="hide() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+        [attr.aria-pressed]="!hide()"
       >
-        <mat-icon>{{ hide ? 'visibility' : 'visibility_off' }}</mat-icon>
+        <mat-icon>{{ hide() ? 'visibility' : 'visibility_off' }}</mat-icon>
       </button>
       <mat-hint>Mínimo 6 caracteres</mat-hint>
       @if (form.get('password')?.hasError('required')) {
@@ -59,7 +59,7 @@
           escribe, no tiene sentido ocultárselo solo aquí. -->
       <input
         matInput
-        [type]="hide ? 'password' : 'text'"
+        [type]="hide() ? 'password' : 'text'"
         formControlName="password2"
         autocomplete="new-password"
       />
@@ -72,11 +72,11 @@
     </mat-form-field>
 
     <button mat-flat-button color="primary" type="submit" class="cta">
-      {{ enviando ? 'Creando cuenta…' : 'Crear cuenta' }}
+      {{ enviando() ? 'Creando cuenta…' : 'Crear cuenta' }}
     </button>
 
-    @if (msg) {
-      <div class="error" role="alert">{{ msg }}</div>
+    @if (msg()) {
+      <div class="error" role="alert">{{ msg() }}</div>
     }
 
     <p class="links">¿Ya tienes cuenta? <a routerLink="/login">Inicia sesión</a></p>

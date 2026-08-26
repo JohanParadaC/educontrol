@@ -3,7 +3,7 @@
    ------------------------------------------------------------------------ */
 // src/app/auth/login/login.component.ts
 
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
 import { FormBuilder, Validators, ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
 
@@ -21,6 +21,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-login',
   standalone: true,
   templateUrl: './login.component.html',
@@ -36,10 +37,11 @@ import { MatInputModule } from '@angular/material/input';
   ],
 })
 export class LoginComponent {
-  msg = ''; // mensaje de error para el template
+  readonly msg = signal('');
   form: UntypedFormGroup; // formulario reactivo
-  hide = true; // 👈 ahora sí existe la propiedad del template
-  enviando = false; // bloquea el doble envío y alimenta el spinner
+  readonly hide = signal(true);
+  /** Bloquea el doble envío y alimenta el spinner. */
+  readonly enviando = signal(false);
 
   /** Cuentas sembradas por backend/scripts/seedDemo.js */
   readonly demos = [
@@ -64,7 +66,7 @@ export class LoginComponent {
      Envía credenciales y navega al dashboard según ROL
      -------------------------------------------------------------------- */
   onSubmit(): void {
-    this.msg = '';
+    this.msg.set('');
 
     // El botón nunca está deshabilitado: es al pulsar cuando se marcan los
     // errores y se lleva el foco al primer campo inválido. Un CTA gris de
@@ -75,8 +77,8 @@ export class LoginComponent {
       return;
     }
 
-    if (this.enviando) return;
-    this.enviando = true;
+    if (this.enviando()) return;
+    this.enviando.set(true);
 
     this.auth.login(this.form.value as { correo: string; password: string }).subscribe({
       next: () => {
@@ -85,8 +87,8 @@ export class LoginComponent {
         this.router.navigateByUrl(rutaInicioPara(rol));
       },
       error: err => {
-        this.enviando = false;
-        this.msg = mensajeDeError(err, 'Correo o contraseña incorrectos');
+        this.enviando.set(false);
+        this.msg.set(mensajeDeError(err, 'Correo o contraseña incorrectos'));
       },
     });
   }
@@ -108,7 +110,7 @@ export class LoginComponent {
 
   /** Lee el rol de forma robusta: primero del AuthService, si no desde localStorage */
   private getRoleSafe(): string {
-    const r = this.auth.usuario?.rol;
+    const r = this.auth.usuario()?.rol;
     if (r) return r;
     try {
       const raw = localStorage.getItem('usuario') || localStorage.getItem('user');

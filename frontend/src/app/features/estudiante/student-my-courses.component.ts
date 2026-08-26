@@ -13,7 +13,7 @@
 // hasta que exista la ficha de curso: un botón cuyo único efecto es decir que
 // no hace nada es peor que no tener botón.
 // ---------------------------------------------------------------------------
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -28,6 +28,7 @@ import { Inscripcion } from '../../data/inscripcion.model';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-student-my-courses',
   imports: [RouterLink, MatCardModule, MatIconModule, MatButtonModule, EstadoVistaComponent],
@@ -38,41 +39,41 @@ export class StudentMyCoursesComponent implements OnInit {
   private api = inject(ApiService);
   private snack = inject(MatSnackBar);
 
-  inscripciones: Inscripcion[] = [];
-  cargando = false;
-  error = '';
-  cancelandoId: string | null = null;
+  readonly inscripciones = signal<Inscripcion[]>([]);
+  readonly cargando = signal(false);
+  readonly error = signal('');
+  readonly cancelandoId = signal<string | null>(null);
 
   ngOnInit(): void {
     this.cargar();
   }
 
   cargar(): void {
-    this.cargando = true;
-    this.error = '';
+    this.cargando.set(true);
+    this.error.set('');
     this.api.listInscripcionesMe().subscribe({
       next: ins => {
-        this.inscripciones = ins ?? [];
-        this.cargando = false;
+        this.inscripciones.set(ins ?? []);
+        this.cargando.set(false);
       },
       error: err => {
         // Un fallo de carga no es "no tienes cursos": llevan a acciones distintas.
-        this.error = mensajeDeError(err, 'No se pudieron cargar tus cursos.');
-        this.cargando = false;
+        this.error.set(mensajeDeError(err, 'No se pudieron cargar tus cursos.'));
+        this.cargando.set(false);
       },
     });
   }
 
   desmatricular(i: Inscripcion): void {
-    this.cancelandoId = i._id;
+    this.cancelandoId.set(i._id);
     this.api.deleteInscripcion(i._id).subscribe({
       next: () => {
-        this.cancelandoId = null;
-        this.inscripciones = this.inscripciones.filter(x => x._id !== i._id);
+        this.cancelandoId.set(null);
+        this.inscripciones.update(lista => lista.filter(x => x._id !== i._id));
         this.snack.open('Matrícula cancelada', 'OK', { duration: 2000 });
       },
       error: err => {
-        this.cancelandoId = null;
+        this.cancelandoId.set(null);
         this.snack.open(mensajeDeError(err, 'No se pudo cancelar la matrícula.'), 'Cerrar', {
           duration: 3000,
         });

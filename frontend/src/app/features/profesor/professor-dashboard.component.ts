@@ -9,7 +9,7 @@
 // 6) CAMBIO: se añade MatTooltipModule para usar matTooltip en la "chip".
 // -------------------------------------------------------------------
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -28,6 +28,7 @@ import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 import { mensajeDeError } from '../../core/http-error';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-professor-dashboard',
   imports: [
@@ -49,11 +50,11 @@ export class ProfessorDashboardComponent implements OnInit {
   private api = inject(ApiService);
 
   // Estado
-  loading = false;
-  error = '';
-  cursos: Curso[] = [];
-  inscritosPorCurso = new Map<string, number>();
-  totalEstudiantes = 0;
+  readonly loading = signal(false);
+  readonly error = signal('');
+  readonly cursos = signal<Curso[]>([]);
+  readonly inscritosPorCurso = signal(new Map<string, number>());
+  readonly totalEstudiantes = signal(0);
 
   // CAMBIO: el CTA ahora apunta a la ruta de profesor
   classesLink = '/profesor/clases';
@@ -64,8 +65,8 @@ export class ProfessorDashboardComponent implements OnInit {
 
   /** Carga cursos del profesor + inscripciones y calcula KPIs */
   cargar(): void {
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
+    this.error.set('');
 
     forkJoin({
       // Sin catchError en los internos: antes un fallo se convertía en `[]` y
@@ -75,31 +76,34 @@ export class ProfessorDashboardComponent implements OnInit {
       ins: this.api.listInscripciones(),
     }).subscribe({
       next: ({ cursos, ins }) => {
-        this.cursos = cursos || [];
+        this.cursos.set(cursos || []);
 
         // Map de cursoId -> conteo de alumnos
-        this.inscritosPorCurso.clear();
-        this.totalEstudiantes = 0;
+        // Se cuenta sobre un Map nuevo y se publica de una vez: mutar el que
+        // ya está en la señal no avisaría a nadie de que ha cambiado.
+        const conteo = new Map<string, number>();
+        let total = 0;
 
-        const idsCursos = new Set(this.cursos.map(c => this.idOf(c)));
+        const idsCursos = new Set(this.cursos().map(c => this.idOf(c)));
 
         for (const i of ins || []) {
           const cursoId = this.idOf(i.curso);
           if (!cursoId || !idsCursos.has(cursoId)) continue;
 
-          const prev = this.inscritosPorCurso.get(cursoId) || 0;
-          this.inscritosPorCurso.set(cursoId, prev + 1);
-          this.totalEstudiantes++;
+          conteo.set(cursoId, (conteo.get(cursoId) || 0) + 1);
+          total++;
         }
 
-        this.loading = false;
+        this.inscritosPorCurso.set(conteo);
+        this.totalEstudiantes.set(total);
+        this.loading.set(false);
       },
       error: err => {
-        this.cursos = [];
-        this.inscritosPorCurso.clear();
-        this.totalEstudiantes = 0;
-        this.loading = false;
-        this.error = mensajeDeError(err, 'No se pudieron cargar tus clases');
+        this.cursos.set([]);
+        this.inscritosPorCurso.set(new Map());
+        this.totalEstudiantes.set(0);
+        this.loading.set(false);
+        this.error.set(mensajeDeError(err, 'No se pudieron cargar tus clases'));
       },
     });
   }

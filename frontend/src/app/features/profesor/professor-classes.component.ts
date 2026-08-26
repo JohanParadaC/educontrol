@@ -17,7 +17,7 @@
 // con la lista de usuarios: la inscripción ya trae el alumno dentro.
 // -------------------------------------------------------------------
 
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -37,6 +37,7 @@ import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 import { mensajeDeError } from '../../core/http-error';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-professor-classes',
   imports: [
@@ -54,11 +55,11 @@ export class ProfessorClassesComponent implements OnInit {
   private api = inject(ApiService);
   public auth = inject(AuthService);
 
-  loading = false;
-  error = '';
-  cursos: Curso[] = [];
+  readonly loading = signal(false);
+  readonly error = signal('');
+  readonly cursos = signal<Curso[]>([]);
   /** cursoId -> alumnos inscritos */
-  alumnos = new Map<string, Usuario[]>();
+  readonly alumnos = signal(new Map<string, Usuario[]>());
   cols = ['nombre', 'correo'];
 
   ngOnInit(): void {
@@ -66,8 +67,8 @@ export class ProfessorClassesComponent implements OnInit {
   }
 
   cargar(): void {
-    this.loading = true;
-    this.error = '';
+    this.loading.set(true);
+    this.error.set('');
 
     forkJoin({
       // Los cursos son el dato esencial: si esa llamada falla hay que decirlo,
@@ -78,14 +79,14 @@ export class ProfessorClassesComponent implements OnInit {
       ins: this.api.listInscripciones().pipe(catchError(() => of<Inscripcion[]>([]))),
     }).subscribe({
       next: ({ cursos, ins }) => {
-        this.cursos = cursos || [];
-        this.alumnos = this.agruparAlumnosPorCurso(ins || []);
-        this.loading = false;
+        this.cursos.set(cursos || []);
+        this.alumnos.set(this.agruparAlumnosPorCurso(ins || []));
+        this.loading.set(false);
       },
       error: err => {
-        this.loading = false;
-        this.cursos = [];
-        this.error = mensajeDeError(err, 'No se pudieron cargar tus clases');
+        this.loading.set(false);
+        this.cursos.set([]);
+        this.error.set(mensajeDeError(err, 'No se pudieron cargar tus clases'));
       },
     });
   }

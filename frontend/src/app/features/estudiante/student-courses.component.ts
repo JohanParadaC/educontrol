@@ -7,7 +7,14 @@
 // cursos, la búsqueda dejaba fuera resultados reales sin decir nada.
 // ---------------------------------------------------------------------------
 
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  inject,
+  ChangeDetectionStrategy,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -33,6 +40,7 @@ import { Curso } from '../../data/curso.model';
 import { Inscripcion } from '../../data/inscripcion.model';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-student-courses',
   imports: [
@@ -52,11 +60,11 @@ export class StudentCoursesComponent implements OnInit {
   private snack = inject(MatSnackBar);
   private destroyRef = inject(DestroyRef);
 
-  cursos: Curso[] = [];
-  inscripciones: Inscripcion[] = [];
+  readonly cursos = signal<Curso[]>([]);
+  readonly inscripciones = signal<Inscripcion[]>([]);
 
-  cargando = false;
-  errorCarga = '';
+  readonly cargando = signal(false);
+  readonly errorCarga = signal('');
 
   q = new FormControl<string>('', { nonNullable: true });
 
@@ -69,8 +77,8 @@ export class StudentCoursesComponent implements OnInit {
         distinctUntilChanged(),
         startWith(this.q.value),
         tap(() => {
-          this.cargando = true;
-          this.errorCarga = '';
+          this.cargando.set(true);
+          this.errorCarga.set('');
         }),
         switchMap(texto =>
           this.api.listCursos({ buscar: texto }).pipe(
@@ -78,7 +86,7 @@ export class StudentCoursesComponent implements OnInit {
             // la plantilla pinta como estado de error. Está aquí dentro para
             // que un error no mate el flujo y deje el buscador muerto.
             catchError(err => {
-              this.errorCarga = mensajeDeError(err, 'No se pudieron cargar los cursos.');
+              this.errorCarga.set(mensajeDeError(err, 'No se pudieron cargar los cursos.'));
               return of<Curso[]>([]);
             })
           )
@@ -86,8 +94,8 @@ export class StudentCoursesComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(cs => {
-        this.cursos = cs ?? [];
-        this.cargando = false;
+        this.cursos.set(cs ?? []);
+        this.cargando.set(false);
       });
 
     this.cargarInscripciones();
@@ -95,7 +103,7 @@ export class StudentCoursesComponent implements OnInit {
 
   /** Reintenta la búsqueda actual sin recargar la página entera. */
   reintentar(): void {
-    this.errorCarga = '';
+    this.errorCarga.set('');
     // distinctUntilChanged descartaría el mismo texto, así que se pasa por un
     // valor distinto para forzar el ciclo.
     const texto = this.q.value;
@@ -108,7 +116,7 @@ export class StudentCoursesComponent implements OnInit {
   }
 
   isEnrolled(cursoId: string): boolean {
-    return this.inscripciones.some(
+    return this.inscripciones().some(
       i => (typeof i.curso === 'string' ? i.curso : i.curso?._id) === cursoId
     );
   }
@@ -131,10 +139,10 @@ export class StudentCoursesComponent implements OnInit {
       .listInscripcionesMe()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ins => (this.inscripciones = ins ?? []),
+        next: ins => this.inscripciones.set(ins ?? []),
         // Si esto falla, el catálogo se sigue viendo: lo único que se pierde es
         // saber en qué cursos ya estás, y el backend rechaza el duplicado.
-        error: () => (this.inscripciones = []),
+        error: () => this.inscripciones.set([]),
       });
   }
 

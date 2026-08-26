@@ -1,5 +1,5 @@
 // src/app/shared/confirm-dialog.component.ts
-import { Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +15,7 @@ type ConfirmData = {
 };
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-confirm-dialog',
   imports: [MatDialogModule, MatButtonModule, MatIconModule],

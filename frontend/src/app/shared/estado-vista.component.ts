@@ -14,12 +14,13 @@
 //                       (reintentar)="cargar()"></app-estado-vista>
 //   }
 // ---------------------------------------------------------------------------
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-estado-vista',
   imports: [MatButtonModule, MatIconModule],

@@ -8,7 +8,7 @@
 // métodos existe en ApiService, que está en este mismo repositorio y se puede
 // leer. Ahora llama a los reales.
 // ---------------------------------------------------------------------------
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -29,6 +29,7 @@ import { Inscripcion } from '../../data/inscripcion.model';
 import { idDe } from '../../data/sesion-local';
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-student-dashboard',
   imports: [
@@ -49,13 +50,17 @@ export class StudentDashboardComponent implements OnInit {
   public auth = inject(AuthService);
   private snack = inject(MatSnackBar);
 
-  cursos: Curso[] = []; // Catálogo completo
-  cursosDisponibles: Curso[] = []; // Catálogo menos los ya matriculados
-  misCursosCards: Curso[] = []; // Los cursos en los que está matriculado
+  /** Catálogo completo. */
+  readonly cursos = signal<Curso[]>([]);
+  /** Catálogo menos los ya matriculados. */
+  readonly cursosDisponibles = signal<Curso[]>([]);
+  /** Los cursos en los que está matriculado. */
+  readonly misCursosCards = signal<Curso[]>([]);
 
-  loadingCursos = false;
-  loadingIns = false;
-  matriculandoId: string | null = null; // Controla el "Matriculando…"
+  readonly loadingCursos = signal(false);
+  readonly loadingIns = signal(false);
+  /** Controla el "Matriculando…" de la tarjeta que se está enviando. */
+  readonly matriculandoId = signal<string | null>(null);
 
   ngOnInit() {
     this.loadData();
@@ -63,8 +68,8 @@ export class StudentDashboardComponent implements OnInit {
 
   /** ------------------- Carga de datos ------------------- */
   private loadData(): void {
-    this.loadingCursos = true;
-    this.loadingIns = true;
+    this.loadingCursos.set(true);
+    this.loadingIns.set(true);
 
     forkJoin({
       cursos: this.api.listCursos().pipe(catchError(() => of<Curso[]>([]))),
@@ -72,23 +77,24 @@ export class StudentDashboardComponent implements OnInit {
     })
       .pipe(
         finalize(() => {
-          this.loadingCursos = false;
-          this.loadingIns = false;
+          this.loadingCursos.set(false);
+          this.loadingIns.set(false);
         })
       )
       .subscribe(({ cursos, inscripciones }) => {
-        this.cursos = cursos ?? [];
+        this.cursos.set(cursos ?? []);
 
         // La inscripción trae el curso poblado, así que no hace falta cruzar
         // con el catálogo: se usa el del catálogo solo para tener el mismo
         // objeto (y el mismo `titulo` del mapper) en las dos listas.
-        const porId = new Map(this.cursos.map(c => [this.idOf(c), c]));
-        this.misCursosCards = (inscripciones ?? [])
+        const porId = new Map(this.cursos().map(c => [this.idOf(c), c]));
+        const mios = (inscripciones ?? [])
           .map(i => porId.get(idDe(i.curso)))
           .filter((c): c is Curso => !!c);
+        this.misCursosCards.set(mios);
 
-        const matriculados = new Set(this.misCursosCards.map(c => this.idOf(c)));
-        this.cursosDisponibles = this.cursos.filter(c => !matriculados.has(this.idOf(c)));
+        const matriculados = new Set(mios.map(c => this.idOf(c)));
+        this.cursosDisponibles.set(this.cursos().filter(c => !matriculados.has(this.idOf(c))));
       });
   }
 
@@ -97,14 +103,14 @@ export class StudentDashboardComponent implements OnInit {
     const cursoId = this.idOf(curso);
     if (!cursoId) return;
 
-    this.matriculandoId = cursoId;
+    this.matriculandoId.set(cursoId);
     this.api
       .enrollMe(cursoId)
-      .pipe(finalize(() => (this.matriculandoId = null)))
+      .pipe(finalize(() => this.matriculandoId.set(null)))
       .subscribe({
         next: () => {
-          this.misCursosCards = [curso, ...this.misCursosCards];
-          this.cursosDisponibles = this.cursosDisponibles.filter(c => this.idOf(c) !== cursoId);
+          this.misCursosCards.update(lista => [curso, ...lista]);
+          this.cursosDisponibles.update(lista => lista.filter(c => this.idOf(c) !== cursoId));
           this.snack.open('¡Matriculado con éxito!', 'OK', { duration: 2500 });
         },
         error: err =>

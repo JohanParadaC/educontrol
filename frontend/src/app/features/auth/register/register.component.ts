@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 
 import {
   FormBuilder,
@@ -47,6 +47,7 @@ function coincidenLasContrasenas(grupo: AbstractControl): ValidationErrors | nul
 }
 
 @Component({
+  changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-register',
   standalone: true,
   templateUrl: './register.component.html',
@@ -64,9 +65,9 @@ function coincidenLasContrasenas(grupo: AbstractControl): ValidationErrors | nul
   ],
 })
 export class RegisterComponent {
-  hide = true;
-  msg = '';
-  enviando = false;
+  readonly hide = signal(true);
+  readonly msg = signal('');
+  readonly enviando = signal(false);
 
   // Declaramos el tipo y lo inicializamos en el constructor
   form!: FormGroup;
@@ -94,7 +95,7 @@ export class RegisterComponent {
   }
 
   onSubmit(): void {
-    this.msg = '';
+    this.msg.set('');
 
     // Igual que en login: el botón siempre está activo y es el envío el que
     // señala qué falta y lleva el foco al primer campo con error.
@@ -104,8 +105,8 @@ export class RegisterComponent {
       return;
     }
 
-    if (this.enviando) return;
-    this.enviando = true;
+    if (this.enviando()) return;
+    this.enviando.set(true);
 
     // ApiService.register ya traduce password -> 'contraseña'. El formulario
     // no está tipado, así que se declara aquí la forma que tiene: es un molde
@@ -122,8 +123,8 @@ export class RegisterComponent {
         this.router.navigateByUrl('/login'); // ruta real en tu router
       },
       error: err => {
-        this.enviando = false;
-        this.msg = mensajeDeError(err, 'No se pudo crear la cuenta');
+        this.enviando.set(false);
+        this.msg.set(mensajeDeError(err, 'No se pudo crear la cuenta'));
       },
     });
   }
