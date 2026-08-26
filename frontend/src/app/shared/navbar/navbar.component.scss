@@ -1,86 +1,365 @@
-/* Punto de corte: por debajo de esto los enlaces se apretujaban en una fila
-   ilegible, así que pasan a un menú desplegable. */
-$movil: 767px;
+/* Punto en el que la lateral deja de caber al lado del contenido y pasa a ser
+   un cajón. Por debajo de aquí, 260 px de menú se comen la página. */
+$escritorio: 1024px;
 
-.flex {
-  flex: 1 1 auto;
+$ancho-lateral: 260px;
+$ancho-colapsada: 64px;
+$alto-superior: 56px;
+
+:host {
+  display: block;
 }
 
-.brand {
-  font: var(--mat-sys-title-medium);
-  letter-spacing: 0.3px;
-  color: inherit;
-  text-decoration: none;
-  padding: var(--sp-2);
-}
+.consola {
+  display: grid;
+  grid-template-columns: $ancho-lateral 1fr;
+  min-height: 100dvh;
 
-.active {
-  font: var(--mat-sys-label-large);
-}
-
-.enlaces-escritorio {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-
-  @media (max-width: $movil) {
-    display: none;
+  @media (max-width: $escritorio - 1px) {
+    grid-template-columns: 1fr;
   }
 }
 
-.boton-menu {
-  display: none;
-  @media (max-width: $movil) {
-    display: inline-flex;
+.consola--colapsada {
+  grid-template-columns: $ancho-colapsada 1fr;
+
+  @media (max-width: $escritorio - 1px) {
+    grid-template-columns: 1fr;
   }
 }
 
 /* ---------------------------------------------------------------------------
-   Panel desplegable (móvil)
+   BARRA LATERAL
    --------------------------------------------------------------------------- */
-.menu-movil {
-  position: fixed;
-  top: 56px; /* justo debajo de la barra */
-  left: 0;
-  right: 0;
-  z-index: 20;
-  background: var(--mat-sys-surface-container);
-  box-shadow: var(--sombra-2);
-  padding: var(--sp-2);
+.lateral {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: var(--superficie-0);
+  border-right: 1px solid var(--borde);
+  overflow: hidden;
 
-  nav {
-    display: grid;
-    gap: var(--sp-1);
-  }
+  @media (max-width: $escritorio - 1px) {
+    position: fixed;
+    z-index: 30;
+    inset: 0 auto 0 0;
+    width: min(280px, 84vw);
+    box-shadow: var(--sombra-2);
 
-  /* Fila completa, alineada a la izquierda y con altura cómoda para el dedo */
-  a,
-  button {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: var(--sp-3);
-    width: 100%;
-    min-height: 48px;
-    padding: 0 var(--sp-3);
-    text-align: left;
-    color: var(--mat-sys-on-surface);
-  }
-
-  .active {
-    background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
-    color: var(--mat-sys-primary);
+    transition:
+      transform var(--transicion),
+      visibility var(--transicion);
   }
 }
 
-.fondo-menu {
-  position: fixed;
-  inset: 56px 0 0;
-  z-index: 10;
-  background: var(--velo);
+/* Cerrado: fuera de la pantalla Y sin poder recibir el foco. Con solo
+   `transform` los enlaces seguirían siendo tabulables desde el contenido, que
+   es el error clásico del cajón.
 
-  // Es un <button> por accesibilidad: se le quita todo el aspecto de botón.
+   Una sola clase, sin media query: quién está cerrado lo decide el componente
+   preguntando a matchMedia. Dos reglas compitiendo dentro de una @media es lo
+   que dejaba el cajón invisible al abrirlo. */
+.lateral--cerrada {
+  transform: translateX(-100%);
+  visibility: hidden;
+}
+
+.lateral__marca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  height: $alto-superior;
+  padding-inline: var(--sp-3);
+  border-bottom: 1px solid var(--borde);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font: var(--mat-sys-title-medium);
+  color: var(--texto);
+  text-decoration: none;
+  min-width: 0;
+
+  mat-icon {
+    color: var(--acento);
+    flex: none;
+  }
+}
+
+.marca__texto {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* El botón de colapsar no tiene sentido cuando la lateral es un cajón. */
+.lateral__colapsar {
+  flex: none;
+
+  @media (max-width: $escritorio - 1px) {
+    display: none;
+  }
+}
+
+.lateral__nav {
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-2);
+  display: grid;
+  gap: var(--sp-4);
+  align-content: start;
+}
+
+.grupo__titulo {
+  margin: 0 0 var(--sp-1);
+  padding-inline: var(--sp-2);
+  font: var(--mat-sys-label-small);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+
+.grupo__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.destino {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 40px;
+  padding-inline: var(--sp-2);
+  border-radius: var(--radio-md);
+  color: var(--texto-suave);
+  text-decoration: none;
+  white-space: nowrap;
+
+  mat-icon {
+    flex: none;
+  }
+
+  &:hover {
+    background: var(--superficie-2);
+    color: var(--texto);
+  }
+}
+
+/* La sección en la que estás es el único sitio de la navegación donde el color
+   significa algo. */
+.destino--activo {
+  background: var(--acento-suave);
+  color: var(--acento-fuerte);
+
+  mat-icon {
+    color: var(--acento);
+  }
+}
+
+.lateral__usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--borde);
+  min-width: 0;
+}
+
+.lateral__datos {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lateral__nombre {
+  font: var(--mat-sys-label-large);
+  color: var(--texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------------
+   LATERAL COLAPSADA
+   Solo iconos. Los textos se ocultan en vez de desmontarse: así el tooltip
+   sigue diciendo a dónde lleva cada icono y no hay salto al expandir.
+   --------------------------------------------------------------------------- */
+.consola--colapsada .lateral {
+  @media (min-width: $escritorio) {
+    .marca__texto,
+    .destino__texto,
+    .grupo__titulo,
+    .lateral__datos {
+      display: none;
+    }
+
+    .lateral__marca,
+    .lateral__usuario {
+      justify-content: center;
+      padding-inline: var(--sp-1);
+    }
+
+    .destino {
+      justify-content: center;
+      padding-inline: 0;
+    }
+  }
+}
+
+.velo {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: var(--velo);
   border: 0;
   padding: 0;
   cursor: pointer;
+
+  @media (min-width: $escritorio) {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   BARRA SUPERIOR
+   56 px, no 64: el título de la sección, el buscador y la cuenta. Nada más.
+   --------------------------------------------------------------------------- */
+.columna {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0; /* sin esto, una tabla ancha estira el grid y aparece scroll lateral */
+}
+
+.superior {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  height: $alto-superior;
+  padding-inline: var(--sp-4);
+  background: var(--superficie-0);
+  border-bottom: 1px solid var(--borde);
+}
+
+.superior__menu {
+  flex: none;
+
+  @media (min-width: $escritorio) {
+    display: none;
+  }
+}
+
+.superior__titulo {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.buscador {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: auto;
+  padding-inline: var(--sp-3);
+  height: 36px;
+  min-width: 0;
+  max-width: 320px;
+  flex: 1;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+  background: var(--superficie-1);
+
+  &:focus-within {
+    border-color: var(--acento);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    color: var(--texto);
+    font: var(--mat-sys-body-medium);
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  /* Por debajo de tablet no cabe: el catálogo ya tiene su propio buscador. */
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+.buscador__icono {
+  color: var(--texto-suave);
+  flex: none;
+}
+
+/* ---------------------------------------------------------------------------
+   AVATAR
+   --------------------------------------------------------------------------- */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--acento-suave);
+  color: var(--acento-fuerte);
+  font: var(--mat-sys-label-large);
+}
+
+.avatar--boton {
+  border: 1px solid var(--borde);
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.buscador ~ .avatar--boton {
+  margin-left: 0;
+}
+
+.menu-cabecera {
+  display: grid !important;
+  gap: 2px;
+  line-height: 1.3;
+  padding-block: var(--sp-2) !important;
+  height: auto !important;
+
+  small {
+    color: var(--texto-suave);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   PÁGINA
+   El contenedor de contenido vive aquí y no en app.component: el ancho máximo
+   depende de que haya lateral o no.
+   --------------------------------------------------------------------------- */
+.pagina {
+  padding: var(--sp-5) var(--sp-5) var(--sp-7);
+  max-width: 1400px;
+  width: 100%;
+  min-width: 0;
+
+  @media (max-width: 599px) {
+    padding: var(--sp-4) var(--sp-3) var(--sp-6);
+  }
 }

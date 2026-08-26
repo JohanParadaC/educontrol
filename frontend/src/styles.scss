@@ -240,6 +240,15 @@ html {
 /* ---------------------------------------------------------------------------
    RESET + helpers
    --------------------------------------------------------------------------- */
+/* El padding cuenta dentro del ancho. Sin esto, un contenedor con `width:100%`
+   y padding lateral se sale de su hueco: es exactamente lo que provocaba scroll
+   horizontal en la consola cuando apareció la lateral de 260 px. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html,
 body {
   height: 100%;

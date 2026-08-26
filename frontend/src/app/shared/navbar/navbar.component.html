@@ -1,61 +1,138 @@
-<mat-toolbar>
-  <!-- Marca: lleva a la pantalla de inicio que corresponda al rol -->
-  <a class="brand" [routerLink]="rutaInicio()">EduControl</a>
-
-  <span class="flex"></span>
-
-  <!-- Enlaces en línea (solo escritorio) -->
-  <nav class="enlaces-escritorio" aria-label="Navegación principal">
-    @for (e of enlacesVisibles(); track e.ruta) {
-      <a mat-button [routerLink]="e.ruta" routerLinkActive="active">
-        {{ e.etiqueta }}
+<div class="consola" [class.consola--colapsada]="colapsada()">
+  <!-- ===== Barra lateral =====
+       En escritorio es fija; por debajo de 1024 px se convierte en cajón y solo
+       se ve cuando menuAbierto() es cierto. -->
+  <aside class="lateral" [class.lateral--cerrada]="cajonCerrado()" id="navegacion-principal">
+    <div class="lateral__marca">
+      <a class="marca" [routerLink]="rutaInicio()">
+        <mat-icon aria-hidden="true">school</mat-icon>
+        <span class="marca__texto">EduControl</span>
       </a>
-    }
-    @if (isLoggedIn()) {
-      <button mat-button (click)="logout()">Salir</button>
-    }
-  </nav>
 
-  <!-- Botón de menú (solo móvil) -->
-  <button
-    mat-icon-button
-    class="boton-menu"
-    (click)="alternarMenu()"
-    [attr.aria-expanded]="menuAbierto()"
-    aria-controls="menu-movil"
-    [attr.aria-label]="menuAbierto() ? 'Cerrar menú' : 'Abrir menú'"
-  >
-    <mat-icon>{{ menuAbierto() ? 'close' : 'menu' }}</mat-icon>
-  </button>
-</mat-toolbar>
+      <button
+        mat-icon-button
+        type="button"
+        class="lateral__colapsar"
+        (click)="alternarColapso()"
+        [matTooltip]="colapsada() ? 'Expandir el menú' : 'Colapsar el menú'"
+        [attr.aria-label]="colapsada() ? 'Expandir el menú' : 'Colapsar el menú'"
+        [attr.aria-pressed]="colapsada()"
+      >
+        <mat-icon>{{ colapsada() ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+      </button>
+    </div>
 
-<!-- Panel desplegable en móvil.
-Los enlaces salen de la misma lista que en escritorio, así que no pueden
-desincronizarse. -->
-@if (menuAbierto()) {
-  <div class="menu-movil" id="menu-movil">
-    <nav aria-label="Navegación principal">
-      <!-- (click) además de la suscripción a NavigationEnd: si tocas el enlace de
-      la página en la que ya estás no hay navegación, y el menú se quedaba
-      abierto tapando el contenido. -->
-      @for (e of enlacesVisibles(); track e.ruta) {
-        <a mat-button [routerLink]="e.ruta" routerLinkActive="active" (click)="cerrarMenu()">
-          <mat-icon>{{ e.icono }}</mat-icon>
-          <span>{{ e.etiqueta }}</span>
-        </a>
-      }
-      @if (isLoggedIn()) {
-        <button mat-button (click)="logout()">
-          <mat-icon>logout</mat-icon>
-          <span>Salir</span>
-        </button>
+    <nav class="lateral__nav" aria-label="Navegación principal">
+      @for (grupo of grupos(); track grupo.titulo) {
+        <div class="grupo">
+          <h2 class="grupo__titulo">{{ grupo.titulo }}</h2>
+          <ul class="grupo__lista">
+            @for (e of grupo.enlaces; track e.ruta) {
+              <li>
+                <a
+                  class="destino"
+                  [class.destino--activo]="esActiva(e.ruta)"
+                  [routerLink]="e.ruta"
+                  [attr.aria-current]="esActiva(e.ruta) ? 'page' : null"
+                  [matTooltip]="colapsada() ? e.etiqueta : ''"
+                  matTooltipPosition="right"
+                >
+                  <mat-icon aria-hidden="true">{{ e.icono }}</mat-icon>
+                  <span class="destino__texto">{{ e.etiqueta }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
       }
     </nav>
-  </div>
-}
 
-<!-- Capa que atenúa el fondo y cierra el menú al tocar fuera. Es un <button>
-y no un <div> para que también se pueda cerrar con el teclado. -->
-@if (menuAbierto()) {
-  <button type="button" class="fondo-menu" aria-label="Cerrar menú" (click)="cerrarMenu()"></button>
-}
+    @if (isLoggedIn()) {
+      <div class="lateral__usuario">
+        <span class="avatar" aria-hidden="true">{{ iniciales() }}</span>
+        <span class="lateral__datos">
+          <span class="lateral__nombre">{{ auth.usuario()?.nombre }}</span>
+          <span class="role-chip" [class]="claseRol()">{{ role() }}</span>
+        </span>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="logout()"
+          matTooltip="Cerrar sesión"
+          aria-label="Cerrar sesión"
+        >
+          <mat-icon>logout</mat-icon>
+        </button>
+      </div>
+    }
+  </aside>
+
+  <!-- Capa que atenúa el fondo tras el cajón. Es un <button> y no un <div>
+       para que también se pueda cerrar con el teclado. -->
+  @if (menuAbierto()) {
+    <button type="button" class="velo" aria-label="Cerrar el menú" (click)="cerrarMenu()"></button>
+  }
+
+  <!-- ===== Columna de contenido: barra superior + página ===== -->
+  <div class="columna">
+    <header class="superior">
+      <button
+        mat-icon-button
+        type="button"
+        class="superior__menu"
+        (click)="alternarMenu()"
+        [attr.aria-expanded]="menuAbierto()"
+        aria-controls="navegacion-principal"
+        [attr.aria-label]="menuAbierto() ? 'Cerrar el menú' : 'Abrir el menú'"
+      >
+        <mat-icon>{{ menuAbierto() ? 'close' : 'menu' }}</mat-icon>
+      </button>
+
+      <h1 class="superior__titulo">{{ titulo() }}</h1>
+
+      @if (isLoggedIn()) {
+        <form class="buscador" (ngSubmit)="buscar()" role="search">
+          <mat-icon class="buscador__icono" aria-hidden="true">search</mat-icon>
+          <input
+            type="search"
+            name="buscar"
+            [(ngModel)]="termino"
+            placeholder="Buscar cursos…"
+            aria-label="Buscar cursos"
+          />
+        </form>
+
+        <button
+          type="button"
+          class="avatar avatar--boton"
+          [matMenuTriggerFor]="menuUsuario"
+          [attr.aria-label]="'Cuenta de ' + (auth.usuario()?.nombre ?? '')"
+        >
+          {{ iniciales() }}
+        </button>
+
+        <mat-menu #menuUsuario="matMenu">
+          <div class="menu-cabecera" mat-menu-item disabled>
+            <strong>{{ auth.usuario()?.nombre }}</strong>
+            <small>{{ auth.usuario()?.correo }}</small>
+          </div>
+          <a mat-menu-item routerLink="/cuenta">
+            <mat-icon>account_circle</mat-icon>
+            <span>Mi cuenta</span>
+          </a>
+          <button mat-menu-item type="button" (click)="logout()">
+            <mat-icon>logout</mat-icon>
+            <span>Salir</span>
+          </button>
+        </mat-menu>
+      } @else {
+        <a mat-button routerLink="/login">Entrar</a>
+        <a mat-flat-button color="primary" routerLink="/register">Crear cuenta</a>
+      }
+    </header>
+
+    <main class="pagina">
+      <ng-content></ng-content>
+    </main>
+  </div>
+</div>

@@ -1,3 +1,19 @@
+// src/app/shared/navbar/navbar.component.ts
+// ---------------------------------------------------------------------------
+// El armazón de la consola: barra lateral + barra superior.
+//
+// Antes era una barra azul de 64 px con los enlaces en fila. El elemento con
+// más peso visual de la pantalla era el que menos información lleva, y en
+// escritorio se desperdiciaba todo el alto. Ahora:
+//
+//   ≥1024 px  lateral fija de 260 px (o 64 si se colapsa) + superior de 56 px
+//   <1024 px  la lateral se convierte en cajón, con su capa de fondo, su
+//             cierre con Escape y su cierre al navegar — el mismo
+//             comportamiento del menú móvil de antes.
+//
+// El componente envuelve el contenido de la página con <ng-content>: así el
+// armazón y su estado viven en un solo sitio y app.component solo compone.
+// ---------------------------------------------------------------------------
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,23 +22,20 @@ import {
   inject,
   signal,
 } from '@angular/core';
-
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs/operators';
 
-// Solo lo que la barra usa de verdad.
-// Antes importaba MaterialModule, que reexporta doce módulos (Sidenav,
-// Expansion, List, Table…). Como la barra vive en el bundle inicial, arrastraba
-// todo eso a la primera carga aunque no se usara nada.
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { AuthService } from '../../core/auth.service';
 import { rutaInicioPara } from '../../core/rutas';
 
-/** Un enlace de la barra, con la condición para mostrarlo. */
+/** Un destino de la navegación, con la condición para mostrarlo. */
 interface Enlace {
   etiqueta: string;
   ruta: string;
@@ -30,31 +43,66 @@ interface Enlace {
   visible: () => boolean;
 }
 
+/** Los enlaces se agrupan para que la lateral no sea una lista plana. */
+interface Grupo {
+  titulo: string;
+  enlaces: Enlace[];
+}
+
+const CLAVE_COLAPSADA = 'lateral-colapsada';
+
 @Component({
   selector: 'app-navbar',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
-  imports: [RouterModule, MatToolbarModule, MatButtonModule, MatIconModule],
+  imports: [
+    RouterModule,
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
+  ],
 })
 export class NavbarComponent {
   readonly auth = inject(AuthService);
   private router = inject(Router);
 
-  /** Menú desplegable en móvil. En escritorio no se usa. */
+  /** Cajón abierto en móvil. En escritorio no se usa. */
   readonly menuAbierto = signal(false);
 
-  /** Rol y sesión salen tal cual de AuthService, que ya son señales. */
+  /**
+   * Si hay sitio para la lateral al lado del contenido.
+   *
+   * Se pregunta a matchMedia en vez de deducirlo del CSS porque el estado
+   * "cajón cerrado" tiene que ser UNA clase y no dos reglas compitiendo dentro
+   * de una media query: con la encapsulación de Angular por medio, fiarse de
+   * cuál gana es cómo el cajón se quedaba invisible al abrirlo.
+   */
+  private readonly consulta = matchMedia('(min-width: 1024px)');
+  readonly esEscritorio = signal(this.consulta.matches);
+
+  /** Fuera de la pantalla y sin poder recibir el foco. */
+  readonly cajonCerrado = computed(() => !this.esEscritorio() && !this.menuAbierto());
+
+  /**
+   * Lateral colapsada a 64 px. Se recuerda entre visitas: es una preferencia
+   * de quien mira, y perderla en cada recarga molesta más que ayuda.
+   */
+  readonly colapsada = signal(localStorage.getItem(CLAVE_COLAPSADA) === 'si');
+
+  /** Ruta actual, para marcar la sección activa y titular la barra superior. */
+  private readonly url = signal(this.router.url);
+
   readonly role = this.auth.rol;
   readonly isLoggedIn = this.auth.estaAutenticado;
 
-  /**
-   * Los enlaces viven aquí y no repetidos en la plantilla: antes había que
-   * escribir cada botón dos veces (escritorio y móvil) y era cuestión de tiempo
-   * que las dos versiones dejaran de coincidir.
-   */
-  readonly enlaces: Enlace[] = [
+  /** Texto del buscador de la barra superior. */
+  termino = '';
+
+  private readonly principal: Enlace[] = [
     {
       etiqueta: 'Inicio',
       ruta: '/dashboard',
@@ -68,13 +116,12 @@ export class NavbarComponent {
       visible: () => this.isLoggedIn() && this.role() === 'profesor',
     },
     {
-      etiqueta: 'Cursos',
+      etiqueta: 'Catálogo',
       ruta: '/cursos',
       icono: 'school',
       visible: () => this.isLoggedIn() && this.role() === 'estudiante',
     },
     {
-      // Estaba enrutada y sin enlazar: solo se llegaba escribiendo la URL.
       etiqueta: 'Mis cursos',
       ruta: '/mis-cursos',
       icono: 'bookmark',
@@ -92,15 +139,19 @@ export class NavbarComponent {
       icono: 'admin_panel_settings',
       visible: () => this.isLoggedIn() && this.role() === 'admin',
     },
-    // "Elegir rol" ya no está: era una acción puntual —activar el perfil de
-    // profesor con una clave— ocupando un sitio fijo en la navegación y
-    // compitiendo con los destinos reales. Ahora vive dentro de Mi cuenta.
+  ];
+
+  private readonly cuenta: Enlace[] = [
     {
       etiqueta: 'Mi cuenta',
       ruta: '/cuenta',
       icono: 'account_circle',
       visible: () => this.isLoggedIn(),
     },
+  ];
+
+  /** Para quien no ha entrado: la navegación es entrar o registrarse. */
+  private readonly invitado: Enlace[] = [
     { etiqueta: 'Entrar', ruta: '/login', icono: 'login', visible: () => !this.isLoggedIn() },
     {
       etiqueta: 'Crear cuenta',
@@ -111,48 +162,107 @@ export class NavbarComponent {
   ];
 
   /**
-   * Los enlaces que tocan a este rol.
+   * Los grupos que tocan a este rol, ya filtrados.
    *
    * Es `computed` y no un getter: con OnPush, un getter se reevaluaría solo
-   * cuando algo más marcase la vista, y al iniciar sesión la barra se quedaría
-   * con los enlaces de invitado hasta el siguiente clic.
+   * cuando algo más marcase la vista, y al iniciar sesión la navegación se
+   * quedaría con los enlaces de invitado hasta el siguiente clic.
    */
-  readonly enlacesVisibles = computed(() => {
-    // Leer la sesión aquí deja escrita la dependencia, aunque `visible()`
-    // también la registre por su cuenta.
+  readonly grupos = computed<Grupo[]>(() => {
     this.auth.usuario();
-    return this.enlaces.filter(e => e.visible());
+    const visibles = (lista: Enlace[]) => lista.filter(e => e.visible());
+    return [
+      { titulo: 'Principal', enlaces: visibles(this.principal) },
+      { titulo: 'Cuenta', enlaces: visibles(this.cuenta) },
+      { titulo: 'Acceso', enlaces: visibles(this.invitado) },
+    ].filter(g => g.enlaces.length);
+  });
+
+  /** Todos los enlaces visibles en plano, para titular la barra superior. */
+  private readonly planos = computed(() => this.grupos().flatMap(g => g.enlaces));
+
+  /**
+   * Título de la sección actual. Sale de la misma lista que la navegación, así
+   * que no pueden desincronizarse.
+   */
+  readonly titulo = computed(() => {
+    const actual = this.url();
+    const enlace = this.planos()
+      .filter(e => actual.startsWith(e.ruta))
+      .sort((a, b) => b.ruta.length - a.ruta.length)[0];
+    return enlace?.etiqueta ?? 'EduControl';
   });
 
   /** Ruta de la marca: sin sesión, la portada; con sesión, tu panel. */
   readonly rutaInicio = computed(() => (this.isLoggedIn() ? rutaInicioPara(this.role()) : '/'));
 
+  /** Iniciales para el avatar. Dos palabras como mucho. */
+  readonly iniciales = computed(() => {
+    const nombre = this.auth.usuario()?.nombre ?? '';
+    return (
+      nombre
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(p => p[0]?.toUpperCase() ?? '')
+        .join('') || '?'
+    );
+  });
+
+  /** Clase del chip de rol: el color es siempre el mismo para el mismo rol. */
+  readonly claseRol = computed(() => {
+    const r = this.role();
+    return r === 'admin' ? 'admin' : r === 'profesor' ? 'pro' : '';
+  });
+
   constructor() {
-    // Navegar cierra el menú: si no, al elegir una opción el panel se queda
-    // abierto tapando la página a la que acabas de llegar.
+    this.consulta.addEventListener('change', e => this.esEscritorio.set(e.matches));
+
     this.router.events
       .pipe(
         filter(e => e instanceof NavigationEnd),
         takeUntilDestroyed()
       )
-      .subscribe(() => this.menuAbierto.set(false));
+      .subscribe(e => {
+        this.url.set((e as NavigationEnd).urlAfterRedirects);
+        // Navegar cierra el cajón: si no, al elegir una opción se queda abierto
+        // tapando la página a la que acabas de llegar.
+        this.menuAbierto.set(false);
+      });
+  }
+
+  /** ¿Es esta la sección en la que estamos? */
+  esActiva(ruta: string): boolean {
+    return this.url().startsWith(ruta);
   }
 
   alternarMenu(): void {
     this.menuAbierto.update(abierto => !abierto);
   }
 
-  /** Escape cierra el menú, como se espera de cualquier panel desplegable. */
+  alternarColapso(): void {
+    this.colapsada.update(v => {
+      localStorage.setItem(CLAVE_COLAPSADA, v ? 'no' : 'si');
+      return !v;
+    });
+  }
+
+  /** Escape cierra el cajón, como se espera de cualquier panel desplegable. */
   @HostListener('document:keydown.escape')
   cerrarMenu(): void {
     this.menuAbierto.set(false);
   }
 
-  /** Cierra sesión y navega al login */
+  /** El buscador de la barra superior lleva al catálogo con el término puesto. */
+  buscar(): void {
+    const q = this.termino.trim();
+    this.router.navigate(['/cursos'], { queryParams: q ? { buscar: q } : {} });
+  }
+
   logout(): void {
     this.menuAbierto.set(false);
     try {
-      this.auth.logout(); // Limpia token/estado
+      this.auth.logout();
     } finally {
       this.router.navigateByUrl('/login');
     }

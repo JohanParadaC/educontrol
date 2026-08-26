@@ -1,14 +1,5 @@
-/* Contenedor de página.
-   El padding lateral usa la escala de espaciado definida en styles.scss. */
-.page {
+/* El armazón y el contenedor de página viven en app-navbar. Aquí no queda
+   nada que decidir. */
+:host {
   display: block;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--sp-5) var(--sp-4) var(--sp-7);
-}
-
-@media (max-width: 599px) {
-  .page {
-    padding: var(--sp-4) var(--sp-3) var(--sp-6);
-  }
 }
