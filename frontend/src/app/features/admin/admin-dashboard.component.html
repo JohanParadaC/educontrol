@@ -17,12 +17,36 @@
       }
     </div>
 
+    <!-- Barra de selección. Solo aparece cuando hay algo seleccionado: una
+         barra permanente con botones apagados ocupa sitio y no dice nada. -->
+    @if (seleccionados().size) {
+      <div class="barra-seleccion" role="region" aria-label="Acciones sobre la selección">
+        <span>{{ seleccionados().size }} seleccionados</span>
+
+        <button mat-stroked-button [matMenuTriggerFor]="menuLote">
+          <mat-icon>swap_horiz</mat-icon>
+          Asignar rol
+        </button>
+
+        <mat-menu #menuLote="matMenu">
+          <button mat-menu-item type="button" (click)="asignarRolALaSeleccion('estudiante')">
+            Estudiante
+          </button>
+          <button mat-menu-item type="button" (click)="asignarRolALaSeleccion('profesor')">
+            Profesor
+          </button>
+        </mat-menu>
+
+        <button mat-button type="button" (click)="limpiarSeleccion()">Quitar la selección</button>
+      </div>
+    }
+
     @if (cargandoUsuarios() || errorUsuarios() || !usuarios().length) {
       <app-estado-vista
         [cargando]="cargandoUsuarios()"
         [error]="errorUsuarios()"
         mensajeVacio="No hay usuarios registrados."
-        iconoVacio="group_off"
+        ilustracion="gente"
         (reintentar)="cargarUsuarios(pagUsuarios())"
       >
       </app-estado-vista>
@@ -62,36 +86,58 @@
     }
 
     @if (!cargandoUsuarios() && !errorUsuarios() && usuarios().length) {
-      <div class="table-wrap">
+      <div class="table-wrap tabla-consola">
         <table mat-table [dataSource]="usuarios()">
+          <ng-container matColumnDef="seleccion">
+            <th mat-header-cell *matHeaderCellDef class="col-seleccion">
+              <mat-checkbox
+                [checked]="todosSeleccionados()"
+                [indeterminate]="algunoSeleccionado()"
+                (change)="alternarTodos()"
+                aria-label="Seleccionar todos los usuarios editables"
+              ></mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let u" class="col-seleccion">
+              <!-- Los admin no se editan desde aquí, así que tampoco se
+                   seleccionan: una casilla que no hace nada es ruido. -->
+              @if (u.rol !== 'admin') {
+                <mat-checkbox
+                  [checked]="seleccionados().has(id(u))"
+                  (change)="alternarSeleccion(u)"
+                  [attr.aria-label]="'Seleccionar ' + u.nombre"
+                ></mat-checkbox>
+              }
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="nombre">
             <th mat-header-cell *matHeaderCellDef>Nombre</th>
             <td mat-cell *matCellDef="let u">{{ u.nombre }}</td>
           </ng-container>
+
           <ng-container matColumnDef="correo">
             <th mat-header-cell *matHeaderCellDef>Correo</th>
-            <td mat-cell *matCellDef="let u">{{ u.correo }}</td>
+            <td mat-cell *matCellDef="let u" class="col-correo">{{ u.correo }}</td>
           </ng-container>
-          <!-- Una sola columna de rol: el select ya muestra el rol actual, así que
-          la antigua columna "Rol" con chip solo repetía el dato. Los admin no
-          son editables aquí y conservan su chip para seguir distinguiéndose. -->
+
+          <!-- El rol es un chip que abre un menú, no un <mat-select> incrustado
+               en la celda. Un desplegable por fila convertía la tabla en un
+               formulario de seis campos. -->
           <ng-container matColumnDef="acciones">
             <th mat-header-cell *matHeaderCellDef>Rol</th>
             <td mat-cell *matCellDef="let u">
               @if (u.rol !== 'admin') {
-                <!-- appearance="fill": el outline recorta la etiqueta flotante
-                contra el borde superior de la fila. -->
-                <mat-form-field appearance="fill" subscriptSizing="dynamic" class="rol-select">
-                  <mat-label>Rol</mat-label>
-                  <mat-select
-                    [ngModel]="pendingRoles()[id(u)] || u.rol"
-                    (ngModelChange)="onRolChange(u, $event)"
-                    [attr.aria-label]="'Cambiar rol de ' + u.nombre"
-                  >
-                    <mat-option value="estudiante">Estudiante</mat-option>
-                    <mat-option value="profesor">Profesor</mat-option>
-                  </mat-select>
-                </mat-form-field>
+                <button
+                  type="button"
+                  class="chip chip--boton"
+                  [class.pro]="rolMostrado(u) === 'profesor'"
+                  [matMenuTriggerFor]="menuRol"
+                  [matMenuTriggerData]="{ usuario: u }"
+                  [attr.aria-label]="'Cambiar rol de ' + u.nombre"
+                >
+                  {{ rolMostrado(u) }}
+                  <mat-icon aria-hidden="true">expand_more</mat-icon>
+                </button>
                 @if (tieneCambio(u)) {
                   <span class="chip pending">Sin guardar</span>
                 }
@@ -100,10 +146,26 @@
               }
             </td>
           </ng-container>
-          <tr mat-header-row *matHeaderRowDef="displayedUserCols"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedUserCols"></tr>
+
+          <tr mat-header-row *matHeaderRowDef="displayedUserCols; sticky: true"></tr>
+          <tr
+            mat-row
+            *matRowDef="let row; columns: displayedUserCols"
+            [class.fila--seleccionada]="seleccionados().has(id(row))"
+          ></tr>
         </table>
       </div>
+
+      <mat-menu #menuRol="matMenu">
+        <ng-template matMenuContent let-usuario="usuario">
+          <button mat-menu-item type="button" (click)="onRolChange(usuario, 'estudiante')">
+            Estudiante
+          </button>
+          <button mat-menu-item type="button" (click)="onRolChange(usuario, 'profesor')">
+            Profesor
+          </button>
+        </ng-template>
+      </mat-menu>
     }
 
     <mat-paginator
@@ -131,7 +193,7 @@
         [cargando]="cargandoCursos()"
         [error]="errorCursos()"
         mensajeVacio="Todavía no hay cursos. Crea el primero con «Nuevo curso»."
-        iconoVacio="menu_book"
+        ilustracion="cursos"
         (reintentar)="cargarCursos(pagCursos())"
       >
       </app-estado-vista>
@@ -187,44 +249,51 @@
           <!-- ===== Acciones por curso (solo esta columna está reemplazada) ===== -->
           <ng-container matColumnDef="acciones">
             <th mat-header-cell *matHeaderCellDef>Acciones</th>
-            <!-- Una sola versión de cada botón. Que se vea el texto o solo el
-                 icono lo decide el CSS con una consulta de contenedor: antes lo
-                 decidía un método de TypeScript que leía window.innerWidth en
-                 cada fila y en cada ciclo de detección, provocaba reflow y ni
-                 siquiera reaccionaba al redimensionar la ventana. -->
+            <!-- Editar a la vista y el resto en un menú.
+                 Tres botones de texto por fila desbordaban el ancho de la
+                 tabla. La versión anterior escondía el texto con una consulta
+                 de contenedor, que resolvía el desbordamiento pero dejaba tres
+                 iconos sin etiqueta compitiendo por la atención. Con el menú,
+                 la fila tiene UNA acción visible y las otras dos a un clic. -->
             <td mat-cell *matCellDef="let c" class="acciones-cell">
-              <button mat-stroked-button (click)="abrirDialogEditarCurso(c)" matTooltip="Editar">
+              <button mat-stroked-button (click)="abrirDialogEditarCurso(c)">
                 <mat-icon>edit</mat-icon>
                 <span class="etiqueta">Editar</span>
               </button>
+
               <button
-                mat-stroked-button
-                color="primary"
-                (click)="abrirDialogMatricular(c)"
-                matTooltip="Matricular"
+                mat-icon-button
+                [matMenuTriggerFor]="menuCurso"
+                [matMenuTriggerData]="{ curso: c }"
+                [attr.aria-label]="'Más acciones sobre ' + c.titulo"
               >
-                <mat-icon>person_add</mat-icon>
-                <span class="etiqueta">Matricular</span>
-              </button>
-              <button
-                mat-stroked-button
-                color="warn"
-                (click)="eliminarCurso(c)"
-                [disabled]="eliminandoId === c._id"
-                matTooltip="Eliminar"
-              >
-                <mat-icon>delete</mat-icon>
-                <span class="etiqueta">{{
-                  eliminandoId === c._id ? 'Eliminando…' : 'Eliminar'
-                }}</span>
+                <mat-icon>more_vert</mat-icon>
               </button>
             </td>
           </ng-container>
-          <tr mat-header-row *matHeaderRowDef="displayedCourseCols"></tr>
+          <tr mat-header-row *matHeaderRowDef="displayedCourseCols; sticky: true"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedCourseCols"></tr>
         </table>
       </div>
     }
+
+    <mat-menu #menuCurso="matMenu">
+      <ng-template matMenuContent let-curso="curso">
+        <button mat-menu-item type="button" (click)="abrirDialogMatricular(curso)">
+          <mat-icon>person_add</mat-icon>
+          <span>Matricular a alguien</span>
+        </button>
+        <button
+          mat-menu-item
+          type="button"
+          (click)="eliminarCurso(curso)"
+          [disabled]="eliminandoId === curso._id"
+        >
+          <mat-icon>delete</mat-icon>
+          <span>{{ eliminandoId === curso._id ? 'Eliminando…' : 'Eliminar el curso' }}</span>
+        </button>
+      </ng-template>
+    </mat-menu>
 
     <mat-paginator
       [length]="totalCursos()"

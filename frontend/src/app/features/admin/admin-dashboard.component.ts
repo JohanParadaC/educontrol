@@ -13,6 +13,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ NUEVO: tooltips para íconos
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 import { mensajeDeError } from '../../core/http-error';
 
@@ -47,6 +49,8 @@ type Rol = 'estudiante' | 'profesor';
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatMenuModule,
+    MatCheckboxModule,
     MatPaginatorModule,
     EstadoVistaComponent,
   ],
@@ -71,11 +75,14 @@ export class AdminDashboardComponent implements OnInit {
   readonly pendingRoles = signal<Record<string, Rol>>({});
   readonly savingBulk = signal(false);
 
+  /** Ids de los usuarios marcados con la casilla. */
+  readonly seleccionados = signal(new Set<string>());
+
   // Sin columna de ID: en usuarios salía vacía (el backend serializa `id`, no
   // `_id`) y en cursos mostraba el ObjectId crudo, que no le sirve a nadie y en
   // móvil se comía un cuarto del ancho.
   // Tampoco columna 'rol': el select de "Nuevo rol" ya muestra el rol actual.
-  displayedUserCols = ['nombre', 'correo', 'acciones'];
+  displayedUserCols = ['seleccion', 'nombre', 'correo', 'acciones'];
   displayedCourseCols = ['titulo', 'descripcion', 'profesor', 'acciones'];
 
   // Estado de cada tabla por separado: que falle una no debe borrar la otra.
@@ -380,17 +387,87 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // ======== ROLES EN LOTE ========
+  /**
+   * Apunta un cambio de rol, sin guardarlo todavía.
+   *
+   * `update` y no mutar el objeto de dentro: escribir en el objeto que ya está
+   * en la señal no avisa a nadie, así que con OnPush el chip seguía mostrando
+   * el rol viejo hasta el siguiente clic en cualquier otra cosa.
+   */
   onRolChange(u: Usuario, ev: MatSelectChange | Rol) {
     const value: Rol = typeof ev === 'string' ? ev : ev.value;
     const key = this.id(u);
     if (!key) return;
-    if (value === u.rol) delete this.pendingRoles()[key];
-    else this.pendingRoles()[key] = value;
+
+    this.pendingRoles.update(actual => {
+      const siguiente = { ...actual };
+      if (value === u.rol) delete siguiente[key];
+      else siguiente[key] = value;
+      return siguiente;
+    });
   }
 
   tieneCambio(u: Usuario): boolean {
     const key = this.id(u);
     return !!(key && this.pendingRoles()[key] && this.pendingRoles()[key] !== u.rol);
+  }
+
+  /** El rol que hay que pintar: el pendiente si lo hay, si no el guardado. */
+  rolMostrado(u: Usuario): string {
+    return this.pendingRoles()[this.id(u)] ?? u.rol ?? '';
+  }
+
+  /* ---------- selección múltiple ---------- */
+
+  /** Los que se pueden tocar: un admin no se edita desde esta tabla. */
+  private editables(): Usuario[] {
+    return this.usuarios().filter(u => u.rol !== 'admin');
+  }
+
+  alternarSeleccion(u: Usuario): void {
+    const key = this.id(u);
+    if (!key) return;
+
+    this.seleccionados.update(actual => {
+      const siguiente = new Set(actual);
+      if (siguiente.has(key)) siguiente.delete(key);
+      else siguiente.add(key);
+      return siguiente;
+    });
+  }
+
+  todosSeleccionados(): boolean {
+    const posibles = this.editables();
+    return posibles.length > 0 && posibles.every(u => this.seleccionados().has(this.id(u)));
+  }
+
+  /** Algunos sí y otros no: la casilla de la cabecera va en indeterminado. */
+  algunoSeleccionado(): boolean {
+    return this.seleccionados().size > 0 && !this.todosSeleccionados();
+  }
+
+  alternarTodos(): void {
+    if (this.todosSeleccionados()) this.limpiarSeleccion();
+    else this.seleccionados.set(new Set(this.editables().map(u => this.id(u))));
+  }
+
+  limpiarSeleccion(): void {
+    this.seleccionados.set(new Set());
+  }
+
+  /**
+   * Apunta el mismo rol para todos los seleccionados.
+   *
+   * No guarda: deja los cambios pendientes y los persiste el botón de
+   * "Guardar N cambios" que ya existía. Así una acción en lote se puede
+   * revisar antes de mandarla, igual que un cambio suelto.
+   */
+  asignarRolALaSeleccion(rol: Rol): void {
+    const ids = this.seleccionados();
+    for (const u of this.editables()) {
+      if (ids.has(this.id(u))) this.onRolChange(u, rol);
+    }
+    this.limpiarSeleccion();
   }
 
   guardarTodos() {
@@ -413,6 +490,7 @@ export class AdminDashboardComponent implements OnInit {
       .subscribe(() => {
         this.snack.open('Cambios guardados', 'OK', { duration: 1600 });
         this.pendingRoles.set({});
+        this.limpiarSeleccion();
         this.cargarTodo();
       });
   }

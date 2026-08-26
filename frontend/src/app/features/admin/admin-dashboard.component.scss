@@ -130,62 +130,92 @@ $movil: 767px;
   white-space: nowrap; /* evita saltos raros en etiquetas de botones */
 }
 
-/* Select de rol dentro de la tabla */
-.rol-select {
-  width: 180px;
-  vertical-align: middle;
-}
-.rol-select + .chip {
-  margin-left: var(--sp-2);
+/* El <mat-select> de rol dentro de cada celda se fue: convertía la tabla en un
+   formulario de seis campos. Ahora el rol es un chip que abre un menú. */
+.chip--boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  cursor: pointer;
+  font: var(--mat-sys-label-medium);
+
+  mat-icon {
+    /* Tamaño del glifo, no tipografía. */
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
 }
 
-/* Acciones de la tabla de cursos.
- *
- * El texto de los botones desaparece cuando la tabla no tiene sitio, y lo
- * decide el navegador con una consulta de contenedor: mide el ancho de la
- * tarjeta que envuelve la tabla, no el de la ventana, así que también acierta
- * cuando la tabla comparte espacio con otra cosa. La alternativa anterior era
- * un método de TypeScript llamado desde la plantilla que leía
- * window.innerWidth: se ejecutaba por fila y por ciclo de detección, forzaba
- * un reflow cada vez y no reaccionaba al redimensionar.
- *
- * El umbral son 900px de CONTENEDOR, no de ventana: la tabla vive dentro de
- * una tarjeta con márgenes, así que a 1200px de ventana le quedan unos 900. Es
- * el mismo punto en el que compactaba la versión vieja, medido donde importa.
- *
- * El tooltip queda siempre, así que en modo compacto el botón sigue diciendo
- * qué hace. */
+/* La consulta de contenedor que escondía el texto de los botones se fue con
+   ellos: la fila tiene ahora una sola acción visible ("Editar") y el resto en
+   un menú, así que no hay nada que desbordar. */
+
+/* ---------------------------------------------------------------------------
+   DENSIDAD DE CONSOLA
+   Filas de 44 px y tipografía de 13-14 px. La tabla por defecto de Material va
+   a 52 px y con el cuerpo a 16: con seis usuarios sobra, pero esta pantalla
+   existe para mirar listas.
+   --------------------------------------------------------------------------- */
+.tabla-consola,
 .tabla-cursos {
-  container-type: inline-size;
-  container-name: tabla-cursos;
-}
-
-@container tabla-cursos (max-width: 900px) {
-  .acciones-cell .etiqueta {
-    display: none;
-  }
-
-  .acciones-cell button {
-    min-width: 0;
-    padding: 0 8px;
-  }
-}
-
-/* Hueco que ocupa la sección de "asignar profesor" mientras está diferida, para
- * que al aparecer no dé un tirón a la página. */
-.marcador-asignar {
-  display: grid;
-  gap: 12px;
-  padding: 16px 0;
-
-  .linea {
+  .mat-mdc-header-row {
     height: 40px;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
   }
 
-  .titulo {
-    height: 20px;
-    width: 40%;
+  .mat-mdc-row {
+    height: 44px;
   }
+
+  .mat-mdc-cell,
+  .mat-mdc-header-cell {
+    font-size: 13.5px;
+    padding-inline: var(--sp-3);
+  }
+
+  /* Los correos son cadenas que se comparan de un vistazo: en tabular, las
+     columnas de caracteres se alinean y la lectura es más rápida. */
+  .col-correo {
+    font-variant-numeric: tabular-nums;
+    color: var(--texto-suave);
+  }
+
+  .col-seleccion {
+    width: 48px;
+    padding-inline: var(--sp-2) 0;
+  }
+}
+
+/* La cabecera se queda fija al desplazar: en una lista larga, sin ella no se
+   sabe qué columna se está mirando. */
+.mat-mdc-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.table-wrap {
+  max-height: 60vh;
+}
+
+.fila--seleccionada {
+  background: var(--acento-suave);
+}
+
+/* ---------------------------------------------------------------------------
+   Barra de acciones en lote
+   --------------------------------------------------------------------------- */
+.barra-seleccion {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid color-mix(in srgb, var(--acento) 40%, var(--borde));
+  border-radius: var(--radio-md);
+  background: var(--acento-suave);
+  color: var(--acento-fuerte);
+  font: var(--mat-sys-label-large);
 }
