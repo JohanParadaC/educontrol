@@ -50,6 +50,7 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - **El login no dice qué falló.** Correo inexistente y contraseña mala devuelven el mismo 401 con el mismo texto, y se compara contra un hash señuelo cuando el usuario no existe: sin eso, el tiempo de respuesta delata la rama aunque el mensaje sea idéntico.
 - **El token se firma en un solo sitio**, `utils/jwt.js`, con la duración de `JWT_EXPIRES_IN` (12 h por defecto). Había dos firmas conviviendo con duraciones distintas.
 - **Una sola cabecera de sesión:** `Authorization: Bearer`. La antigua `x-token` ya no se acepta.
+- **Un estudiante se da de baja solo.** `DELETE /api/inscripciones/:id` lo puede usar el dueño de la matrícula o un admin. El profesor todavía no: echar a un alumno de clase es otra cosa y no está decidida.
 - **Borrar arrastra lo que cuelga.** Borrar un curso borra sus inscripciones; borrar un estudiante, las suyas. Borrar un profesor con cursos devuelve **409** diciendo cuántos: en cascada se llevaría por delante las matrículas de todos sus alumnos sin avisar.
 
 **Datos**
@@ -58,6 +59,8 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - Los listados están paginados con un tope duro de 100 por página. Sin ese tope, `?limit=999999` reintroduce el problema desde fuera.
 - `GET /api/inscripciones` devuelve `estudiante` y `curso` **poblados**. No hace falta cruzar con la lista de usuarios.
 - Ese listado también pagina, como los demás. El frontend pide `limit=100` (el tope) porque ninguna de sus pantallas tiene paginador propio todavía.
+- **Filtrar es cosa del servidor.** `GET /api/cursos` acepta `?profesor=me`, `?profesor=<id>` y `?buscar=texto` (busca en nombre y descripción). Nada de descargar 100 cursos y filtrarlos en el navegador: con 101, el filtro miente sin decirlo. El texto de `?buscar=` se escapa antes de convertirlo en regex.
+- **El modelo del frontend copia al del backend, no lo inventa.** `data/inscripcion.model.ts` declaraba `estado` y `createdAt`, que no existen en `models/Inscripcion.js`: TypeScript dejaba escribirlos y en tiempo de ejecución eran `undefined`. Un contrato inventado es peor que no tener tipos.
 
 **Superficie HTTP**
 
@@ -67,6 +70,9 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - `errorHandler` traduce los errores de Mongo antes de que salgan: `CastError` → 400, `E11000` → 409, `ValidationError` → 400 con los campos. Un 5xx en producción sale genérico y el detalle se queda en el log.
 
 **Interfaz**
+
+- **El interceptor no inyecta `AuthService`.** Lee el token del almacenamiento local con `tokenLocal()`. Inyectarlo formaba un ciclo —AuthService valida el token en su constructor, eso lanza una petición, la petición construye el interceptor y el interceptor pide AuthService— y Angular contestaba NG0200: la renovación moría sin salir al servidor, AuthService lo tomaba por un fallo y cerraba la sesión. Se veía como "inicio sesión, refresco y estoy fuera".
+- **Nada de `if (api.loQueSea)`.** `ApiService` está en este repositorio y se puede leer. Comprobar si existe un método es defenderse de una API imaginaria, y obliga a un `inject(ApiService) as any` que apaga el tipado del componente entero.
 
 - Cargando, vacío y error son **tres estados distintos**. Usa `app-estado-vista`. Nunca conviertas un error en lista vacía con `catchError(() => of([]))`: "no tienes cursos" y "no he podido preguntarlo" llevan a acciones distintas.
 - Los mensajes de error salen de `core/http-error.ts`, que distingue el fallo de red del rechazo del servidor. Un mensaje que dice "contraseña incorrecta" cuando el servidor está caído manda al usuario a arreglar lo que no está roto.

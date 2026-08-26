@@ -110,7 +110,7 @@ interfaz, más el build de producción.
 Dos reglas de ESLint están como aviso y no como error, porque su deuda es
 anterior: `no-explicit-any` (usos heredados) y `prefer-inject` (27 componentes
 que aún inyectan por constructor). El script de lint del frontend lleva
-`--max-warnings=116`, el número exacto de hoy: los avisos solo pueden bajar, y
+`--max-warnings=70`, el número exacto de hoy: los avisos solo pueden bajar, y
 cualquier `any` nuevo rompe la build.
 
 ---
@@ -118,11 +118,11 @@ cualquier `any` nuevo rompe la build.
 ## Tests
 
 ```bash
-npm test        # backend: 167 tests (Jest + Supertest)
-npm run test:web  # frontend: 25 tests (Karma + Jasmine)
+npm test        # backend: 186 tests (Jest + Supertest)
+npm run test:web  # frontend: 28 tests (Karma + Jasmine)
 ```
 
-Cobertura del backend, medida con `npm run test:cov`: **85,1 % sentencias · 75,4 % ramas · 97,8 % funciones · 86,5 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
+Cobertura del backend, medida con `npm run test:cov`: **85,5 % sentencias · 76,9 % ramas · 97,8 % funciones · 86,9 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
@@ -147,6 +147,8 @@ El backend cubre el CRUD completo, la validación de payloads, el manejo de erro
 | Sexto intento fallido de login                          | 429                                   |
 | `CastError` y `E11000` que llegan al manejador          | 400 y 409, sin texto de Mongo         |
 | Cabecera legacy `x-token`                               | 401: solo vale `Authorization`        |
+| `DELETE /api/inscripciones/:id` de una matrícula ajena  | 403, sigue matriculado                |
+| `?buscar=C++` en el catálogo                            | texto literal, no patrón              |
 
 Los tests no solo comprueban el código de estado: verifican también que el efecto no ocurrió. Tras un 403 al intentar cambiar la contraseña del administrador, la contraseña original sigue siendo válida y la del atacante no.
 
@@ -192,7 +194,6 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 
 - **No hay recuperación de contraseña.** Si un usuario la olvida, solo un administrador puede restablecérsela.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
-- **La búsqueda del catálogo filtra en cliente** sobre los cursos cargados (hasta 100). Con catálogos mayores hay que mover el filtro al servidor.
 - **No hay pantalla de detalle de un curso:** desde las tarjetas se navega al listado, no a una ficha propia.
 - **`POST /api/inscripciones` acepta el `estudianteId` del cuerpo sin comprobar de quién es.** Lo necesita el panel de administración para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
 - **El bundle inicial pesa ~770 kB** (189 kB transferidos con compresión). Es lo que cuesta Angular con Material; el presupuesto del build está puesto en 800 kB para que avise de regresiones reales en vez de saltar siempre.
