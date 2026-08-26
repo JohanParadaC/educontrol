@@ -100,3 +100,16 @@ jobs:
 
       - name: Build de producción
         run: npm run build --prefix frontend
+
+      # La CSP del backend prohíbe los scripts en línea, y eso incluye los
+      # `onload=` de un atributo. Angular ponía uno al diferir la hoja de
+      # estilos (inlineCritical), y el resultado era una aplicación sin
+      # estilos: el navegador bloqueaba el handler y la hoja se quedaba en
+      # media="print" para siempre. Está desactivado en angular.json; esto
+      # avisa si vuelve.
+      - name: El build no trae manejadores en línea (los bloquea la CSP)
+        run: |
+          if grep -q 'onload=' frontend/dist/educontrol-frontend/browser/index.html; then
+            echo "El index.html tiene un manejador en línea: la CSP lo bloqueará."
+            exit 1
+          fi
