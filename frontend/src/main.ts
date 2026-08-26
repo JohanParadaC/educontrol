@@ -22,8 +22,13 @@ import localeEs from '@angular/common/locales/es';
 
 registerLocaleData(localeEs, 'es');
 
-// Animaciones para Angular Material (o usa provideAnimations si las quieres reales)
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
+// Animaciones de Material, cargadas aparte del arranque.
+//
+// Aquí había un provideNoopAnimations() que las apagaba todas: los diálogos
+// aparecían de golpe, los ripples no se veían, el menú móvil no se desplegaba y
+// el paginador cambiaba de página a saltos. La versión Async no mete el motor
+// de animaciones en el arranque inicial: lo carga cuando hace falta.
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 
 if (environment.production) {
   enableProdMode();
@@ -36,7 +41,7 @@ bootstrapApplication(AppComponent, {
     // Importante: habilitar interceptores via DI
     provideHttpClient(withInterceptorsFromDi()),
 
-    provideNoopAnimations(),
+    provideAnimationsAsync(),
 
     // Registrar el interceptor
     {
