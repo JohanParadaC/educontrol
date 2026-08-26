@@ -101,7 +101,7 @@ npm test        # backend: 119 tests (Jest + Supertest)
 npm run test:web  # frontend: 25 tests (Karma + Jasmine)
 ```
 
-Cobertura del backend: **85 % sentencias · 73 % ramas · 100 % funciones · 87 % líneas**. Los umbrales de `jest.config.js` están puestos unos puntos por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
+Cobertura del backend, medida con `npm run test:cov`: **81,5 % sentencias · 68,1 % ramas · 97,2 % funciones · 83,3 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de una auditoría del propio proyecto: se encontraron cuatro fallos de control de acceso y cada arreglo se fijó con tests de regresión que fallan contra el código anterior.
 

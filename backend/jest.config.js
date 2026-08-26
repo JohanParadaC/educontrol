@@ -25,18 +25,23 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
 
-  // Umbrales ajustados a la cobertura real (85 / 73 / 100 / 87), con unos
-  // puntos de margen para que no salte por ruido.
+  // Umbrales ajustados a la cobertura real, medida con `npm run test:cov`:
+  // 81,50 sentencias / 68,08 ramas / 97,22 funciones / 83,25 líneas.
   //
-  // Antes iban en 70/50/65/70, muy por debajo de lo que se cubría: un umbral
-  // que va por detrás de la realidad no protege de nada, porque se puede
-  // borrar media suite sin que nadie se entere.
+  // Estaban en 82/68/95/84, por encima de dos de esas cifras: `test:cov`
+  // fallaba desde antes de que existiera la integración continua, y como
+  // `npm test` corre sin --coverage nadie se enteraba. Ahora van medio punto
+  // por debajo de lo real: lo bastante cerca para que borrar tests duela,
+  // lo bastante lejos para no saltar por ruido.
+  //
+  // (Antes de eso iban en 70/50/65/70, muy por debajo de lo que se cubría:
+  // un umbral que va por detrás de la realidad no protege de nada.)
   coverageThreshold: {
     global: {
-      statements: 82,
-      branches: 68,
-      functions: 95,
-      lines: 84,
+      statements: 81,
+      branches: 67,
+      functions: 96,
+      lines: 83,
     },
   },
 
