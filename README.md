@@ -94,6 +94,27 @@ frontend/src/app/
 
 ---
 
+## Calidad
+
+```bash
+npm run lint          # ESLint en backend y frontend
+npm run lint:fix      # y que arregle lo que sepa arreglar
+npm run format        # Prettier sobre todo el repositorio
+npm run format:check  # sin escribir: solo dice qué no está formateado
+```
+
+Cada push y cada pull request pasan por `.github/workflows/ci.yml`: lint,
+formato, los tests del backend con cobertura y los del frontend en Chrome sin
+interfaz, más el build de producción.
+
+Dos reglas de ESLint están como aviso y no como error, porque su deuda es
+anterior: `no-explicit-any` (70 usos heredados) y `prefer-inject` (27
+componentes que aún inyectan por constructor). El script de lint del frontend
+lleva `--max-warnings=118`, el número exacto de hoy: los avisos solo pueden
+bajar, y cualquier `any` nuevo rompe la build.
+
+---
+
 ## Tests
 
 ```bash
