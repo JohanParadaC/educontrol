@@ -118,11 +118,11 @@ cualquier `any` nuevo rompe la build.
 ## Tests
 
 ```bash
-npm test        # backend: 151 tests (Jest + Supertest)
+npm test        # backend: 167 tests (Jest + Supertest)
 npm run test:web  # frontend: 25 tests (Karma + Jasmine)
 ```
 
-Cobertura del backend, medida con `npm run test:cov`: **84,0 % sentencias · 75,4 % ramas · 97,4 % funciones · 85,5 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
+Cobertura del backend, medida con `npm run test:cov`: **85,1 % sentencias · 75,4 % ramas · 97,8 % funciones · 86,5 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
@@ -143,6 +143,10 @@ El backend cubre el CRUD completo, la validación de payloads, el manejo de erro
 | `GET /api/inscripciones/:id` de una matrícula ajena     | 404, ni confirma que existe           |
 | `DELETE` de un curso o un estudiante                    | se van también sus inscripciones      |
 | `DELETE` de un profesor con cursos                      | 409 diciendo cuántos, sin borrar nada |
+| Login con correo inexistente vs. contraseña mala        | misma respuesta, palabra por palabra  |
+| Sexto intento fallido de login                          | 429                                   |
+| `CastError` y `E11000` que llegan al manejador          | 400 y 409, sin texto de Mongo         |
+| Cabecera legacy `x-token`                               | 401: solo vale `Authorization`        |
 
 Los tests no solo comprueban el código de estado: verifican también que el efecto no ocurrió. Tras un 403 al intentar cambiar la contraseña del administrador, la contraseña original sigue siendo válida y la del atacante no.
 
@@ -158,6 +162,11 @@ Decisiones que conviene conocer si vas a desplegarlo:
 - **La autorización lee el rol de la base de datos, no del token.** Un usuario degradado pierde el acceso de inmediato en lugar de conservarlo hasta que caduque su JWT.
 - **Sin `ADMIN_PASSWORD` no se siembra el administrador en producción**, para no crear una cuenta con contraseña conocida.
 - **Cambiar la propia contraseña exige la actual.** Una sesión olvidada abierta no basta para quedarse la cuenta. Un administrador sí puede restablecer la de otra persona: eso es una acción administrativa, no un cambio propio.
+- **El login no dice qué ha fallado.** Un correo que no existe y una contraseña equivocada devuelven el mismo 401 con el mismo texto. Cuando el correo no existe se compara igualmente contra un hash señuelo: `bcrypt.compare` tarda a propósito, y saltarse esa espera delata qué correos están registrados aunque el mensaje sea idéntico.
+- **El login admite cinco intentos fallidos cada quince minutos**, contados por IP y correo a la vez. Solo por IP, un aula entera detrás del mismo router se bloquea sola; solo por correo, cualquiera deja fuera a quien quiera. Acertar no consume intentos.
+- **Cabeceras de seguridad con `helmet`.** La CSP permite estilos en línea —Material los escribe en tiempo de ejecución— pero no scripts, y `frame-ancestors 'none'` impide incrustar la aplicación en un iframe ajeno.
+- **Sin CORS.** El backend sirve su propio frontend desde el mismo origen, así que permitir orígenes cruzados no aportaba nada y sí superficie.
+- **Los errores no enseñan las tripas.** `CastError` sale como 400 "Identificador no válido" y `E11000` como 409 "Ese valor ya existe", en vez del mensaje de Mongo con el nombre de la colección y del índice dentro. En producción, cualquier 500 sale genérico y el detalle se queda en el log.
 - **El rol autoriza, y la propiedad también.** `roleCheck` dice qué clase de usuario puede entrar por una ruta; de quién es el recurso lo decide el controlador. Un profesor edita y borra sus cursos, no los de sus compañeros; el administrador, cualquiera.
 - **Cada quien lista lo suyo.** `GET /api/inscripciones` filtra en el servidor según quién pregunta: un estudiante recibe sus matrículas, un profesor las de los cursos que imparte y un administrador todas. Los filtros `?curso=` y `?estudiante=` se cruzan con esa regla y nunca la amplían. Pedir una matrícula ajena por su id devuelve 404, no 403: quien no puede verla tampoco tiene por qué saber que existe.
 - **Los borrados no dejan huérfanos.** Borrar un curso se lleva sus inscripciones; borrar un estudiante, las suyas. Borrar un profesor que imparte cursos devuelve **409** diciendo cuántos son: hacerlo en cascada destruiría las matrículas de todos sus alumnos sin avisar, así que primero hay que reasignar.
@@ -171,6 +180,7 @@ Copia `backend/.env.example` a `backend/.env`. En desarrollo todas tienen valor 
 | -------------------------------- | --------------------------------------------------- |
 | `MONGO_URI`                      | Conexión a MongoDB. Sin ella, base en memoria.      |
 | `JWT_SECRET`                     | Firma de los tokens. **Obligatoria en producción.** |
+| `JWT_EXPIRES_IN`                 | Duración del token. Por defecto, 12 h.              |
 | `PROFESOR_CLAVE`                 | Clave para ascender a profesor.                     |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial.                              |
 

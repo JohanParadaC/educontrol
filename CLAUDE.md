@@ -47,6 +47,9 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - `/api/admin/purge` y `/api/admin/seed-admin` solo existen fuera de producción. La comprobación es _fail-closed_: si `NODE_ENV` no está definida se asume producción y devuelven 404, no 403.
 - El **rol autoriza, la propiedad también**. `roleCheck` dice qué clase de usuario puede entrar; de quién es el recurso lo decide el controlador, que para eso lo lee. Un profesor solo edita o borra los cursos donde `curso.profesor` es él; el admin, cualquiera.
 - **Nadie lista lo que no le toca.** `GET /api/inscripciones` filtra por rol en el servidor: estudiante → las suyas, profesor → las de los cursos que imparte, admin → todas. Los filtros `?curso=` y `?estudiante=` se **cruzan** con esa regla, nunca la amplían. La misma regla se aplica al `GET /:id`: si filtras solo el listado, la fuga sigue abierta de una en una.
+- **El login no dice qué falló.** Correo inexistente y contraseña mala devuelven el mismo 401 con el mismo texto, y se compara contra un hash señuelo cuando el usuario no existe: sin eso, el tiempo de respuesta delata la rama aunque el mensaje sea idéntico.
+- **El token se firma en un solo sitio**, `utils/jwt.js`, con la duración de `JWT_EXPIRES_IN` (12 h por defecto). Había dos firmas conviviendo con duraciones distintas.
+- **Una sola cabecera de sesión:** `Authorization: Bearer`. La antigua `x-token` ya no se acepta.
 - **Borrar arrastra lo que cuelga.** Borrar un curso borra sus inscripciones; borrar un estudiante, las suyas. Borrar un profesor con cursos devuelve **409** diciendo cuántos: en cascada se llevaría por delante las matrículas de todos sus alumnos sin avisar.
 
 **Datos**
@@ -55,6 +58,13 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - Los listados están paginados con un tope duro de 100 por página. Sin ese tope, `?limit=999999` reintroduce el problema desde fuera.
 - `GET /api/inscripciones` devuelve `estudiante` y `curso` **poblados**. No hace falta cruzar con la lista de usuarios.
 - Ese listado también pagina, como los demás. El frontend pide `limit=100` (el tope) porque ninguna de sus pantallas tiene paginador propio todavía.
+
+**Superficie HTTP**
+
+- `helmet` con CSP propia. `'unsafe-inline'` está **solo** en `style-src`, porque Material escribe estilos en línea en tiempo de ejecución. En `script-src` no, y por eso `inlineCritical` está desactivado en `angular.json`: Angular difería la hoja de estilos con un `onload=` en el atributo, la CSP lo bloqueaba y la aplicación salía sin estilos. Hay un paso de CI que lo vigila.
+- Nada de CORS. El backend sirve su propio frontend: no hay petición cruzada que permitir, solo superficie que abrir.
+- El login admite 5 intentos fallidos cada 15 minutos por IP+correo; acertar no consume intentos. El resto de `/api` tiene un tope laxo, desactivado en test.
+- `errorHandler` traduce los errores de Mongo antes de que salgan: `CastError` → 400, `E11000` → 409, `ValidationError` → 400 con los campos. Un 5xx en producción sale genérico y el detalle se queda en el log.
 
 **Interfaz**
 
