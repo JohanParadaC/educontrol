@@ -17,7 +17,7 @@ import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 import { mensajeDeError } from '../../core/http-error';
 
 import { forkJoin, of } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
+import { catchError, finalize, map, tap } from 'rxjs/operators';
 
 import { ApiService } from '../../core/api.service';
 import { Usuario } from '../../data/usuario.model';
@@ -198,13 +198,17 @@ export class AdminDashboardComponent implements OnInit {
    * tabla, al paginar los desplegables solo verían a quien cayera en la página
    * actual. También el listado de cursos del selector, por lo mismo.
    */
+  /**
+   * Opciones de los desplegables que SÍ se ven al entrar: el selector de
+   * profesor de la sección "asignar" y el de curso.
+   *
+   * La lista de estudiantes no está aquí a propósito: solo la usa el diálogo
+   * de matricular, y pedirla al cargar la página era una petición de cien
+   * usuarios que la mayoría de las visitas no llega a usar.
+   */
   private cargarOpciones() {
     this.api.listUsuariosPorRol('profesor').subscribe(us => {
       this.profesores.set(us);
-      this.buildOptions();
-    });
-    this.api.listUsuariosPorRol('estudiante').subscribe(us => {
-      this.estudiantes.set(us);
       this.buildOptions();
     });
     this.api.listCursos().subscribe(cs => (this.cursosOpt = cs));
@@ -301,12 +305,31 @@ export class AdminDashboardComponent implements OnInit {
 
   // ======== MATRICULAR (Asignar materia) POR CURSO ========
   abrirDialogMatricular(curso: Curso) {
+    // Los estudiantes se piden ahora, no al cargar la página. Si ya se
+    // pidieron antes, se reutilizan.
+    const estudiantes$ = this.estudiantesOpt().length
+      ? of(this.estudiantesOpt())
+      : this.api.listUsuariosPorRol('estudiante').pipe(
+          tap(us => {
+            this.estudiantes.set(us);
+            this.buildOptions();
+          }),
+          map(() => this.estudiantesOpt())
+        );
+
+    estudiantes$.subscribe(estudiantes => this.abrirMatricular(curso, estudiantes));
+  }
+
+  private abrirMatricular(
+    curso: Curso,
+    estudiantes: Array<{ _id: string; nombre: string; correo: string }>
+  ) {
     this.dialog
       .open(EnrollStudentDialogComponent, {
         width: '460px',
         data: {
           cursoTitulo: curso.titulo,
-          estudiantes: this.estudiantesOpt(), // ids en string
+          estudiantes, // ids en string
         },
       })
       .afterClosed()
@@ -433,18 +456,6 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // ========= helpers =========
-
-  /**
-   * En ventanas estrechas, las acciones de la fila se quedan en iconos.
-   *
-   * Aquí había también un umbral de 200 caracteres de descripción: si el texto
-   * se desbordaba, se compactaban los botones. Era tratar el síntoma —el dato
-   * no estaba acotado— desde el sitio equivocado. Ahora `Curso.descripcion`
-   * tiene maxlength 500 en el modelo y la longitud deja de decidir el layout.
-   */
-  accionesCompactas(): boolean {
-    return window.innerWidth < 1200;
-  }
 
   trackOpt = (_: number, item: { _id: string }) => item._id;
 

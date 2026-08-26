@@ -134,3 +134,54 @@ $movil: 767px;
 .rol-select + .chip {
   margin-left: var(--sp-2);
 }
+
+/* Acciones de la tabla de cursos.
+ *
+ * El texto de los botones desaparece cuando la tabla no tiene sitio, y lo
+ * decide el navegador con una consulta de contenedor: mide el ancho de la
+ * tarjeta que envuelve la tabla, no el de la ventana, así que también acierta
+ * cuando la tabla comparte espacio con otra cosa. La alternativa anterior era
+ * un método de TypeScript llamado desde la plantilla que leía
+ * window.innerWidth: se ejecutaba por fila y por ciclo de detección, forzaba
+ * un reflow cada vez y no reaccionaba al redimensionar.
+ *
+ * El umbral son 900px de CONTENEDOR, no de ventana: la tabla vive dentro de
+ * una tarjeta con márgenes, así que a 1200px de ventana le quedan unos 900. Es
+ * el mismo punto en el que compactaba la versión vieja, medido donde importa.
+ *
+ * El tooltip queda siempre, así que en modo compacto el botón sigue diciendo
+ * qué hace. */
+.tabla-cursos {
+  container-type: inline-size;
+  container-name: tabla-cursos;
+}
+
+@container tabla-cursos (max-width: 900px) {
+  .acciones-cell .etiqueta {
+    display: none;
+  }
+
+  .acciones-cell button {
+    min-width: 0;
+    padding: 0 8px;
+  }
+}
+
+/* Hueco que ocupa la sección de "asignar profesor" mientras está diferida, para
+ * que al aparecer no dé un tirón a la página. */
+.marcador-asignar {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+
+  .linea {
+    height: 40px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  }
+
+  .titulo {
+    height: 20px;
+    width: 40%;
+  }
+}
