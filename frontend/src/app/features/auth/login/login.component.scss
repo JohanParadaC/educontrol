@@ -22,7 +22,7 @@
    40px que trae el botón por defecto. */
 .cta {
   height: 48px;
-  font-weight: 600;
+  font: var(--mat-sys-label-large);
 }
 
 .links {

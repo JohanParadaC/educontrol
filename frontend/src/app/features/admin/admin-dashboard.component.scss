@@ -91,20 +91,24 @@ $movil: 767px;
   border-radius: 999px;
   font: var(--mat-sys-label-medium);
   white-space: nowrap;
-  background: color-mix(in srgb, var(--mat-sys-on-surface) 10%, transparent);
-  color: var(--mat-sys-on-surface);
+  /* El chip base es el de estudiante. Cada rol lleva su color del sistema, el
+     mismo aquí que en cualquier otra pantalla. Antes eran dos verdes y azules
+     escritos a mano (#1b5e20, #283593) que no salían de ninguna paleta. */
+  background: color-mix(in srgb, var(--rol-estudiante) 14%, transparent);
+  color: var(--rol-estudiante-texto);
 }
 .chip.pro {
-  background: #1b5e20;
-  color: #fff;
+  background: color-mix(in srgb, var(--rol-profesor) 14%, transparent);
+  color: var(--rol-profesor-texto);
 }
 .chip.adm {
-  background: #283593;
-  color: #fff;
+  background: color-mix(in srgb, var(--rol-admin) 16%, transparent);
+  color: var(--rol-admin-texto);
 }
 .chip.pending {
-  background: color-mix(in srgb, var(--mat-sys-tertiary) 25%, transparent);
-  color: var(--mat-sys-on-surface);
+  /* Cambio sin guardar: se marca con el color de aviso, no con otro tono más. */
+  background: color-mix(in srgb, var(--aviso) 16%, transparent);
+  color: var(--rol-admin-texto);
 }
 
 .titulo-pagina {

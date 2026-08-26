@@ -50,6 +50,8 @@
   text-align: center;
 
   mat-icon {
+    /* Tamaño del glifo del icono, no tipografía de texto: los iconos de
+       Material se dimensionan con font-size. */
     font-size: 36px;
     width: 36px;
     height: 36px;
