@@ -34,18 +34,13 @@ export class AuthService {
   }
 
   /** ---- Login ------------------------------------------------------- */
-  login(credentials: {
-    correo: string;
-    password?: string;
-    contrasena?: string;
-    contraseña?: string;
-  }) {
-    const pass = credentials.password ?? credentials.contraseña ?? credentials.contrasena ?? '';
-
-    // AuthApi ya traduce `password` al campo `contraseña` que espera el backend;
-    // mandar las dos claves era duplicar esa decisión en dos capas.
+  login(credentials: { correo: string; password: string }) {
+    // Un solo nombre. Aquí se aceptaban tres alias —password, contrasena,
+    // contraseña— y se elegía el primero que viniera, pero la traducción al
+    // campo `contraseña` que espera el backend ya la hace AuthApi, y solo
+    // debe estar en un sitio.
     return this.api
-      .login({ correo: credentials.correo, password: pass })
+      .login(credentials)
       .pipe(tap(({ token, usuario }) => this.setSession(token, usuario)));
   }
 

@@ -23,7 +23,7 @@ import { Inscripcion } from '../data/inscripcion.model';
 
 import { AuthApi, RespuestaSesion } from '../data/auth.api';
 import { UsuariosApi } from '../data/usuarios.api';
-import { CursosApi } from '../data/cursos.api';
+import { CursosApi, FiltroCursos } from '../data/cursos.api';
 import { InscripcionesApi, FiltroInscripciones } from '../data/inscripciones.api';
 import { Pagina, LIMITE_PAGINA } from '../data/paginacion';
 
@@ -83,18 +83,23 @@ export class ApiService {
   getCurso(id: string): Observable<Curso> {
     return this.cursos.getCurso(id);
   }
-  listCursos(): Observable<Curso[]> {
-    return this.cursos.listCursos();
+  /** Catálogo. `buscar` y `profesor` los resuelve el servidor. */
+  listCursos(filtros: FiltroCursos = {}): Observable<Curso[]> {
+    return this.cursos.listCursos(filtros);
   }
-  listCursosPaginado(pagina = 1, limite = LIMITE_PAGINA): Observable<Pagina<Curso>> {
-    return this.cursos.listCursosPaginado(pagina, limite);
+  listCursosPaginado(
+    pagina = 1,
+    limite = LIMITE_PAGINA,
+    filtros: FiltroCursos = {}
+  ): Observable<Pagina<Curso>> {
+    return this.cursos.listCursosPaginado(pagina, limite, filtros);
   }
   createCursoAdmin(body: {
     titulo: string;
     descripcion: string;
     profesor?: string | Usuario;
   }): Observable<Curso> {
-    return this.cursos.createCurso(body as any);
+    return this.cursos.createCurso(body);
   }
   updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {
     return this.cursos.updateCurso(id, body);
@@ -129,5 +134,9 @@ export class ApiService {
   }
   listInscripcionesPorCurso(cursoId: string): Observable<Inscripcion[]> {
     return this.inscripciones.listInscripcionesPorCurso(cursoId);
+  }
+  /** Da de baja una matrícula: la propia si eres estudiante, cualquiera si eres admin. */
+  deleteInscripcion(id: string): Observable<void> {
+    return this.inscripciones.deleteInscripcion(id);
   }
 }

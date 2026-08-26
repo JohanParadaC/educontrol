@@ -6,14 +6,19 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import { Curso } from './curso.model';
 import { Usuario } from './usuario.model';
 import { aCurso, aCursos, deCurso } from './curso.mapper';
 import { Pagina, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
-import { usuarioLocal, idDe, normalizar } from './sesion-local';
+
+/** Filtros del listado de cursos. `profesor: 'me'` es el atajo del backend. */
+export interface FiltroCursos {
+  profesor?: string;
+  buscar?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class CursosApi {
@@ -31,16 +36,22 @@ export class CursosApi {
   }
 
   /**
-   * Pide el máximo que permite el backend porque el catálogo del estudiante
-   * filtra en cliente: si trajera solo la primera página, la búsqueda mentiría
-   * sin decirlo. Con catálogos mayores hay que mover el filtro al servidor.
+   * Catálogo. `buscar` viaja al servidor: antes se traían 100 cursos y se
+   * filtraban aquí, así que a partir del curso 101 la búsqueda mentia sin
+   * decirlo.
    */
-  listCursos(): Observable<Curso[]> {
-    return this.listCursosPaginado(1, LIMITE_MAXIMO_PAGINA).pipe(map(p => p.items));
+  listCursos(filtros: FiltroCursos = {}): Observable<Curso[]> {
+    return this.listCursosPaginado(1, LIMITE_MAXIMO_PAGINA, filtros).pipe(map(p => p.items));
   }
 
-  listCursosPaginado(pagina = 1, limite = LIMITE_PAGINA): Observable<Pagina<Curso>> {
-    const params = new HttpParams().set('page', pagina).set('limit', limite);
+  listCursosPaginado(
+    pagina = 1,
+    limite = LIMITE_PAGINA,
+    filtros: FiltroCursos = {}
+  ): Observable<Pagina<Curso>> {
+    let params = new HttpParams().set('page', pagina).set('limit', limite);
+    if (filtros.profesor) params = params.set('profesor', filtros.profesor);
+    if (filtros.buscar?.trim()) params = params.set('buscar', filtros.buscar.trim());
     return this.http.get<any>(this.base, { params }).pipe(
       map(r => {
         const p = aPagina<any>(r, 'cursos', pagina, limite);
@@ -56,48 +67,36 @@ export class CursosApi {
   }
 
   /**
-   * El PUT del backend valida el curso completo, así que si la edición es
-   * parcial hay que leerlo antes y completar los campos que falten.
+   * Edición parcial: se manda solo lo que cambia.
+   *
+   * Antes esto leía el curso con un GET y lo reenviaba entero "porque el PUT
+   * valida el curso completo". Ya no es cierto: `actualizarCurso` construye el
+   * update solo con los campos presentes. El GET previo era una petición de
+   * más y una condición de carrera —lees, otro edita, escribes encima de su
+   * cambio sin enterarte—.
    */
   updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {
-    const payload = deCurso(body);
-    const completo = payload['nombre'] !== undefined && payload['descripcion'] !== undefined;
-
-    const enviar = (base?: Curso) =>
-      this.http
-        .put<any>(`${this.base}/${id}`, { ...deCurso(base ?? {}), ...payload })
-        .pipe(map(aCurso));
-
-    return completo ? enviar() : this.getCurso(id).pipe(switchMap(enviar));
+    return this.http.put<any>(`${this.base}/${id}`, deCurso(body)).pipe(map(aCurso));
   }
 
   deleteCurso(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
 
-  /** Reasigna el profesor. Lee el curso antes porque el PUT valida el recurso entero. */
+  /** Reasigna el profesor: es un cambio parcial más. */
   asignarProfesor(cursoId: string, profesor: string | Usuario): Observable<Curso> {
     return this.updateCurso(cursoId, { profesor } as Partial<Curso>);
   }
 
-  /** Cursos que imparte el usuario de la sesión actual. */
+  /**
+   * Cursos que imparte el usuario de la sesión actual.
+   *
+   * Lo resuelve el servidor con ?profesor=me. Antes se descargaba el catálogo
+   * y se comparaban identificadores aquí, con un respaldo que comparaba
+   * nombres normalizados sin tildes "por si los datos son antiguos": dos
+   * profesores homónimos compartían clases.
+   */
   listCursosDeProfesorMe(): Observable<Curso[]> {
-    const yo = usuarioLocal();
-    const miId = idDe(yo);
-    const miNombre = normalizar(yo?.nombre ?? '');
-
-    return this.listCursos().pipe(
-      map(cursos =>
-        (cursos || []).filter((c: any) => {
-          const p = c?.profesor;
-          const pid = idDe(p);
-          if (pid && miId && String(pid) === String(miId)) return true;
-
-          // Respaldo para datos antiguos en los que el profesor era un nombre.
-          const pnombre = typeof p === 'string' ? p : (p?.nombre ?? '');
-          return !!(pnombre && miNombre) && normalizar(pnombre) === miNombre;
-        })
-      )
-    );
+    return this.listCursos({ profesor: 'me' });
   }
 }

@@ -21,8 +21,19 @@ import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import { Inscripcion } from './inscripcion.model';
+import { aCurso } from './curso.mapper';
 import { LIMITE_MAXIMO_PAGINA } from './paginacion';
 import { usuarioLocal, idDe } from './sesion-local';
+
+/**
+ * El curso llega poblado del backend, o sea con `nombre`. La interfaz lo llama
+ * `titulo`, y esa traducción vive en curso.mapper y solo ahí: sin pasar por
+ * él, "Mis cursos" pintaba un guión en lugar del título.
+ */
+const conCursoTraducido = (i: any): Inscripcion => ({
+  ...i,
+  curso: i?.curso && typeof i.curso === 'object' ? aCurso(i.curso) : i?.curso,
+});
 
 /** Filtros que acepta el listado. Se aplican siempre dentro de lo que el rol permite. */
 export interface FiltroInscripciones {
@@ -48,7 +59,7 @@ export class InscripcionesApi {
 
     return this.http
       .get<any>(this.base, { params })
-      .pipe(map(r => (Array.isArray(r) ? r : (r?.inscripciones ?? []))));
+      .pipe(map(r => (Array.isArray(r) ? r : (r?.inscripciones ?? [])).map(conCursoTraducido)));
   }
 
   createInscripcion(body: { curso: string; estudiante: string }): Observable<Inscripcion> {
@@ -77,5 +88,13 @@ export class InscripcionesApi {
 
   listInscripcionesPorCurso(cursoId: string): Observable<Inscripcion[]> {
     return this.listInscripciones({ curso: cursoId });
+  }
+
+  /**
+   * Da de baja una matrícula. Un estudiante puede con la suya; un admin, con
+   * cualquiera. Lo decide el servidor leyendo de quién es.
+   */
+  deleteInscripcion(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
   }
 }
