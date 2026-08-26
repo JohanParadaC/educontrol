@@ -4,8 +4,8 @@
 
 import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
-import { AuthGuard } from './core/auth.guard';
-import { AdminGuard } from './core/admin.guard';
+import { authGuard } from './core/auth.guard';
+import { adminGuard } from './core/admin.guard';
 import { AuthService } from './core/auth.service';
 import { rutaInicioPara } from './core/rutas';
 
@@ -34,7 +34,7 @@ export const routes: Routes = [
   // 👉 ahora hay rutas propias para el rol profesor
   {
     path: 'profesor/dashboard',
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/profesor/professor-dashboard.component').then(
         m => m.ProfessorDashboardComponent
@@ -42,7 +42,7 @@ export const routes: Routes = [
   },
   {
     path: 'profesor/clases',
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/profesor/professor-classes.component').then(
         m => m.ProfessorClassesComponent
@@ -54,7 +54,9 @@ export const routes: Routes = [
   // ===== Admin =====
   {
     path: 'admin',
-    canActivate: [AuthGuard, AdminGuard],
+    canActivate: [authGuard],
+    // canMatch: el servidor confirma el rol antes de descargar el panel.
+    canMatch: [adminGuard],
     loadComponent: () =>
       import('./features/admin/admin-dashboard.component').then(m => m.AdminDashboardComponent),
   },
@@ -62,7 +64,7 @@ export const routes: Routes = [
   // ===== Estudiante =====
   {
     path: 'estudiante/inicio',
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/estudiante/student-dashboard.component').then(
         m => m.StudentDashboardComponent
@@ -70,7 +72,7 @@ export const routes: Routes = [
   },
   {
     path: 'cursos',
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/estudiante/student-courses.component').then(
         m => m.StudentCoursesComponent
@@ -78,7 +80,7 @@ export const routes: Routes = [
   },
   {
     path: 'mis-cursos',
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/estudiante/student-my-courses.component').then(
         m => m.StudentMyCoursesComponent
@@ -90,7 +92,7 @@ export const routes: Routes = [
   // profesor. Cambiar de rol es una acción puntual, no un destino permanente.
   {
     path: 'cuenta',
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/cuenta/mi-cuenta.component').then(m => m.MiCuentaComponent),
   },
@@ -104,8 +106,8 @@ export const routes: Routes = [
   // Se mantiene la ruta porque hay enlaces y marcadores que apuntan aquí.
   {
     path: 'dashboard',
-    canActivate: [AuthGuard],
-    redirectTo: () => rutaInicioPara(inject(AuthService).usuario?.rol),
+    canActivate: [authGuard],
+    redirectTo: () => rutaInicioPara(inject(AuthService).rol()),
   },
 
   // ===== 404 =====

@@ -54,7 +54,7 @@ describe('AuthService — renovación de token en vuelo', () => {
 
     // La sesión nueva sobrevive.
     expect(localStorage.getItem('token')).toBe('token-nuevo');
-    expect(auth.isLoggedIn).toBeTrue();
+    expect(auth.estaAutenticado()).toBeTrue();
   });
 
   it('una renovación correcta que llega tarde tampoco pisa la sesión nueva', () => {

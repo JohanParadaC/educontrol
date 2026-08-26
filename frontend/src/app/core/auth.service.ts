@@ -1,39 +1,66 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, tap } from 'rxjs';
+// src/app/core/auth.service.ts
+// ---------------------------------------------------------------------------
+// La sesión: quién ha entrado y con qué token.
+//
+// El estado vive en señales. Antes era un BehaviorSubject con getters, y el de
+// `usuario` hacía `JSON.parse(localStorage)` cada vez que no había nada en
+// memoria. Como se lee desde las plantillas, eso era un parse por ciclo de
+// detección de cambios. Ahora el almacenamiento local se lee UNA vez, al
+// construir el servicio, y a partir de ahí manda la señal.
+// ---------------------------------------------------------------------------
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { tap } from 'rxjs';
+
 import { ApiService } from './api.service';
 import { Usuario } from '../data/usuario.model';
 
+const CLAVE_TOKEN = 'token';
+const CLAVE_USUARIO = 'usuario';
+
+/** Lee el usuario guardado. Si hay basura, se ignora y ya lo dirá la renovación. */
+function usuarioGuardado(): Usuario | null {
+  const crudo = localStorage.getItem(CLAVE_USUARIO);
+  if (!crudo) return null;
+  try {
+    return JSON.parse(crudo) as Usuario;
+  } catch {
+    return null;
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  /** ---- Estado de usuario ------------------------------------------ */
-  private user$ = new BehaviorSubject<Usuario | null>(null);
-  userObservable = this.user$.asObservable();
+  private api = inject(ApiService);
 
-  /** ---- Claves para LS --------------------------------------------- */
-  private readonly TOKEN_KEY = 'token';
-  private readonly USER_KEY = 'usuario';
+  /** Escritura solo desde aquí dentro; fuera se lee. */
+  private readonly _usuario = signal<Usuario | null>(usuarioGuardado());
+  private readonly _token = signal<string | null>(localStorage.getItem(CLAVE_TOKEN));
 
-  constructor(private api: ApiService) {
-    // CAMBIO: rehidratar usuario desde LS para evitar "parpadeo" de UI
-    const token = localStorage.getItem(this.TOKEN_KEY);
-    const userStr = localStorage.getItem(this.USER_KEY);
-    if (userStr) {
-      try {
-        this.user$.next(JSON.parse(userStr) as Usuario);
-      } catch {
-        // localStorage con basura: se ignora y se rehidrata al validar el token.
-      }
-    }
+  /** Usuario de la sesión actual. Se lee llamándola: `auth.usuario()`. */
+  readonly usuario = this._usuario.asReadonly();
 
-    if (token) {
-      // Valida y renueva con backend; si falla, hace logout
-      this.validateToken();
+  /**
+   * Hay sesión mientras haya token.
+   *
+   * No depende de `usuario`: el token es lo que el servidor comprueba, y puede
+   * haber token válido mientras el usuario todavía no se ha rehidratado.
+   */
+  readonly estaAutenticado = computed(() => !!this._token());
+
+  /** El rol de quien ha entrado, o cadena vacía si no hay nadie. */
+  readonly rol = computed(() => this._usuario()?.rol ?? '');
+
+  constructor() {
+    if (this._token()) {
+      // Valida y renueva contra el servidor; si falla, cierra la sesión.
+      this.validarToken();
     } else {
-      localStorage.removeItem(this.USER_KEY);
+      // Token sin usuario no es una sesión, es un resto.
+      localStorage.removeItem(CLAVE_USUARIO);
+      this._usuario.set(null);
     }
   }
 
-  /** ---- Login ------------------------------------------------------- */
   login(credentials: { correo: string; password: string }) {
     // Un solo nombre. Aquí se aceptaban tres alias —password, contrasena,
     // contraseña— y se elegía el primero que viniera, pero la traducción al
@@ -41,59 +68,46 @@ export class AuthService {
     // debe estar en un sitio.
     return this.api
       .login(credentials)
-      .pipe(tap(({ token, usuario }) => this.setSession(token, usuario)));
+      .pipe(tap(({ token, usuario }) => this.guardarSesion(token, usuario)));
   }
 
-  /** ---- Logout ------------------------------------------------------ */
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    this.user$.next(null);
+    localStorage.removeItem(CLAVE_TOKEN);
+    localStorage.removeItem(CLAVE_USUARIO);
+    this._token.set(null);
+    this._usuario.set(null);
   }
 
-  /** ---- Utilidades -------------------------------------------------- */
-  isLogged(): boolean {
-    return !!localStorage.getItem(this.TOKEN_KEY);
-  }
-  get isLoggedIn(): boolean {
-    return this.isLogged();
+  /** Refresca los datos del usuario sin tocar el token (cambio de nombre, de rol…). */
+  actualizarUsuario(usuario: Usuario | null): void {
+    if (usuario) localStorage.setItem(CLAVE_USUARIO, JSON.stringify(usuario));
+    else localStorage.removeItem(CLAVE_USUARIO);
+    this._usuario.set(usuario);
   }
 
-  /** Token para interceptor */
+  /** Token en crudo. Lo usa quien tenga que hablar con la API por su cuenta. */
   get token(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  /** ✅ Getter/Setter de usuario para usar desde componentes */
-  get usuario(): Usuario | null {
-    const inMem = this.user$.value;
-    if (inMem) return inMem;
-    const fromLS = localStorage.getItem(this.USER_KEY);
-    return fromLS ? (JSON.parse(fromLS) as Usuario) : null;
-  }
-  set usuario(u: Usuario | null) {
-    this.user$.next(u);
-    if (u) localStorage.setItem(this.USER_KEY, JSON.stringify(u));
-    else localStorage.removeItem(this.USER_KEY);
+    return this._token();
   }
 
   /* ---- helpers privados -------------------------------------------- */
-  private setSession(token: string, usuario: Usuario): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    localStorage.setItem(this.USER_KEY, JSON.stringify(usuario));
-    this.user$.next(usuario);
+  private guardarSesion(token: string, usuario: Usuario): void {
+    localStorage.setItem(CLAVE_TOKEN, token);
+    localStorage.setItem(CLAVE_USUARIO, JSON.stringify(usuario));
+    this._token.set(token);
+    this._usuario.set(usuario);
   }
 
-  private validateToken(): void {
-    // Guardamos con qué token salimos: la respuesta puede tardar y, mientras,
-    // el usuario puede haber iniciado sesión de nuevo.
-    const tokenValidado = localStorage.getItem(this.TOKEN_KEY);
+  private validarToken(): void {
+    // Con qué token salimos: la respuesta puede tardar y, mientras, el usuario
+    // puede haber iniciado sesión de nuevo.
+    const tokenValidado = localStorage.getItem(CLAVE_TOKEN);
 
     this.api.renew().subscribe({
       next: ({ token, usuario }) => {
         // Si la sesión ya cambió, no pisamos la nueva con una respuesta vieja.
-        if (localStorage.getItem(this.TOKEN_KEY) !== tokenValidado) return;
-        this.setSession(token, usuario);
+        if (localStorage.getItem(CLAVE_TOKEN) !== tokenValidado) return;
+        this.guardarSesion(token, usuario);
       },
       error: () => {
         // 🔒 Solo cerramos sesión si seguimos hablando del MISMO token.
@@ -102,7 +116,7 @@ export class AuthService {
         // app, la renovación falla de fondo, mientras tanto inicias sesión bien
         // y, un instante después, el logout de la renovación borra la sesión
         // recién creada. Se veía como "he entrado y me ha echado al login".
-        if (localStorage.getItem(this.TOKEN_KEY) !== tokenValidado) return;
+        if (localStorage.getItem(CLAVE_TOKEN) !== tokenValidado) return;
         this.logout();
       },
     });
