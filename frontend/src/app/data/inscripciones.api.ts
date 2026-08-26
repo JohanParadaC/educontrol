@@ -4,24 +4,50 @@
 //
 // El backend devuelve `estudiante` y `curso` POBLADOS, así que quien consuma
 // esto no necesita cruzar nada con la lista de usuarios.
+//
+// Quién ve qué lo decide el servidor a partir del rol de quien pregunta:
+// un estudiante recibe solo las suyas, un profesor las de los cursos que
+// imparte y un administrador todas. Antes este endpoint devolvía la colección
+// entera a cualquiera y el filtrado se hacía aquí, en el navegador: además de
+// filtrar los correos de todo el mundo, obligaba a descargarlos.
+//
+// Por eso `curso` y `estudiante` van como parámetros de consulta y no como
+// `.filter()`: el servidor los cruza con lo que el rol permite ver.
 // ---------------------------------------------------------------------------
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import { Inscripcion } from './inscripcion.model';
+import { LIMITE_MAXIMO_PAGINA } from './paginacion';
 import { usuarioLocal, idDe } from './sesion-local';
+
+/** Filtros que acepta el listado. Se aplican siempre dentro de lo que el rol permite. */
+export interface FiltroInscripciones {
+  curso?: string;
+  estudiante?: string;
+  limite?: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class InscripcionesApi {
   private http = inject(HttpClient);
   private base = `${environment.apiBase}/inscripciones`;
 
-  listInscripciones(): Observable<Inscripcion[]> {
+  /**
+   * Listado paginado. Se pide el tope duro del backend (100) porque ninguna de
+   * las pantallas que lo usan tiene todavía paginador propio; pasadas las 100
+   * matrículas de un curso, esto necesita paginación de verdad.
+   */
+  listInscripciones(filtros: FiltroInscripciones = {}): Observable<Inscripcion[]> {
+    let params = new HttpParams().set('limit', String(filtros.limite ?? LIMITE_MAXIMO_PAGINA));
+    if (filtros.curso) params = params.set('curso', filtros.curso);
+    if (filtros.estudiante) params = params.set('estudiante', filtros.estudiante);
+
     return this.http
-      .get<any>(this.base)
+      .get<any>(this.base, { params })
       .pipe(map(r => (Array.isArray(r) ? r : (r?.inscripciones ?? []))));
   }
 
@@ -41,14 +67,15 @@ export class InscripcionesApi {
   /** Inscripciones del usuario de la sesión actual. */
   listInscripcionesMe(): Observable<Inscripcion[]> {
     const miId = idDe(usuarioLocal());
-    return this.listInscripciones().pipe(
-      map(todas => (todas || []).filter((i: any) => idDe(i?.estudiante) === miId))
-    );
+    // Sin sesión se falla en voz alta. Mandar el filtro vacío significaría
+    // "todo lo que mi rol permita", que no es lo mismo que "lo mío", y
+    // devolver una lista vacía sería decir "no tienes cursos" cuando lo que
+    // pasa es que no hay sesión.
+    if (!miId) return throwError(() => new Error('No hay usuario autenticado.'));
+    return this.listInscripciones({ estudiante: miId });
   }
 
   listInscripcionesPorCurso(cursoId: string): Observable<Inscripcion[]> {
-    return this.listInscripciones().pipe(
-      map(ins => (ins || []).filter((i: any) => String(idDe(i?.curso)) === String(cursoId)))
-    );
+    return this.listInscripciones({ curso: cursoId });
   }
 }

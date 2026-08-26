@@ -24,7 +24,7 @@ import { Inscripcion } from '../data/inscripcion.model';
 import { AuthApi, RespuestaSesion } from '../data/auth.api';
 import { UsuariosApi } from '../data/usuarios.api';
 import { CursosApi } from '../data/cursos.api';
-import { InscripcionesApi } from '../data/inscripciones.api';
+import { InscripcionesApi, FiltroInscripciones } from '../data/inscripciones.api';
 import { Pagina, LIMITE_PAGINA } from '../data/paginacion';
 
 export { LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA, type Pagina } from '../data/paginacion';
@@ -110,8 +110,13 @@ export class ApiService {
   }
 
   // ---------------- INSCRIPCIONES ----------------
-  listInscripciones(): Observable<Inscripcion[]> {
-    return this.inscripciones.listInscripciones();
+  /**
+   * Devuelve lo que el rol de la sesión permite ver: un estudiante recibe las
+   * suyas, un profesor las de sus cursos y un administrador todas. Los filtros
+   * se cruzan con esa regla en el servidor.
+   */
+  listInscripciones(filtros: FiltroInscripciones = {}): Observable<Inscripcion[]> {
+    return this.inscripciones.listInscripciones(filtros);
   }
   createInscripcion(body: { curso: string; estudiante: string }): Observable<Inscripcion> {
     return this.inscripciones.createInscripcion(body);
