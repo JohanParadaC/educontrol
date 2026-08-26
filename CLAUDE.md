@@ -89,6 +89,7 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - **Los colores y las formas salen de los tokens de `styles.scss`**, nunca escritos a mano. Un `#fff` no existe en modo oscuro y un `rgba(0,0,0,.6)` es invisible ahí. La tabla completa está en `docs/DISENO.md`.
 - **Los tokens se declaran en claro y el bloque oscuro solo redefine.** Un color cuya única definición esté dentro de un `@media` queda `unset` en claro y el componente sale transparente.
 - **El color del rol tiñe fondos; para escribir encima está `--rol-*-texto`.** El ámbar sobre blanco da 2,3:1.
+- **Lo que se anima se declara DENTRO de `@media (prefers-reduced-motion: no-preference)`**, no se apaga fuera. Si el estado base es `opacity: 0` y se confía en una regla que lo revierta, basta con que esa regla no gane para dejar media pantalla invisible. Declarándolo dentro, quien pide menos movimiento simplemente no tiene animación.
 
 ## Convenciones
 

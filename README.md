@@ -32,7 +32,7 @@ Un solo proceso sirve la API y la aplicación web desde el mismo origen, así qu
 
 ### Entrar
 
-La pantalla de login tiene un botón por rol que entra directamente. Si prefieres escribirlas:
+La portada y la pantalla de login tienen un botón por rol que entra directamente. Si prefieres escribirlas:
 
 | Rol           | Correo                 | Contraseña  |
 | ------------- | ---------------------- | ----------- |
@@ -230,6 +230,33 @@ de esperar: ninguno de los cambios toca la pantalla de login. Lo que sí se
 mueve es el panel de administración, y ahí Lighthouse no llega porque hace
 falta sesión.
 
+### La portada
+
+Medida igual, contra `/`, que ahora es una pantalla de verdad y no un texto
+centrado:
+
+| Medida                 | Escritorio | Móvil     |
+| ---------------------- | ---------- | --------- |
+| Rendimiento            | 95         | 57-75     |
+| Accesibilidad          | 100        | 100       |
+| Prácticas recomendadas | 100        | 100       |
+| SEO                    | 100        | 100       |
+| LCP                    | 1,3 s      | 4,0-5,0 s |
+| CLS                    | 0          | 0         |
+
+El objetivo era 90 de rendimiento: se cumple en escritorio y no en móvil. El
+motivo no está en la portada. Con la CPU cuatro veces más lenta y la red de un
+4G malo, lo que manda es el bundle inicial —Angular con Material— y la hoja de
+estilos, que bloquea el pintado porque `inlineCritical` está desactivado por la
+CSP. La portada pone 14,6 kB de chunk propio y 44 kB de captura; el resto lo
+paga igual cualquier otra ruta. Bajarlo es otro trabajo, no un retoque de esta
+pantalla.
+
+Lo que sí se midió y se corrigió aquí: la captura del héroe pasó de 250 kB (PNG
+a escala 2) a 44 kB (webp a escala 1) sin perder nitidez —en su hueco más ancho
+se pinta a unos 570 px—, y `/robots.txt` dejó de caer en el comodín del
+enrutado, que se lo devolvía como index.html.
+
 De dónde salen los 70 kB: se fueron `@angular-devkit/build-angular`,
 `@angular/platform-browser-dynamic` y `express` del frontend, y con ellos 300
 paquetes transitivos.
@@ -260,7 +287,7 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
 - **No hay pantalla de detalle de un curso:** desde las tarjetas se navega al listado, no a una ficha propia.
 - **`POST /api/inscripciones` acepta el `estudianteId` del cuerpo sin comprobar de quién es.** Lo necesita el panel de administración para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
-- **El bundle inicial pesa ~700 kB** (173 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
+- **El bundle inicial pesa ~733 kB** (180 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
 
 ## Licencia
 

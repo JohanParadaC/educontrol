@@ -77,6 +77,11 @@ Cada rol tiene además su versión legible para texto: `--rol-*-texto`. El color
 del rol sirve para **teñir un fondo**, no para escribir encima: `#f59e0b` sobre
 blanco da 2,3:1. El chip usa el color al 14 % de fondo y el `-texto` encima.
 
+Cuando un mismo bloque tiñe varias cosas con el color de un rol —la portada
+pinta franja, icono y número— el par se resuelve **una vez** en el elemento que
+lleva el rol escrito, con `[data-rol='…'] { --color-rol; --color-rol-texto }`, y
+de ahí abajo lo hereda todo. La alternativa era repetir cada regla tres veces.
+
 ### Estado
 
 | Token      | Claro     | Oscuro    |
@@ -216,6 +221,14 @@ Se regeneran con `npm run capturas` (necesita el servidor levantado; recorre
 las pantallas con un Chrome sin interfaz). El script fija el tema en cada
 captura con `Emulation.setEmulatedMedia`: sin eso, Chrome hereda el esquema del
 sistema y las mismas capturas salen claras u oscuras según quién las regenere.
+De paso pide `prefers-reduced-motion: reduce`, porque si no la portada se
+capturaba a medio animar —y así se comprueba que con esa preferencia no queda
+nada invisible.
+
+La misma tanda escribe dos ficheros que **no** son documentación:
+`frontend/public/captura-panel.webp` y `captura-panel-oscuro.webp`, el panel
+que enseña el héroe de la portada. Van en webp y a escala 1 porque esas dos sí
+las descarga quien abre la página.
 
 ---
 
