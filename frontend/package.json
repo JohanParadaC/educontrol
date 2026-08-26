@@ -12,7 +12,6 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@angular-devkit/build-angular": "^20.1.5",
     "@angular/animations": "^20.1.6",
     "@angular/cdk": "^20.1.5",
     "@angular/common": "^20.1.0",
@@ -21,10 +20,8 @@
     "@angular/forms": "^20.1.0",
     "@angular/material": "^20.1.5",
     "@angular/platform-browser": "^20.1.0",
-    "@angular/platform-browser-dynamic": "^20.1.6",
     "@angular/router": "^20.1.0",
     "@fontsource/roboto": "^5.3.0",
-    "express": "^4.19.2",
     "material-icons": "^1.13.14",
     "rxjs": "^7.8.2",
     "tslib": "^2.3.0",
