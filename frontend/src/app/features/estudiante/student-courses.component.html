@@ -1,0 +1,70 @@
+<div class="grid gap-3">
+  <div class="toolbar">
+    <mat-form-field appearance="outline" class="w-100">
+      <mat-label>Buscar curso</mat-label>
+      <input matInput [formControl]="q" placeholder="Título, profesor, descripción…" />
+    </mat-form-field>
+  </div>
+
+  <!-- 1) Cargando: esqueletos, para que el salto de vacío a lleno no dé tirón -->
+  @if (cargando) {
+    <div class="grid cards" aria-busy="true" aria-label="Cargando cursos">
+      @for (_ of [1, 2, 3]; track _) {
+        <mat-card class="course esqueleto">
+          <div class="linea titulo"></div>
+          <div class="linea corta"></div>
+          <div class="linea"></div>
+        </mat-card>
+      }
+    </div>
+  }
+
+  <!-- 2) Error de carga: distinto de "no hay cursos", y con salida -->
+  @if (!cargando && errorCarga) {
+    <div class="estado error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ errorCarga }}</p>
+      <button mat-stroked-button (click)="reintentar()">Reintentar</button>
+    </div>
+  }
+
+  @if (!cargando && !errorCarga) {
+    @if (cursos; as lista) {
+      <div class="grid cards">
+        @for (c of lista; track trackCurso($index, c)) {
+          <mat-card class="course">
+            <h3>{{ c.titulo }}</h3>
+            <div class="muted">{{ profName(c.profesor) || '—' }}</div>
+            <p class="desc">{{ c.descripcion }}</p>
+            <div class="actions">
+              <button
+                mat-stroked-button
+                color="primary"
+                [disabled]="isEnrolled(c._id!)"
+                (click)="matricular(c)"
+              >
+                <mat-icon>how_to_reg</mat-icon>
+                {{ isEnrolled(c._id!) ? 'Ya inscrito' : 'Matricular' }}
+              </button>
+            </div>
+          </mat-card>
+        }
+      </div>
+      <!-- 3) Vacío: y distinguimos "no hay nada" de "tu búsqueda no encuentra" -->
+      @if (lista.length === 0) {
+        <div class="estado">
+          <mat-icon>search_off</mat-icon>
+          @if (q.value) {
+            <p>No hay cursos que coincidan con «{{ q.value }}».</p>
+          }
+          @if (!q.value) {
+            <p>Todavía no hay cursos publicados.</p>
+          }
+          @if (q.value) {
+            <button mat-stroked-button (click)="q.setValue('')">Quitar el filtro</button>
+          }
+        </div>
+      }
+    }
+  }
+</div>

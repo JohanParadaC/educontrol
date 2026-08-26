@@ -9,7 +9,7 @@
 
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -36,171 +36,16 @@ import { Inscripcion } from '../../data/inscripcion.model';
   standalone: true,
   selector: 'app-student-courses',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatIconModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSnackBarModule, // ✅
+    MatSnackBarModule,
   ],
-  template: `
-    <div class="grid gap-3">
-      <div class="toolbar">
-        <mat-form-field appearance="outline" class="w-100">
-          <mat-label>Buscar curso</mat-label>
-          <input matInput [formControl]="q" placeholder="Título, profesor, descripción…" />
-        </mat-form-field>
-      </div>
-
-      <!-- 1) Cargando: esqueletos, para que el salto de vacío a lleno no dé tirón -->
-      <div *ngIf="cargando" class="grid cards" aria-busy="true" aria-label="Cargando cursos">
-        <mat-card class="course esqueleto" *ngFor="let _ of [1, 2, 3]">
-          <div class="linea titulo"></div>
-          <div class="linea corta"></div>
-          <div class="linea"></div>
-        </mat-card>
-      </div>
-
-      <!-- 2) Error de carga: distinto de "no hay cursos", y con salida -->
-      <div *ngIf="!cargando && errorCarga" class="estado error" role="alert">
-        <mat-icon>error_outline</mat-icon>
-        <p>{{ errorCarga }}</p>
-        <button mat-stroked-button (click)="reintentar()">Reintentar</button>
-      </div>
-
-      <ng-container *ngIf="!cargando && !errorCarga">
-        <ng-container *ngIf="cursos as lista">
-          <div class="grid cards">
-            <mat-card *ngFor="let c of lista; trackBy: trackCurso" class="course">
-              <h3>{{ c.titulo }}</h3>
-              <div class="muted">{{ profName(c.profesor) || '—' }}</div>
-              <p class="desc">{{ c.descripcion }}</p>
-
-              <div class="actions">
-                <button
-                  mat-stroked-button
-                  color="primary"
-                  [disabled]="isEnrolled(c._id!)"
-                  (click)="matricular(c)"
-                >
-                  <mat-icon>how_to_reg</mat-icon>
-                  {{ isEnrolled(c._id!) ? 'Ya inscrito' : 'Matricular' }}
-                </button>
-              </div>
-            </mat-card>
-          </div>
-
-          <!-- 3) Vacío: y distinguimos "no hay nada" de "tu búsqueda no encuentra" -->
-          <div *ngIf="lista.length === 0" class="estado">
-            <mat-icon>search_off</mat-icon>
-            <p *ngIf="q.value">No hay cursos que coincidan con «{{ q.value }}».</p>
-            <p *ngIf="!q.value">Todavía no hay cursos publicados.</p>
-            <button mat-stroked-button *ngIf="q.value" (click)="q.setValue('')">
-              Quitar el filtro
-            </button>
-          </div>
-        </ng-container>
-      </ng-container>
-    </div>
-  `,
-  styles: [
-    `
-      .grid {
-        display: grid;
-      }
-      .gap-3 {
-        gap: 12px;
-      }
-      .toolbar {
-        max-width: 560px;
-      }
-      .cards {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-      }
-      .course h3 {
-        margin-bottom: 4px;
-      }
-      .muted {
-        opacity: 0.7;
-      }
-      .desc {
-        opacity: 0.85;
-      }
-      .actions {
-        margin-top: 8px;
-      }
-      .actions button {
-        min-height: 48px;
-      }
-
-      /* Estado vacío / error: centrado y con una acción, no un texto suelto */
-      .estado {
-        display: grid;
-        justify-items: center;
-        gap: 8px;
-        padding: 48px 16px;
-        text-align: center;
-        color: var(--mat-sys-on-surface-variant);
-      }
-      .estado mat-icon {
-        font-size: 40px;
-        width: 40px;
-        height: 40px;
-        opacity: 0.6;
-      }
-      .estado p {
-        margin: 0;
-      }
-      .estado.error {
-        color: var(--mat-sys-on-error-container);
-      }
-
-      /* Esqueletos de carga: ocupan el sitio de las tarjetas reales para que al
-       llegar los datos la página no pegue un salto. */
-      .esqueleto .linea {
-        height: 12px;
-        border-radius: 6px;
-        margin: 10px 0;
-        background: color-mix(in srgb, var(--mat-sys-on-surface) 12%, transparent);
-        animation: latido 1.4s ease-in-out infinite;
-      }
-      .esqueleto .titulo {
-        height: 20px;
-        width: 70%;
-      }
-      .esqueleto .corta {
-        width: 40%;
-      }
-      @keyframes latido {
-        0%,
-        100% {
-          opacity: 0.45;
-        }
-        50% {
-          opacity: 0.9;
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .esqueleto .linea {
-          animation: none;
-        }
-      }
-
-      @media (max-width: 1100px) {
-        .cards {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-      @media (max-width: 700px) {
-        .cards {
-          grid-template-columns: 1fr;
-        }
-      }
-    `,
-  ],
+  templateUrl: './student-courses.component.html',
+  styleUrls: ['./student-courses.component.scss'],
 })
 export class StudentCoursesComponent implements OnInit {
   private api = inject(ApiService);

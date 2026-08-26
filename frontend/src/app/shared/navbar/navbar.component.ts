@@ -1,5 +1,5 @@
 import { Component, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
@@ -27,13 +27,7 @@ interface Enlace {
   standalone: true,
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.scss'],
-  imports: [
-    CommonModule, // ⭐️ incluye *ngIf, *ngFor, etc.
-    RouterModule,
-    MatToolbarModule,
-    MatButtonModule,
-    MatIconModule,
-  ],
+  imports: [RouterModule, MatToolbarModule, MatButtonModule, MatIconModule],
 })
 export class NavbarComponent {
   /** Menú desplegable en móvil. En escritorio no se usa. */

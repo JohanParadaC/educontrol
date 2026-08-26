@@ -1,0 +1,63 @@
+<div class="wrap">
+  <!-- ===== Cabecera con saludo + CTA ===== -->
+  <div class="header">
+    <div>
+      <h1 class="title">Hola, {{ auth.usuario?.nombre || 'Profesor' }} 👋</h1>
+      <div class="subtitle">Bienvenido a tu panel</div>
+    </div>
+    <!-- CAMBIO: el CTA te lleva a la lista /profesor/clases -->
+    <a mat-stroked-button color="primary" [routerLink]="classesLink">
+      <mat-icon>class</mat-icon>&nbsp;Ver mis clases
+    </a>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <!-- Carga, error y vacío: los tres, y distinguibles entre sí -->
+  @if (loading || error || !cursos.length) {
+    <app-estado-vista
+      [cargando]="loading"
+      [error]="error"
+      mensajeVacio="Todavía no tienes cursos asignados. Administración te los asigna."
+      iconoVacio="menu_book"
+      (reintentar)="cargar()"
+    >
+    </app-estado-vista>
+  }
+
+  @if (!loading && !error && cursos.length) {
+    <div>
+      <div class="kpis">
+        <div class="kpi">
+          <div class="num">{{ cursos.length }}</div>
+          <div class="lbl">Cursos activos</div>
+        </div>
+        <div class="kpi">
+          <div class="num">{{ totalEstudiantes }}</div>
+          <div class="lbl">Estudiantes inscritos</div>
+        </div>
+      </div>
+      <!-- ===== Tus clases (tarjetas) ===== -->
+      <h3 class="section"><mat-icon>menu_book</mat-icon>&nbsp;Tus clases</h3>
+      <div class="cards">
+        @for (c of cursos; track trackById($index, c)) {
+          <mat-card class="course">
+            <mat-card-title>{{ courseTitle(c) }}</mat-card-title>
+            <mat-card-subtitle>{{ courseDesc(c) || '—' }}</mat-card-subtitle>
+            <mat-card-content>
+              <!-- CAMBIO: tooltip requiere MatTooltipModule -->
+              <div class="chip" matTooltip="Total de alumnos inscritos">
+                <mat-icon>group</mat-icon>
+                {{ inscritosPorCurso.get(idOf(c)) || 0 }} estudiantes
+              </div>
+            </mat-card-content>
+            <mat-card-actions>
+              <!-- Si tienes detalle, cambia a: ['/curso', idOf(c)] -->
+              <a mat-button color="primary" [routerLink]="classesLink">Ir al curso</a>
+            </mat-card-actions>
+          </mat-card>
+        }
+      </div>
+    </div>
+  }
+</div>

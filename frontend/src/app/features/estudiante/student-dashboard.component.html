@@ -1,0 +1,92 @@
+<div class="wrap">
+  <!-- Cabecera -->
+  <mat-card class="brand">
+    <div class="brand-wrap">
+      <div>
+        <h1>Hola{{ auth.usuario?.nombre ? ', ' + auth.usuario?.nombre : '' }} 👋</h1>
+        <span>Bienvenido a tu panel</span>
+      </div>
+      <div class="actions">
+        <a mat-stroked-button color="primary" routerLink="/cursos">
+          <mat-icon>school</mat-icon> Ver cursos
+        </a>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- 1) Tus cursos -->
+  <mat-card>
+    <h3 class="card-title"><mat-icon>playlist_add_check</mat-icon> Tus cursos</h3>
+
+    @if (loadingIns) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    } @else {
+      @if (misCursosCards.length) {
+        <div class="cards-grid">
+          @for (c of misCursosCards; track trackCurso($index, c)) {
+            <mat-card class="course">
+              <mat-card-title>{{ c.titulo }}</mat-card-title>
+              <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
+              <mat-card-content>
+                @if (c.descripcion) {
+                  <p class="desc">{{ c.descripcion }}</p>
+                }
+              </mat-card-content>
+              <mat-card-actions>
+                <a mat-button routerLink="/cursos">Ir al curso</a>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
+      } @else {
+        <div class="empty">
+          <mat-icon>info</mat-icon>
+          Aún no estás matriculado en ningún curso.
+          <a routerLink="/cursos">Explora el catálogo</a>
+        </div>
+      }
+    }
+  </mat-card>
+
+  <!-- 2) Cursos disponibles (SOLO los que NO estás matriculado) -->
+  <mat-card>
+    <h3 class="card-title"><mat-icon>library_books</mat-icon> Cursos disponibles</h3>
+
+    @if (loadingCursos) {
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    } @else {
+      @if (cursosDisponibles.length) {
+        <div class="cards-grid">
+          @for (c of cursosDisponibles | slice: 0 : 6; track trackCurso($index, c)) {
+            <mat-card class="course">
+              <mat-card-title>{{ c.titulo }}</mat-card-title>
+              <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
+              <mat-card-content>
+                @if (c.descripcion) {
+                  <p class="desc">{{ c.descripcion }}</p>
+                }
+              </mat-card-content>
+              <mat-card-actions>
+                <!-- ✅ Matricular desde el dashboard (sin navegar) -->
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  (click)="matricular(c)"
+                  [disabled]="matriculandoId === idOf(c)"
+                >
+                  {{ matriculandoId === idOf(c) ? 'Matriculando…' : 'Matricular' }}
+                </button>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
+        <a mat-button color="primary" routerLink="/cursos">Ver todos</a>
+      } @else {
+        <div class="empty">
+          <mat-icon>info</mat-icon>
+          No hay cursos publicados (o ya estás matriculado en todos).
+        </div>
+      }
+    }
+  </mat-card>
+</div>

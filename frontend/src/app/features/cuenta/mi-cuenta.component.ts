@@ -11,7 +11,7 @@
 // tiempo y no tenía ninguna pantalla.
 // ---------------------------------------------------------------------------
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import {
   FormBuilder,
@@ -55,7 +55,6 @@ function coinciden(grupo: AbstractControl): ValidationErrors | null {
   standalone: true,
   selector: 'app-mi-cuenta',
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatFormFieldModule,

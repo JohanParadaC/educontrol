@@ -8,41 +8,50 @@
 // preguntarlo" llevan al usuario a acciones distintas.
 //
 // Uso:
-//   <app-estado-vista *ngIf="cargando || error || !hayDatos"
-//                     [cargando]="cargando" [error]="error"
-//                     mensajeVacio="Todavía no hay cursos"
-//                     (reintentar)="cargar()"></app-estado-vista>
+//   @if (cargando || error || !hayDatos) {
+//     <app-estado-vista [cargando]="cargando" [error]="error"
+//                       mensajeVacio="Todavía no hay cursos"
+//                       (reintentar)="cargar()"></app-estado-vista>
+//   }
 // ---------------------------------------------------------------------------
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   standalone: true,
   selector: 'app-estado-vista',
-  imports: [CommonModule, MatButtonModule, MatIconModule],
+  imports: [MatButtonModule, MatIconModule],
   template: `
     <!-- 1) Cargando -->
-    <div *ngIf="cargando" class="estado" aria-busy="true" [attr.aria-label]="textoCargando">
-      <div class="esqueleto" *ngFor="let _ of filas">
-        <div class="linea titulo"></div>
-        <div class="linea corta"></div>
+    @if (cargando) {
+      <div class="estado" aria-busy="true" [attr.aria-label]="textoCargando">
+        @for (_ of filas; track _) {
+          <div class="esqueleto">
+            <div class="linea titulo"></div>
+            <div class="linea corta"></div>
+          </div>
+        }
       </div>
-    </div>
+    }
 
     <!-- 2) Error: mensaje real y una salida -->
-    <div *ngIf="!cargando && error" class="estado centrado error" role="alert">
-      <mat-icon aria-hidden="true">error_outline</mat-icon>
-      <p>{{ error }}</p>
-      <button mat-stroked-button type="button" (click)="reintentar.emit()">Reintentar</button>
-    </div>
+    @if (!cargando && error) {
+      <div class="estado centrado error" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <p>{{ error }}</p>
+        <button mat-stroked-button type="button" (click)="reintentar.emit()">Reintentar</button>
+      </div>
+    }
 
     <!-- 3) Vacío: distinto de un fallo -->
-    <div *ngIf="!cargando && !error" class="estado centrado">
-      <mat-icon aria-hidden="true">{{ iconoVacio }}</mat-icon>
-      <p>{{ mensajeVacio }}</p>
-    </div>
+    @if (!cargando && !error) {
+      <div class="estado centrado">
+        <mat-icon aria-hidden="true">{{ iconoVacio }}</mat-icon>
+        <p>{{ mensajeVacio }}</p>
+      </div>
+    }
   `,
   styles: [
     `

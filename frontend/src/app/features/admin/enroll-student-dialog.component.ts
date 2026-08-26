@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import {
   ReactiveFormsModule,
@@ -31,9 +31,9 @@ import { MatButtonModule } from '@angular/material/button';
       <mat-form-field appearance="outline" class="w-100">
         <mat-label>Estudiante</mat-label>
         <mat-select formControlName="estudianteId" placeholder="Selecciona un estudiante">
-          <mat-option *ngFor="let e of data.estudiantes; trackBy: trackById" [value]="e._id">
-            {{ e.nombre }} ({{ e.correo }})
-          </mat-option>
+          @for (e of data.estudiantes; track trackById($index, e)) {
+            <mat-option [value]="e._id"> {{ e.nombre }} ({{ e.correo }}) </mat-option>
+          }
         </mat-select>
       </mat-form-field>
     </div>
@@ -53,7 +53,6 @@ import { MatButtonModule } from '@angular/material/button';
     `,
   ],
   imports: [
-    CommonModule,
     MatDialogModule,
     ReactiveFormsModule,
     MatFormFieldModule,

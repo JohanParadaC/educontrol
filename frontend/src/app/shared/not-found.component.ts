@@ -7,7 +7,7 @@
 // esa redirección acababa en el login, y parecía que te habían echado.
 // ---------------------------------------------------------------------------
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -18,7 +18,7 @@ import { rutaInicioPara } from '../core/rutas';
 @Component({
   standalone: true,
   selector: 'app-not-found',
-  imports: [CommonModule, RouterModule, MatButtonModule, MatIconModule],
+  imports: [RouterModule, MatButtonModule, MatIconModule],
   template: `
     <div class="no-encontrado">
       <mat-icon aria-hidden="true">explore_off</mat-icon>

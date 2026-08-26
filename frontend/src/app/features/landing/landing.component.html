@@ -11,7 +11,7 @@
   </div>
 
   <!-- Quien viene a mirar el proyecto no se va a registrar: hay que dejarle
-       entrar en un clic o cierra la pestaña. -->
+  entrar en un clic o cierra la pestaña. -->
   <p class="demo">
     ¿Solo quieres echar un vistazo?
     <a routerLink="/login">Entra con una cuenta de demostración</a> — hay una por rol.
@@ -19,11 +19,13 @@
 </section>
 
 <section class="perfiles" aria-label="Para quién es">
-  <mat-card *ngFor="let p of perfiles" class="perfil">
-    <mat-icon aria-hidden="true">{{ p.icono }}</mat-icon>
-    <h2>{{ p.titulo }}</h2>
-    <p>{{ p.texto }}</p>
-  </mat-card>
+  @for (p of perfiles; track p) {
+    <mat-card class="perfil">
+      <mat-icon aria-hidden="true">{{ p.icono }}</mat-icon>
+      <h2>{{ p.titulo }}</h2>
+      <p>{{ p.texto }}</p>
+    </mat-card>
+  }
 </section>
 
 <section class="detalle">

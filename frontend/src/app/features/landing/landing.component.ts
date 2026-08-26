@@ -8,7 +8,7 @@
 // si se molesta en entrar.
 // ---------------------------------------------------------------------------
 import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, RouterModule } from '@angular/router';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -21,7 +21,7 @@ import { rutaInicioPara } from '../../core/rutas';
 @Component({
   standalone: true,
   selector: 'app-landing',
-  imports: [CommonModule, RouterModule, MatButtonModule, MatIconModule, MatCardModule],
+  imports: [RouterModule, MatButtonModule, MatIconModule, MatCardModule],
   templateUrl: './landing.component.html',
   styleUrls: ['./landing.component.scss'],
 })

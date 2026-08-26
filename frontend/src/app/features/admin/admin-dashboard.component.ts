@@ -1,6 +1,6 @@
 // src/app/admin/admin-dashboard.component.ts
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 
 import { MatCardModule } from '@angular/material/card';
@@ -37,7 +37,6 @@ type Rol = 'estudiante' | 'profesor';
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MatCardModule,
@@ -46,7 +45,7 @@ type Rol = 'estudiante' | 'profesor';
     MatFormFieldModule,
     MatButtonModule,
     MatIconModule,
-    MatTooltipModule, // ✅ NUEVO
+    MatTooltipModule,
     MatPaginatorModule,
     EstadoVistaComponent,
   ],

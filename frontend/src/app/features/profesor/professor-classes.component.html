@@ -1,0 +1,56 @@
+<div class="wrap">
+  <mat-card class="brand">
+    <div class="brand-wrap">
+      <div>
+        <h1>Mis clases</h1>
+        @if (auth.usuario?.nombre) {
+          <span>Profesor: {{ auth.usuario?.nombre }}</span>
+        }
+      </div>
+    </div>
+  </mat-card>
+
+  @if (loading || error || !cursos.length) {
+    <app-estado-vista
+      [cargando]="loading"
+      [error]="error"
+      mensajeVacio="Todavía no tienes cursos asignados. Administración te los asigna."
+      iconoVacio="menu_book"
+      (reintentar)="cargar()"
+    >
+    </app-estado-vista>
+  }
+
+  @if (!loading && !error && cursos.length) {
+    <div class="cards">
+      @for (c of cursos; track trackCurso($index, c)) {
+        <mat-card class="course">
+          <mat-card-title>{{ c.titulo }}</mat-card-title>
+          <mat-card-subtitle>{{ c.descripcion || '—' }}</mat-card-subtitle>
+          <mat-divider></mat-divider>
+          @if ((alumnos.get(idOf(c)) || []).length) {
+            <div class="table-wrap">
+              <table mat-table [dataSource]="alumnos.get(idOf(c))!">
+                <ng-container matColumnDef="nombre">
+                  <th mat-header-cell *matHeaderCellDef>Nombre</th>
+                  <td mat-cell *matCellDef="let e">{{ e.nombre }}</td>
+                </ng-container>
+                <ng-container matColumnDef="correo">
+                  <th mat-header-cell *matHeaderCellDef>Correo</th>
+                  <td mat-cell *matCellDef="let e">{{ e.correo }}</td>
+                </ng-container>
+                <tr mat-header-row *matHeaderRowDef="cols"></tr>
+                <tr mat-row *matRowDef="let row; columns: cols"></tr>
+              </table>
+            </div>
+          } @else {
+            <div class="empty">
+              <mat-icon>info</mat-icon>
+              Aún no hay estudiantes inscritos.
+            </div>
+          }
+        </mat-card>
+      }
+    </div>
+  }
+</div>

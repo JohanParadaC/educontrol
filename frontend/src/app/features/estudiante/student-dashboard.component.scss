@@ -1,0 +1,53 @@
+.wrap {
+  display: grid;
+  gap: 16px;
+  padding: 0 4px;
+}
+.brand .brand-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand h1 {
+  margin: 0;
+}
+.actions a {
+  margin-left: 8px;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.course {
+  min-height: 140px;
+}
+.desc {
+  margin: 0.25rem 0 0.5rem;
+  opacity: 0.9;
+}
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.progress mat-progress-bar {
+  flex: 1;
+}
+.empty {
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 900px) {
+  .actions {
+    display: none;
+  }
+}

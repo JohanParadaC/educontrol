@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import {
   FormBuilder,
   Validators,
@@ -52,7 +52,6 @@ function coincidenLasContrasenas(grupo: AbstractControl): ValidationErrors | nul
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.scss'],
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterModule,
     MatFormFieldModule,
@@ -61,7 +60,7 @@ function coincidenLasContrasenas(grupo: AbstractControl): ValidationErrors | nul
     MatIconModule,
     MatCardModule,
     MatSnackBarModule,
-    MatSelectModule, // CAMBIO: opcional (solo si usas <mat-select>)
+    MatSelectModule,
   ],
 })
 export class RegisterComponent {

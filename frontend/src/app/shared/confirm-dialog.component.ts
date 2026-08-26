@@ -1,6 +1,6 @@
 // src/app/shared/confirm-dialog.component.ts
 import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,7 +17,7 @@ type ConfirmData = {
 @Component({
   standalone: true,
   selector: 'app-confirm-dialog',
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule],
+  imports: [MatDialogModule, MatButtonModule, MatIconModule],
   template: `
     <h2 mat-dialog-title class="title">
       <mat-icon>warning_amber</mat-icon>

@@ -10,7 +10,7 @@
 // -------------------------------------------------------------------
 
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -31,158 +31,17 @@ import { mensajeDeError } from '../../core/http-error';
   standalone: true,
   selector: 'app-professor-dashboard',
   imports: [
-    CommonModule,
     RouterModule,
     MatCardModule,
     MatIconModule,
     MatButtonModule,
     MatDividerModule,
     MatProgressBarModule,
-    MatTooltipModule, // ✅ CAMBIO: necesario para matTooltip
+    MatTooltipModule,
     EstadoVistaComponent,
   ],
-  template: `
-    <div class="wrap">
-      <!-- ===== Cabecera con saludo + CTA ===== -->
-      <div class="header">
-        <div>
-          <h1 class="title">Hola, {{ auth.usuario?.nombre || 'Profesor' }} 👋</h1>
-          <div class="subtitle">Bienvenido a tu panel</div>
-        </div>
-        <!-- CAMBIO: el CTA te lleva a la lista /profesor/clases -->
-        <a mat-stroked-button color="primary" [routerLink]="classesLink">
-          <mat-icon>class</mat-icon>&nbsp;Ver mis clases
-        </a>
-      </div>
-
-      <mat-divider></mat-divider>
-
-      <!-- Carga, error y vacío: los tres, y distinguibles entre sí -->
-      <app-estado-vista
-        *ngIf="loading || error || !cursos.length"
-        [cargando]="loading"
-        [error]="error"
-        mensajeVacio="Todavía no tienes cursos asignados. Administración te los asigna."
-        iconoVacio="menu_book"
-        (reintentar)="cargar()"
-      >
-      </app-estado-vista>
-
-      <div *ngIf="!loading && !error && cursos.length">
-        <div class="kpis">
-          <div class="kpi">
-            <div class="num">{{ cursos.length }}</div>
-            <div class="lbl">Cursos activos</div>
-          </div>
-          <div class="kpi">
-            <div class="num">{{ totalEstudiantes }}</div>
-            <div class="lbl">Estudiantes inscritos</div>
-          </div>
-        </div>
-
-        <!-- ===== Tus clases (tarjetas) ===== -->
-        <h3 class="section"><mat-icon>menu_book</mat-icon>&nbsp;Tus clases</h3>
-
-        <div class="cards">
-          <mat-card class="course" *ngFor="let c of cursos; trackBy: trackById">
-            <mat-card-title>{{ courseTitle(c) }}</mat-card-title>
-            <mat-card-subtitle>{{ courseDesc(c) || '—' }}</mat-card-subtitle>
-
-            <mat-card-content>
-              <!-- CAMBIO: tooltip requiere MatTooltipModule -->
-              <div class="chip" matTooltip="Total de alumnos inscritos">
-                <mat-icon>group</mat-icon>
-                {{ inscritosPorCurso.get(idOf(c)) || 0 }} estudiantes
-              </div>
-            </mat-card-content>
-
-            <mat-card-actions>
-              <!-- Si tienes detalle, cambia a: ['/curso', idOf(c)] -->
-              <a mat-button color="primary" [routerLink]="classesLink">Ir al curso</a>
-            </mat-card-actions>
-          </mat-card>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      .wrap {
-        padding: 0 4px;
-      }
-      .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-      }
-      .title {
-        margin: 0;
-        font-size: 40px;
-        font-weight: 800;
-      }
-      .subtitle {
-        color: rgba(0, 0, 0, 0.6);
-        margin-top: 4px;
-      }
-      .kpis {
-        display: flex;
-        gap: 16px;
-        padding: 12px 0;
-        flex-wrap: wrap;
-      }
-      .kpi {
-        background: rgba(255, 255, 255, 0.04);
-        border-radius: 10px;
-        padding: 12px 16px;
-        min-width: 180px;
-      }
-      .kpi .num {
-        font-size: 24px;
-        font-weight: 700;
-      }
-      .kpi .lbl {
-        opacity: 0.8;
-      }
-      .section {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin: 12px 0 8px;
-      }
-      .cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 12px;
-      }
-      .course {
-        border-radius: 16px;
-      }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.06);
-      }
-      .empty {
-        opacity: 0.7;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 16px 0;
-      }
-      .mt-2 {
-        margin-top: 12px;
-      }
-      @media (max-width: 900px) {
-        .header a {
-          display: none;
-        }
-      }
-    `,
-  ],
+  templateUrl: './professor-dashboard.component.html',
+  styleUrls: ['./professor-dashboard.component.scss'],
 })
 export class ProfessorDashboardComponent implements OnInit {
   // Servicios
@@ -262,6 +121,6 @@ export class ProfessorDashboardComponent implements OnInit {
     return c?.descripcion || c?.descripcionCorta || c?.desc || '';
   }
 
-  /** Optimiza *ngFor */
+  /** Identidad estable para el `track` de @for */
   trackById = (_: number, item: any) => this.idOf(item) || _;
 }

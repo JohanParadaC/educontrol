@@ -4,7 +4,7 @@
 // src/app/auth/login/login.component.ts
 
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, Validators, ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
 
 import { Router, RouterModule } from '@angular/router'; // 👈 necesario por el routerLink del template
@@ -26,14 +26,13 @@ import { MatInputModule } from '@angular/material/input';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    RouterModule, // 👈 para usar routerLink en el HTML
+    RouterModule,
     MatCardModule,
     MatButtonModule,
     MatFormFieldModule,
     MatInputModule,
-    MatIconModule, // 👈 asegura que <mat-icon> funcione
+    MatIconModule,
   ],
 })
 export class LoginComponent {

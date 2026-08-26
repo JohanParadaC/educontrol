@@ -14,7 +14,7 @@
 // no hace nada es peor que no tener botón.
 // ---------------------------------------------------------------------------
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -30,89 +30,9 @@ import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 @Component({
   standalone: true,
   selector: 'app-student-my-courses',
-  imports: [
-    CommonModule,
-    RouterLink,
-    MatCardModule,
-    MatIconModule,
-    MatButtonModule,
-    EstadoVistaComponent,
-  ],
-  template: `
-    <h2 class="titulo">Mis cursos</h2>
-
-    <app-estado-vista
-      *ngIf="cargando || error || !inscripciones.length"
-      [cargando]="cargando"
-      [error]="error"
-      mensajeVacio="Aún no tienes cursos."
-      iconoVacio="school"
-      (reintentar)="cargar()"
-    >
-    </app-estado-vista>
-
-    <div class="grid gap-3" *ngIf="!cargando && !error && inscripciones.length">
-      <mat-card class="course" *ngFor="let i of inscripciones; trackBy: trackIns">
-        <div class="head">
-          <div>
-            <h3>{{ tituloDe(i.curso) }}</h3>
-            <div class="muted">{{ profesorDe(i.curso) || '—' }}</div>
-          </div>
-          <button
-            mat-stroked-button
-            color="warn"
-            [disabled]="cancelandoId === i._id"
-            (click)="desmatricular(i)"
-          >
-            <mat-icon>cancel</mat-icon>
-            {{ cancelandoId === i._id ? 'Cancelando…' : 'Cancelar matrícula' }}
-          </button>
-        </div>
-      </mat-card>
-    </div>
-
-    <p class="pie" *ngIf="!cargando && !error">
-      <a routerLink="/cursos">Explorar el catálogo</a>
-    </p>
-  `,
-  styles: [
-    `
-      .titulo {
-        font: var(--mat-sys-headline-small);
-        margin: 0 0 16px;
-      }
-      .grid {
-        display: grid;
-      }
-      .gap-3 {
-        gap: 12px;
-      }
-      .course {
-        padding: 12px;
-      }
-      .head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 12px;
-      }
-      .head h3 {
-        margin: 0;
-      }
-      .muted {
-        opacity: 0.7;
-      }
-      .pie {
-        margin-top: 16px;
-      }
-      @media (max-width: 700px) {
-        .head {
-          flex-direction: column;
-          align-items: stretch;
-        }
-      }
-    `,
-  ],
+  imports: [RouterLink, MatCardModule, MatIconModule, MatButtonModule, EstadoVistaComponent],
+  templateUrl: './student-my-courses.component.html',
+  styleUrls: ['./student-my-courses.component.scss'],
 })
 export class StudentMyCoursesComponent implements OnInit {
   private api = inject(ApiService);

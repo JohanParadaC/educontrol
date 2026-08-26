@@ -1,6 +1,6 @@
 <div class="grid">
   <!-- Sin tarjeta de marca: repetía el "EduControl" de la barra superior y se
-       llevaba una franja entera de alto útil sin aportar nada. -->
+  llevaba una franja entera de alto útil sin aportar nada. -->
   <h1 class="titulo-pagina">Panel de administración</h1>
 
   <!-- ===== USUARIOS ===== -->
@@ -8,78 +8,38 @@
     <div class="card-title">
       <h2>Usuarios</h2>
       <!-- Guardar es la acción principal de esta tabla: botón relleno, y solo
-           visible cuando hay algo que guardar en lugar de gris permanente. -->
-      <button
-        mat-flat-button
-        color="primary"
-        *ngIf="totalPendientes"
-        [disabled]="savingBulk"
-        (click)="guardarTodos()"
-      >
-        <mat-icon>save</mat-icon>
-        {{ savingBulk ? 'Guardando…' : 'Guardar ' + totalPendientes + ' cambio(s)' }}
-      </button>
+      visible cuando hay algo que guardar en lugar de gris permanente. -->
+      @if (totalPendientes) {
+        <button mat-flat-button color="primary" [disabled]="savingBulk" (click)="guardarTodos()">
+          <mat-icon>save</mat-icon>
+          {{ savingBulk ? 'Guardando…' : 'Guardar ' + totalPendientes + ' cambio(s)' }}
+        </button>
+      }
     </div>
 
-    <app-estado-vista
-      *ngIf="cargandoUsuarios || errorUsuarios || !usuarios.length"
-      [cargando]="cargandoUsuarios"
-      [error]="errorUsuarios"
-      mensajeVacio="No hay usuarios registrados."
-      iconoVacio="group_off"
-      (reintentar)="cargarUsuarios(pagUsuarios)"
-    >
-    </app-estado-vista>
+    @if (cargandoUsuarios || errorUsuarios || !usuarios.length) {
+      <app-estado-vista
+        [cargando]="cargandoUsuarios"
+        [error]="errorUsuarios"
+        mensajeVacio="No hay usuarios registrados."
+        iconoVacio="group_off"
+        (reintentar)="cargarUsuarios(pagUsuarios)"
+      >
+      </app-estado-vista>
+    }
 
     <!-- Móvil: una tarjeta por usuario. Una tabla de tres columnas en 375px es
-         ilegible, y ocultar columnas perdería información. -->
-    <ul class="lista-tarjetas" *ngIf="!cargandoUsuarios && !errorUsuarios && usuarios.length">
-      <li *ngFor="let u of usuarios" class="tarjeta-fila">
-        <div class="tarjeta-datos">
-          <strong>{{ u.nombre }}</strong>
-          <span class="secundario">{{ u.correo }}</span>
-        </div>
-
-        <ng-container *ngIf="u.rol !== 'admin'; else esAdminMovil">
-          <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
-            <mat-label>Rol</mat-label>
-            <mat-select
-              [ngModel]="pendingRoles[id(u)] || u.rol"
-              (ngModelChange)="onRolChange(u, $event)"
-              [attr.aria-label]="'Cambiar rol de ' + u.nombre"
-            >
-              <mat-option value="estudiante">Estudiante</mat-option>
-              <mat-option value="profesor">Profesor</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <span *ngIf="tieneCambio(u)" class="chip pending">Sin guardar</span>
-        </ng-container>
-        <ng-template #esAdminMovil><span class="chip adm">admin</span></ng-template>
-      </li>
-    </ul>
-
-    <div class="table-wrap" *ngIf="!cargandoUsuarios && !errorUsuarios && usuarios.length">
-      <table mat-table [dataSource]="usuarios">
-        <ng-container matColumnDef="nombre">
-          <th mat-header-cell *matHeaderCellDef>Nombre</th>
-          <td mat-cell *matCellDef="let u">{{ u.nombre }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="correo">
-          <th mat-header-cell *matHeaderCellDef>Correo</th>
-          <td mat-cell *matCellDef="let u">{{ u.correo }}</td>
-        </ng-container>
-
-        <!-- Una sola columna de rol: el select ya muestra el rol actual, así que
-             la antigua columna "Rol" con chip solo repetía el dato. Los admin no
-             son editables aquí y conservan su chip para seguir distinguiéndose. -->
-        <ng-container matColumnDef="acciones">
-          <th mat-header-cell *matHeaderCellDef>Rol</th>
-          <td mat-cell *matCellDef="let u">
-            <ng-container *ngIf="u.rol !== 'admin'; else esAdmin">
-              <!-- appearance="fill": el outline recorta la etiqueta flotante
-                   contra el borde superior de la fila. -->
-              <mat-form-field appearance="fill" subscriptSizing="dynamic" class="rol-select">
+    ilegible, y ocultar columnas perdería información. -->
+    @if (!cargandoUsuarios && !errorUsuarios && usuarios.length) {
+      <ul class="lista-tarjetas">
+        @for (u of usuarios; track u) {
+          <li class="tarjeta-fila">
+            <div class="tarjeta-datos">
+              <strong>{{ u.nombre }}</strong>
+              <span class="secundario">{{ u.correo }}</span>
+            </div>
+            @if (u.rol !== 'admin') {
+              <mat-form-field appearance="fill" subscriptSizing="dynamic" class="full">
                 <mat-label>Rol</mat-label>
                 <mat-select
                   [ngModel]="pendingRoles[id(u)] || u.rol"
@@ -90,18 +50,61 @@
                   <mat-option value="profesor">Profesor</mat-option>
                 </mat-select>
               </mat-form-field>
-              <span *ngIf="tieneCambio(u)" class="chip pending">Sin guardar</span>
-            </ng-container>
-            <ng-template #esAdmin>
+              @if (tieneCambio(u)) {
+                <span class="chip pending">Sin guardar</span>
+              }
+            } @else {
               <span class="chip adm">admin</span>
-            </ng-template>
-          </td>
-        </ng-container>
+            }
+          </li>
+        }
+      </ul>
+    }
 
-        <tr mat-header-row *matHeaderRowDef="displayedUserCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedUserCols"></tr>
-      </table>
-    </div>
+    @if (!cargandoUsuarios && !errorUsuarios && usuarios.length) {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="usuarios">
+          <ng-container matColumnDef="nombre">
+            <th mat-header-cell *matHeaderCellDef>Nombre</th>
+            <td mat-cell *matCellDef="let u">{{ u.nombre }}</td>
+          </ng-container>
+          <ng-container matColumnDef="correo">
+            <th mat-header-cell *matHeaderCellDef>Correo</th>
+            <td mat-cell *matCellDef="let u">{{ u.correo }}</td>
+          </ng-container>
+          <!-- Una sola columna de rol: el select ya muestra el rol actual, así que
+          la antigua columna "Rol" con chip solo repetía el dato. Los admin no
+          son editables aquí y conservan su chip para seguir distinguiéndose. -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>Rol</th>
+            <td mat-cell *matCellDef="let u">
+              @if (u.rol !== 'admin') {
+                <!-- appearance="fill": el outline recorta la etiqueta flotante
+                contra el borde superior de la fila. -->
+                <mat-form-field appearance="fill" subscriptSizing="dynamic" class="rol-select">
+                  <mat-label>Rol</mat-label>
+                  <mat-select
+                    [ngModel]="pendingRoles[id(u)] || u.rol"
+                    (ngModelChange)="onRolChange(u, $event)"
+                    [attr.aria-label]="'Cambiar rol de ' + u.nombre"
+                  >
+                    <mat-option value="estudiante">Estudiante</mat-option>
+                    <mat-option value="profesor">Profesor</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                @if (tieneCambio(u)) {
+                  <span class="chip pending">Sin guardar</span>
+                }
+              } @else {
+                <span class="chip adm">admin</span>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedUserCols"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedUserCols"></tr>
+        </table>
+      </div>
+    }
 
     <mat-paginator
       [length]="totalUsuarios"
@@ -123,81 +126,34 @@
       </button>
     </div>
 
-    <app-estado-vista
-      *ngIf="cargandoCursos || errorCursos || !cursos.length"
-      [cargando]="cargandoCursos"
-      [error]="errorCursos"
-      mensajeVacio="Todavía no hay cursos. Crea el primero con «Nuevo curso»."
-      iconoVacio="menu_book"
-      (reintentar)="cargarCursos(pagCursos)"
-    >
-    </app-estado-vista>
+    @if (cargandoCursos || errorCursos || !cursos.length) {
+      <app-estado-vista
+        [cargando]="cargandoCursos"
+        [error]="errorCursos"
+        mensajeVacio="Todavía no hay cursos. Crea el primero con «Nuevo curso»."
+        iconoVacio="menu_book"
+        (reintentar)="cargarCursos(pagCursos)"
+      >
+      </app-estado-vista>
+    }
 
     <!-- Móvil: una tarjeta por curso, con las acciones a ancho completo. -->
-    <ul class="lista-tarjetas" *ngIf="!cargandoCursos && !errorCursos && cursos.length">
-      <li *ngFor="let c of cursos" class="tarjeta-fila tarjeta-curso">
-        <div class="tarjeta-datos">
-          <strong>{{ c.titulo }}</strong>
-          <span class="secundario">{{ nombreProfesor(c) }}</span>
-          <span class="descripcion">{{ c.descripcion }}</span>
-        </div>
-
-        <div class="tarjeta-acciones">
-          <button mat-stroked-button (click)="abrirDialogEditarCurso(c)">
-            <mat-icon>edit</mat-icon><span>Editar</span>
-          </button>
-          <button mat-stroked-button color="primary" (click)="abrirDialogMatricular(c)">
-            <mat-icon>person_add</mat-icon><span>Matricular</span>
-          </button>
-          <button
-            mat-stroked-button
-            color="warn"
-            (click)="eliminarCurso(c)"
-            [disabled]="eliminandoId === c._id"
-          >
-            <mat-icon>delete</mat-icon>
-            <span>{{ eliminandoId === c._id ? 'Eliminando…' : 'Eliminar' }}</span>
-          </button>
-        </div>
-      </li>
-    </ul>
-
-    <div class="table-wrap" *ngIf="!cargandoCursos && !errorCursos && cursos.length">
-      <table mat-table [dataSource]="cursos">
-        <ng-container matColumnDef="titulo">
-          <th mat-header-cell *matHeaderCellDef>Título</th>
-          <td mat-cell *matCellDef="let c">{{ c.titulo }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="descripcion">
-          <th mat-header-cell *matHeaderCellDef>Descripción</th>
-          <td mat-cell *matCellDef="let c">{{ c.descripcion }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="profesor">
-          <th mat-header-cell *matHeaderCellDef>Profesor</th>
-          <td mat-cell *matCellDef="let c">{{ c.profesor?.nombre || '—' }}</td>
-        </ng-container>
-
-        <!-- ===== Acciones por curso (solo esta columna está reemplazada) ===== -->
-        <ng-container matColumnDef="acciones">
-          <th mat-header-cell *matHeaderCellDef>Acciones</th>
-
-          <!-- 👇 NUEVO: cuando la descripción es larga o la pantalla es angosta,
-               usamos solo íconos; de lo contrario, botones con texto -->
-          <td mat-cell *matCellDef="let c" class="acciones-cell">
-            <!-- Versión con texto -->
-            <ng-container *ngIf="!accionesCompactas(); else soloIconos">
+    @if (!cargandoCursos && !errorCursos && cursos.length) {
+      <ul class="lista-tarjetas">
+        @for (c of cursos; track c) {
+          <li class="tarjeta-fila tarjeta-curso">
+            <div class="tarjeta-datos">
+              <strong>{{ c.titulo }}</strong>
+              <span class="secundario">{{ nombreProfesor(c) }}</span>
+              <span class="descripcion">{{ c.descripcion }}</span>
+            </div>
+            <div class="tarjeta-acciones">
               <button mat-stroked-button (click)="abrirDialogEditarCurso(c)">
-                <mat-icon>edit</mat-icon>
-                <span>Editar</span>
+                <mat-icon>edit</mat-icon><span>Editar</span>
               </button>
-
               <button mat-stroked-button color="primary" (click)="abrirDialogMatricular(c)">
-                <mat-icon>person_add</mat-icon>
-                <span>Matricular</span>
+                <mat-icon>person_add</mat-icon><span>Matricular</span>
               </button>
-
               <button
                 mat-stroked-button
                 color="warn"
@@ -207,40 +163,82 @@
                 <mat-icon>delete</mat-icon>
                 <span>{{ eliminandoId === c._id ? 'Eliminando…' : 'Eliminar' }}</span>
               </button>
-            </ng-container>
+            </div>
+          </li>
+        }
+      </ul>
+    }
 
-            <!-- Versión solo íconos -->
-            <ng-template #soloIconos>
-              <button mat-icon-button (click)="abrirDialogEditarCurso(c)" matTooltip="Editar">
-                <mat-icon>edit</mat-icon>
-              </button>
-
-              <button
-                mat-icon-button
-                color="primary"
-                (click)="abrirDialogMatricular(c)"
-                matTooltip="Matricular"
-              >
-                <mat-icon>person_add</mat-icon>
-              </button>
-
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="eliminarCurso(c)"
-                [disabled]="eliminandoId === c._id"
-                matTooltip="Eliminar"
-              >
-                <mat-icon>delete</mat-icon>
-              </button>
-            </ng-template>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedCourseCols"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedCourseCols"></tr>
-      </table>
-    </div>
+    @if (!cargandoCursos && !errorCursos && cursos.length) {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="cursos">
+          <ng-container matColumnDef="titulo">
+            <th mat-header-cell *matHeaderCellDef>Título</th>
+            <td mat-cell *matCellDef="let c">{{ c.titulo }}</td>
+          </ng-container>
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef>Descripción</th>
+            <td mat-cell *matCellDef="let c">{{ c.descripcion }}</td>
+          </ng-container>
+          <ng-container matColumnDef="profesor">
+            <th mat-header-cell *matHeaderCellDef>Profesor</th>
+            <td mat-cell *matCellDef="let c">{{ c.profesor?.nombre || '—' }}</td>
+          </ng-container>
+          <!-- ===== Acciones por curso (solo esta columna está reemplazada) ===== -->
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+            <!-- 👇 NUEVO: cuando la descripción es larga o la pantalla es angosta,
+            usamos solo íconos; de lo contrario, botones con texto -->
+            <td mat-cell *matCellDef="let c" class="acciones-cell">
+              <!-- Versión con texto -->
+              @if (!accionesCompactas()) {
+                <button mat-stroked-button (click)="abrirDialogEditarCurso(c)">
+                  <mat-icon>edit</mat-icon>
+                  <span>Editar</span>
+                </button>
+                <button mat-stroked-button color="primary" (click)="abrirDialogMatricular(c)">
+                  <mat-icon>person_add</mat-icon>
+                  <span>Matricular</span>
+                </button>
+                <button
+                  mat-stroked-button
+                  color="warn"
+                  (click)="eliminarCurso(c)"
+                  [disabled]="eliminandoId === c._id"
+                >
+                  <mat-icon>delete</mat-icon>
+                  <span>{{ eliminandoId === c._id ? 'Eliminando…' : 'Eliminar' }}</span>
+                </button>
+              } @else {
+                <button mat-icon-button (click)="abrirDialogEditarCurso(c)" matTooltip="Editar">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="primary"
+                  (click)="abrirDialogMatricular(c)"
+                  matTooltip="Matricular"
+                >
+                  <mat-icon>person_add</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="eliminarCurso(c)"
+                  [disabled]="eliminandoId === c._id"
+                  matTooltip="Eliminar"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
+              <!-- Versión solo íconos -->
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedCourseCols"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedCourseCols"></tr>
+        </table>
+      </div>
+    }
 
     <mat-paginator
       [length]="totalCursos"
@@ -258,18 +256,20 @@
       <mat-form-field appearance="outline">
         <mat-label>Curso</mat-label>
         <!-- cursosOpt, no `cursos`: el selector debe ofrecer todos los cursos,
-             no solo los de la página que se esté viendo en la tabla. -->
+        no solo los de la página que se esté viendo en la tabla. -->
         <mat-select [formControl]="cursoCtrl" (selectionChange)="onCursoSel($event)">
-          <mat-option *ngFor="let c of cursosOpt" [value]="c._id">{{ c.titulo }}</mat-option>
+          @for (c of cursosOpt; track c) {
+            <mat-option [value]="c._id">{{ c.titulo }}</mat-option>
+          }
         </mat-select>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Profesor</mat-label>
         <mat-select [formControl]="profeCtrl" (selectionChange)="onProfesorSel($event)">
-          <mat-option *ngFor="let p of profesoresOpt; trackBy: trackOpt" [value]="p._id">
-            {{ p.nombre }} ({{ p.correo }})
-          </mat-option>
+          @for (p of profesoresOpt; track trackOpt($index, p)) {
+            <mat-option [value]="p._id"> {{ p.nombre }} ({{ p.correo }}) </mat-option>
+          }
         </mat-select>
       </mat-form-field>
 

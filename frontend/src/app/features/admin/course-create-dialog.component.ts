@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import {
   ReactiveFormsModule,
@@ -30,7 +30,9 @@ interface DialogData {
       <mat-form-field appearance="outline" floatLabel="always" class="w-100">
         <mat-label>Título</mat-label>
         <input matInput formControlName="titulo" />
-        <mat-error *ngIf="form.controls.titulo.invalid">Requerido</mat-error>
+        @if (form.controls.titulo.invalid) {
+          <mat-error>Requerido</mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="w-100">
@@ -42,20 +44,24 @@ interface DialogData {
           cdkAutosizeMinRows="3"
           cdkAutosizeMaxRows="12"
         ></textarea>
-        <mat-error *ngIf="form.controls.descripcion.invalid">Requerida</mat-error>
+        @if (form.controls.descripcion.invalid) {
+          <mat-error>Requerida</mat-error>
+        }
       </mat-form-field>
 
-      <ng-container *ngIf="soyAdmin">
+      @if (soyAdmin) {
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>Profesor</mat-label>
           <mat-select formControlName="profesorId" (selectionChange)="onProfesorChange($event)">
-            <mat-option *ngFor="let p of profesores; trackBy: trackById" [value]="p._id">
-              {{ p.nombre }} ({{ p.correo }})
-            </mat-option>
+            @for (p of profesores; track trackById($index, p)) {
+              <mat-option [value]="p._id"> {{ p.nombre }} ({{ p.correo }}) </mat-option>
+            }
           </mat-select>
-          <mat-error *ngIf="form.controls.profesorId.invalid">Requerido</mat-error>
+          @if (form.controls.profesorId.invalid) {
+            <mat-error>Requerido</mat-error>
+          }
         </mat-form-field>
-      </ng-container>
+      }
     </div>
 
     <div mat-dialog-actions [align]="'end'">
@@ -77,7 +83,6 @@ interface DialogData {
     `,
   ],
   imports: [
-    CommonModule,
     MatDialogModule,
     ReactiveFormsModule,
     MatFormFieldModule,
