@@ -1,0 +1,5 @@
+# La aplicación es una SPA: sin este fichero, /robots.txt caía en el comodín
+# del enrutado y devolvía el index.html, que para un rastreador es un
+# robots.txt inválido.
+User-agent: *
+Allow: /
