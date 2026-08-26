@@ -75,6 +75,10 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 
 **Interfaz**
 
+- **Angular 20, escrito como Angular 20.** `@if`/`@for` (nunca `*ngIf`/`*ngFor`), guards e interceptor como funciones, estado en señales y `ChangeDetectionStrategy.OnPush` en todos los componentes.
+- **Con OnPush, el estado que se pinta es una señal.** Asignar un campo dentro de un `subscribe` no marca la vista: la pantalla se queda como estaba. Si algo no se repinta, la respuesta es una señal, no un `markForCheck()`.
+- **El panel de administración lo autoriza el servidor.** `adminGuard` es un `canMatch` que pregunta a `/api/auth/renew` antes de dejar entrar, así que un `rol` falseado en localStorage no pinta el panel —y ni siquiera descarga su bundle—. Si no puede entrar, va a la pantalla de inicio de su rol real, la que decide `core/rutas.ts`.
+
 - **El interceptor no inyecta `AuthService`.** Lee el token del almacenamiento local con `tokenLocal()`. Inyectarlo formaba un ciclo —AuthService valida el token en su constructor, eso lanza una petición, la petición construye el interceptor y el interceptor pide AuthService— y Angular contestaba NG0200: la renovación moría sin salir al servidor, AuthService lo tomaba por un fallo y cerraba la sesión. Se veía como "inicio sesión, refresco y estoy fuera".
 - **Nada de `if (api.loQueSea)`.** `ApiService` está en este repositorio y se puede leer. Comprobar si existe un método es defenderse de una API imaginaria, y obliga a un `inject(ApiService) as any` que apaga el tipado del componente entero.
 

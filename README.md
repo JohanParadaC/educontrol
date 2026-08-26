@@ -110,7 +110,7 @@ interfaz, más el build de producción.
 Dos reglas de ESLint están como aviso y no como error, porque su deuda es
 anterior: `no-explicit-any` (usos heredados) y `prefer-inject` (27 componentes
 que aún inyectan por constructor). El script de lint del frontend lleva
-`--max-warnings=70`, el número exacto de hoy: los avisos solo pueden bajar, y
+`--max-warnings=59`, el número exacto de hoy: los avisos solo pueden bajar, y
 cualquier `any` nuevo rompe la build.
 
 ---
@@ -119,7 +119,7 @@ cualquier `any` nuevo rompe la build.
 
 ```bash
 npm test        # backend: 202 tests (Jest + Supertest)
-npm run test:web  # frontend: 28 tests (Karma + Jasmine)
+npm run test:web  # frontend: 29 tests (Karma + Jasmine)
 ```
 
 Cobertura del backend, medida con `npm run test:cov`: **85,7 % sentencias · 76,9 % ramas · 97,8 % funciones · 87,1 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
@@ -200,7 +200,7 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
 - **No hay pantalla de detalle de un curso:** desde las tarjetas se navega al listado, no a una ficha propia.
 - **`POST /api/inscripciones` acepta el `estudianteId` del cuerpo sin comprobar de quién es.** Lo necesita el panel de administración para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
-- **El bundle inicial pesa ~770 kB** (189 kB transferidos con compresión). Es lo que cuesta Angular con Material; el presupuesto del build está puesto en 800 kB para que avise de regresiones reales en vez de saltar siempre.
+- **El bundle inicial pesa ~700 kB** (173 kB transferidos con compresión). Es lo que cuesta Angular con Material; el presupuesto del build está puesto en 800 kB para que avise de regresiones reales en vez de saltar siempre.
 
 ## Licencia
 
