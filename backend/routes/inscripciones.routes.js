@@ -28,8 +28,19 @@ router.post(
   inscribirEstudiante
 );
 
-// 2) Listar todas las inscripciones (cualquier usuario autenticado) (original)
-router.get('/', [validateJWT], obtenerInscripciones);
+// 2) Listar inscripciones. Cualquier usuario autenticado, pero el controlador
+//    solo devuelve las que su rol permite ver. Los filtros van validados: un
+//    ?curso=xxx mal formado llegaba a Mongoose y salía como 500.
+router.get(
+  '/',
+  [
+    validateJWT,
+    check('curso', 'El filtro "curso" no es un ID válido').optional().isMongoId(),
+    check('estudiante', 'El filtro "estudiante" no es un ID válido').optional().isMongoId(),
+    validateFields,
+  ],
+  obtenerInscripciones
+);
 
 // 3) Obtener una inscripción por ID (cualquier usuario autenticado) (original)
 router.get(

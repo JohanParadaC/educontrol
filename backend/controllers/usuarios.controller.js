@@ -1,5 +1,7 @@
 // controllers/usuarios.controller.js
 const Usuario = require('../models/Usuario');
+const Curso = require('../models/Curso');
+const Inscripcion = require('../models/Inscripcion');
 const bcrypt = require('bcryptjs');
 const { claveProfesorValida, extraerClave } = require('../utils/profesorClave');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
@@ -153,11 +155,37 @@ const updateUsuario = async (req, res, next) => {
 };
 
 // Borrar
+// Borrar usuario, arrastrando lo que dependa de él
 const borrarUsuario = async (req, res, next) => {
   try {
-    const usuario = await Usuario.findByIdAndDelete(req.params.id);
+    // Se lee antes de borrar: hace falta el rol para decidir qué arrastra.
+    const usuario = await Usuario.findById(req.params.id);
     if (!usuario) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
-    res.json({ ok: true, msg: 'Usuario eliminado' });
+
+    // Un profesor con cursos no se borra en silencio.
+    //
+    // Borrarlo dejaba los cursos apuntando a un id inexistente: `populate`
+    // devuelve null y la tarjeta dice "Sin profesor asignado" para siempre.
+    // Y borrar en cascada sus cursos destruiría demasiado sin avisar — con
+    // ellos se irían las matrículas de todos sus alumnos. Así que se para y se
+    // dice cuántos cursos hay que reasignar.
+    if (usuario.rol === 'profesor') {
+      const cursos = await Curso.countDocuments({ profesor: usuario._id });
+      if (cursos > 0) {
+        return res.status(409).json({
+          ok: false,
+          msg: `No se puede eliminar: imparte ${cursos} curso${cursos === 1 ? '' : 's'}. Reasígnalo${cursos === 1 ? '' : 's'} o bórralo${cursos === 1 ? '' : 's'} antes.`,
+          cursos,
+        });
+      }
+    }
+
+    // Sus inscripciones sí se van con él: sin esto el profesor seguía viendo
+    // en su clase a un alumno que ya no existe.
+    const { deletedCount = 0 } = await Inscripcion.deleteMany({ estudiante: usuario._id });
+    await Usuario.findByIdAndDelete(usuario._id);
+
+    res.json({ ok: true, msg: 'Usuario eliminado', inscripcionesEliminadas: deletedCount });
   } catch (err) {
     next(err);
   }

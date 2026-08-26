@@ -1,6 +1,20 @@
 const Curso = require('../models/Curso');
 const Usuario = require('../models/Usuario'); // CAMBIO: lo usamos para validar el profesor
+const Inscripcion = require('../models/Inscripcion');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
+
+/**
+ * ¿Puede este usuario tocar este curso?
+ *
+ * roleCheck ya ha dejado pasar solo a profesores y administradores, pero el rol
+ * no dice de quién es el curso: sin esta comprobación cualquier profesor
+ * editaba o borraba los cursos de otro. El admin sí puede con todos, que para
+ * eso administra.
+ */
+const puedeGestionar = (curso, usuario) => {
+  if (usuario?.rol === 'admin') return true;
+  return String(curso.profesor) === String(usuario?._id);
+};
 
 // Crear un curso
 const crearCurso = async (req, res, next) => {
@@ -74,6 +88,15 @@ const obtenerCursoPorId = async (req, res, next) => {
 // Actualizar curso
 const actualizarCurso = async (req, res, next) => {
   try {
+    // Primero el curso, para poder mirar de quién es antes de escribir nada.
+    const existente = await Curso.findById(req.params.id);
+    if (!existente) {
+      return res.status(404).json({ ok: false, msg: 'Curso no encontrado' });
+    }
+    if (!puedeGestionar(existente, req.usuario)) {
+      return res.status(403).json({ ok: false, msg: 'Este curso no es tuyo' });
+    }
+
     // CAMBIO: aceptar profesor en el PUT
     const { nombre, descripcion, profesor } = req.body;
 
@@ -105,14 +128,32 @@ const actualizarCurso = async (req, res, next) => {
   }
 };
 
-// Borrar curso
+// Borrar curso, con sus inscripciones
 const borrarCurso = async (req, res, next) => {
   try {
-    const curso = await Curso.findByIdAndDelete(req.params.id);
+    const curso = await Curso.findById(req.params.id);
     if (!curso) {
       return res.status(404).json({ ok: false, msg: 'Curso no encontrado' });
     }
-    return res.json({ ok: true, msg: 'Curso eliminado' });
+    if (!puedeGestionar(curso, req.usuario)) {
+      return res.status(403).json({ ok: false, msg: 'Este curso no es tuyo' });
+    }
+
+    // Las inscripciones primero, y luego el curso.
+    //
+    // Sin cascada quedaban vivas apuntando a un curso que ya no existe: basura
+    // invisible que el profesor sigue viendo como "alumno fantasma". No hay
+    // transacción (Mongo de un solo nodo), así que el orden importa: si algo
+    // se corta por la mitad, es preferible un curso sin alumnos — se ve y se
+    // arregla matriculando otra vez — que filas huérfanas que nadie encuentra.
+    const { deletedCount = 0 } = await Inscripcion.deleteMany({ curso: curso._id });
+    await Curso.findByIdAndDelete(curso._id);
+
+    return res.json({
+      ok: true,
+      msg: 'Curso eliminado',
+      inscripcionesEliminadas: deletedCount,
+    });
   } catch (err) {
     next(err);
   }
