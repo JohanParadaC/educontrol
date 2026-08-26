@@ -262,11 +262,23 @@ $alto-superior: 56px;
 
 .superior__titulo {
   margin: 0;
+  /* Sin esto un elemento flex no baja de su contenido y el `text-overflow` de
+     debajo no llega a usarse nunca. */
+  min-width: 0;
   font: var(--mat-sys-title-medium);
   color: var(--texto);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Sin sesión la barra lleva DOS botones además del título y por debajo de
+   360 px no caben: la portada salía con scroll horizontal. "Entrar" está
+   también en el cajón, así que arriba se queda solo la acción principal. */
+@media (max-width: 359px) {
+  .superior__entrar {
+    display: none;
+  }
 }
 
 .buscador {
