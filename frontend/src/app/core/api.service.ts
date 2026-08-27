@@ -57,9 +57,9 @@ export class ApiService {
   }
 
   // ---------------- USUARIOS ----------------
-  getUsuario(id: string): Observable<Usuario> {
-    return this.usuarios.getUsuario(id);
-  }
+  // `getUsuario` no está aquí: no lo llamaba ningún componente, y el servidor
+  // solo lo sirve para la propia cuenta o para un admin. Quien lo necesite que
+  // inyecte UsuariosApi, que es lo que pide la cabecera de este fichero.
   updateUsuario(
     id: string,
     body: Partial<Usuario> & {

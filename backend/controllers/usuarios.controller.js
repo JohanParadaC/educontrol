@@ -7,6 +7,7 @@ const { claveProfesorValida, extraerClave } = require('../utils/profesorClave');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 const { normalizarCorreo } = require('../utils/correo');
 const { registrar } = require('../utils/auditoria');
+const { esElMismo } = require('../utils/propiedad');
 
 const ROLES_PUBLICOS = ['estudiante', 'profesor'];
 const ROLES = [...ROLES_PUBLICOS, 'admin'];
@@ -85,9 +86,32 @@ const obtenerUsuarios = async (req, res, next) => {
   }
 };
 
-// Obtener por ID
+// Obtener por ID: uno mismo, o un admin. Nadie más.
+//
+// Estaba abierta a cualquiera con sesión, y devuelve el documento entero menos
+// la contraseña: nombre, correo, rol y fechas de cualquier persona del centro.
+// Los identificadores tampoco hay que adivinarlos —el profesor viaja poblado en
+// cada curso y `GET /api/inscripciones` devuelve el estudiante poblado—, así
+// que era la puerta de atrás a lo que el resto del backend cierra con cuidado:
+// «un estudiante puede saber que en su clase son treinta y no quiénes son los
+// otros veintinueve».
+//
+// El caso «un profesor sobre sus propios alumnos» queda FUERA a propósito. Hoy
+// no lo necesita ninguna pantalla —la ficha del curso ya recibe nombre y correo
+// de los matriculados, y matricular va por correo justamente para no abrir este
+// listado—, y una regla que no usa nadie es una regla que dentro de un mes ya
+// no se cumple. Si algún día hace falta, que se abra a propósito: hay un test
+// que lo fija.
+//
+// 404 y no 403, como en `obtenerInscripcionPorId`: quien no puede ver la ficha
+// tampoco tiene por qué enterarse de que ese identificador corresponde a
+// alguien.
 const obtenerUsuarioPorId = async (req, res, next) => {
   try {
+    const solicitante = req.usuario;
+    const puedeVerla = solicitante?.rol === 'admin' || esElMismo(solicitante?._id, req.params.id);
+    if (!puedeVerla) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
+
     const usuario = await Usuario.findById(req.params.id).select('-contraseña');
     if (!usuario) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
     res.json({ ok: true, usuario });

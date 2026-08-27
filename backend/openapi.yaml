@@ -255,7 +255,17 @@ paths:
     get:
       operationId: obtenerUsuario
       tags: [Usuarios]
-      summary: Un usuario por id
+      summary: Un usuario por id (uno mismo, o cualquiera si eres admin)
+      description: >
+        Devuelve la ficha completa menos la contraseña. Solo la propia cuenta o
+        un administrador: un profesor no puede leer la de sus alumnos, y para lo
+        que necesita —nombre y correo de los matriculados— ya está la ficha del
+        curso.
+
+
+        A quien no le corresponde se le responde **404**, el mismo que a un id
+        inexistente: si fuera 403, la respuesta confirmaría que ese
+        identificador es de alguien.
       responses:
         '200':
           description: El usuario
@@ -267,7 +277,11 @@ paths:
                   ok: { type: boolean }
                   usuario: { $ref: '#/components/schemas/Usuario' }
         '401': { $ref: '#/components/responses/NoAutenticado' }
-        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '404':
+          description: No existe, o no es tuya ni eres admin (indistinguibles a propósito)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
     put:
       operationId: actualizarUsuario
       tags: [Usuarios]

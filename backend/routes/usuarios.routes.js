@@ -35,7 +35,8 @@ router.post(
 // 2) Listar (solo admin)
 router.get('/', [validateJWT, roleCheck('admin')], obtenerUsuarios);
 
-// 3) Obtener por ID (cualquiera autenticado)
+// 3) Obtener por ID (uno mismo o admin; la comprobación la hace el controlador,
+//    que responde 404 a un tercero para no confirmar que ese id existe)
 router.get('/:id', [validateJWT, check('id').isMongoId(), validateFields], obtenerUsuarioPorId);
 
 // 4) Actualizar (self o admin).

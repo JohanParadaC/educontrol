@@ -16,6 +16,12 @@ export class UsuariosApi {
   private http = inject(HttpClient);
   private base = `${environment.apiBase}/usuarios`;
 
+  /**
+   * La ficha de un usuario. El servidor solo la da de la propia cuenta o, si
+   * eres admin, de cualquiera: a un tercero le responde 404 igual que a un id
+   * inexistente. Para pintar los matriculados de un curso está la ficha del
+   * curso, que ya trae nombre y correo.
+   */
   getUsuario(id: string): Observable<Usuario> {
     return this.http.get<Usuario>(`${this.base}/${id}`);
   }
