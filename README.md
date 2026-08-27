@@ -361,9 +361,22 @@ porque un puerto que acepta conexiones todavía no es una base lista.
 | `MONGO_URI`      | Sin ella no hay respaldo en memoria: en producción se aborta en vez de fingir que hay base. |
 | `ADMIN_EMAIL`    | La cuenta administradora inicial.                                                           |
 | `ADMIN_PASSWORD` | Sin ella el sembrado del admin se salta, y te quedas sin poder entrar.                      |
+| `TRUST_PROXY`    | Solo si hay un proxy delante. Por defecto 0 — ver abajo, porque equivocarse aquí duele.     |
 
 Conviene poner también `PROFESOR_CLAVE`: sin ella nadie puede darse de alta
 como profesor. El resto está en [`.env.example`](.env.example).
+
+**Si pones un proxy delante** (nginx, Traefik, un balanceador de nube), sube
+`TRUST_PROXY` al número de saltos que haya —normalmente `1`—. Sin eso, `req.ip`
+es la IP del proxy para **todas** las peticiones: el freno general dejaría de
+ser por usuario y pasaría a ser para todos juntos, y el del login degradaría de
+IP+correo a solo correo, con lo que cinco fallos con un correo ajeno dejarían
+fuera a su dueño desde cualquier sitio.
+
+Es un **número de saltos y nunca `true`**: con `true`, Express se cree la
+cabecera `X-Forwarded-For` entera, y esa la escribe quien haga la petición — así
+que cualquiera podría inventarse su IP y saltarse el freno. Un valor que no sea
+un entero mayor o igual que cero cae a 0 y lo avisa al arrancar.
 
 ### Qué comprobar tras el primer arranque
 

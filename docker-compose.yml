@@ -48,6 +48,11 @@ services:
       PROFESOR_CLAVE: ${PROFESOR_CLAVE}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Cuántos proxies hay delante. Aquí, ninguno: este servicio publica el
+      # puerto directamente. Con un nginx o un balanceador por delante hay que
+      # subirlo a 1, o `req.ip` será siempre la del proxy y los frenos por IP
+      # dejarán de distinguir a nadie.
+      TRUST_PROXY: ${TRUST_PROXY:-0}
       # Lo que tarda el balanceador en enterarse de que la sonda dice 503. En
       # un compose de una sola réplica no hay balanceador, así que 0.
       SHUTDOWN_DELAY_MS: '0'

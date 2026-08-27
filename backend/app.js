@@ -13,7 +13,7 @@ const express = require('express');
 const compression = require('compression');
 const morgan = require('morgan');
 
-const { verificarEntorno } = require('./config/env');
+const { verificarEntorno, saltosDeProxy } = require('./config/env');
 const { montarFrontend } = require('./static');
 const { montarDocumentacion } = require('./docs');
 const errorHandler = require('./middlewares/errorHandler');
@@ -58,6 +58,21 @@ const app = express();
  * 1) Middlewares globales
  * =========================== */
 app.disable('x-powered-by');
+
+// Cuántos proxies hay delante. Va ANTES de los limitadores porque de esto
+// depende qué considera Express que es `req.ip`, y esa es la clave con la que
+// cuentan.
+//
+// Sin configurarlo, detrás de un nginx o de un balanceador `req.ip` es la IP
+// del PROXY para todas las peticiones: el freno general dejaría de ser por
+// usuario y pasaría a ser para todos juntos —una denegación de servicio que se
+// hace uno mismo—, y el del login degradaría de IP+correo a solo correo.
+// Además, express-rate-limit detecta la cabecera `X-Forwarded-For` sin
+// `trust proxy` puesto y protesta con ERR_ERL_UNEXPECTED_X_FORWARDED_FOR.
+//
+// Por defecto 0: en el compose la aplicación publica el puerto directamente y
+// no hay nadie delante. Detrás de un proxy, TRUST_PROXY=1.
+app.set('trust proxy', saltosDeProxy());
 
 // Cabeceras de seguridad. Sin ellas no había X-Content-Type-Options, ni HSTS,
 // ni CSP: la SPA se podía incrustar en un iframe ajeno.

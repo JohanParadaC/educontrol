@@ -12,6 +12,33 @@
 const DEV_JWT_SECRET = 'dev-only-no-usar-en-produccion';
 const DEV_PROFESOR_CLAVE = 'profesor-dev';
 
+/**
+ * Cuántos proxies hay delante, para `app.set('trust proxy', n)`.
+ *
+ * Un NÚMERO de saltos y nunca `true`: con `true`, Express se cree la cabecera
+ * `X-Forwarded-For` entera, así que cualquiera puede inventarse su IP
+ * mandándola él mismo — y con ella se saltaría el freno del login, que es
+ * justo lo que ese freno viene a impedir. Con un número, solo se descartan los
+ * `n` últimos saltos, que son los que ponen proxies que controlamos nosotros.
+ *
+ * Se valida aquí, con el resto del entorno, por lo mismo que lo demás: un
+ * `TRUST_PROXY=sí` mal escrito no debe aparecer como un fallo raro del
+ * limitador tres capas más abajo.
+ */
+function saltosDeProxy() {
+  const crudo = process.env.TRUST_PROXY;
+  if (crudo === undefined || crudo === '') return 0;
+
+  const saltos = Number(crudo);
+  if (!Number.isInteger(saltos) || saltos < 0) {
+    console.warn(
+      `⚠️  TRUST_PROXY="${crudo}" no es un número entero de saltos: se usa 0 (sin proxy).`
+    );
+    return 0;
+  }
+  return saltos;
+}
+
 function verificarEntorno() {
   const esProduccion = process.env.NODE_ENV === 'production';
 
@@ -42,4 +69,4 @@ function verificarEntorno() {
   }
 }
 
-module.exports = { verificarEntorno };
+module.exports = { verificarEntorno, saltosDeProxy };
