@@ -1,0 +1,63 @@
+# docker-compose.yml
+# ---------------------------------------------------------------------------
+# La aplicación y su base de datos.
+#
+# Las variables salen de un `.env` en esta misma carpeta (hay un `.env.example`
+# al lado). Ninguna tiene valor por defecto a propósito: un compose que arranca
+# con `JWT_SECRET` vacío arranca mal y no lo dice.
+# ---------------------------------------------------------------------------
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USUARIO}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      # Volumen con nombre: los datos sobreviven a `docker compose down`. Solo
+      # `down -v` se los lleva, y eso hay que escribirlo a propósito.
+      - mongo-datos:/data/db
+    healthcheck:
+      # Que el puerto acepte conexiones no significa que Mongo esté listo para
+      # responder: se le pregunta.
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        # `service_healthy` y no `service_started`: la aplicación se cae al
+        # arrancar si no puede conectar, y Mongo tarda unos segundos en estar
+        # listo la primera vez, mientras crea la base.
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGO_URI: mongodb://${MONGO_USUARIO}:${MONGO_PASSWORD}@mongo:27017/${DB_NAME}?authSource=admin
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      PROFESOR_CLAVE: ${PROFESOR_CLAVE}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      # Lo que tarda el balanceador en enterarse de que la sonda dice 503. En
+      # un compose de una sola réplica no hay balanceador, así que 0.
+      SHUTDOWN_DELAY_MS: '0'
+      SHUTDOWN_TIMEOUT_MS: '10000'
+    ports:
+      - '${PUERTO_PUBLICO:-3000}:3000'
+    # Tiempo que se le da al apagado ordenado antes del SIGKILL. Por defecto
+    # Docker da 10 s, justo lo que dura el corte de emergencia del servidor:
+    # dejarlo así sería cortar en el peor momento posible.
+    stop_grace_period: 30s
+
+volumes:
+  mongo-datos:

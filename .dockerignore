@@ -1,0 +1,37 @@
+# Lo que no entra en el contexto de construcción.
+# Cuanto menos viaje, más rápido construye y menos acaba dentro de la imagen.
+#
+# Ojo con los patrones: son relativos a la raíz del contexto, así que `docs`
+# excluye ./docs y NO backend/docs.js. Para que valga a cualquier nivel hace
+# falta `**/`.
+
+**/node_modules
+**/dist
+**/coverage
+**/*.log
+.angular
+.git
+.github
+.vscode
+
+# Tests y sus resultados: la imagen no los ejecuta.
+backend/__tests__
+frontend/src/testing
+/e2e
+/test-results
+/playwright-report
+/playwright.config.ts
+
+# Documentación y capturas: pesan y no se sirven.
+# (backend/openapi.yaml sí entra: lo lee /api/docs fuera de producción.)
+/docs
+**/*.md
+
+# Secretos y configuración local. El .env lo pasa el compose, no se hornea.
+.env
+.env.*
+!.env.example
+
+# Herramientas de desarrollo
+/scripts
+.chrome-capturas
