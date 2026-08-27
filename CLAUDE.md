@@ -6,8 +6,9 @@ Plataforma de gestión académica: Angular 20 en el frontend, Express 5 y Mongoo
 
 ```bash
 npm run install:all && npm run serve   # build del frontend + servidor en :3000
-npm test                               # backend, 119 tests
-npm run test:web                       # frontend, 25 tests
+npm test                               # backend, 256 tests
+npm run test:web                       # frontend, 108 tests
+npm run test:e2e                       # extremo a extremo, 13 recorridos
 ```
 
 No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el servidor levanta uno en memoria y siembra datos de ejemplo. Tampoco hace falta `.env`: en desarrollo los secretos que falten se rellenan con valores obvios y se avisa por consola.
@@ -105,6 +106,10 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 
 - Comentarios y mensajes de interfaz **en español**.
 - Los tests de seguridad comprueban el efecto, no solo el código de estado: tras un 403 verifican que la contraseña antigua sigue funcionando.
+- **Los tests de componente van con `HttpTestingController`, no con espías sobre `ApiService`.** Lo que interesa es qué se pide y qué se hace con la respuesta, incluido el mapeo `nombre`↔`titulo` del camino real. Un espía sobre la fachada se salta justo eso.
+- **Un test no puede depender del orden.** `AuthService` escribe en `localStorage` de verdad: quien siembre sesión limpia al salir (`src/testing/sesion.ts`). Y hay que sembrar el **token**, no solo el usuario: sin token, AuthService borra el usuario guardado —"token sin usuario no es una sesión, es un resto"— y la pantalla se queda sin saber de quién son las matrículas.
+- **Los umbrales de cobertura van un par de puntos por debajo de lo real**, en `backend/jest.config.js` y en `frontend/karma.conf.js`. Lo bastante cerca para que borrar tests duela, lo bastante lejos para no saltar por ruido. Un umbral que va por detrás de lo que se cubre no protege de nada.
+- **Los e2e comparten una sola base de datos**, así que van en un worker y cada recorrido deja la base como se la encontró. Ir en serie no es depender del orden: cada fichero se puede ejecutar suelto.
 - `npm test` debe quedar en verde antes de dar nada por terminado.
 
 ## Limitaciones conocidas

@@ -83,7 +83,7 @@ Y todo lo que hace administración queda registrado:
 | Backend       | Node.js, Express 5, Mongoose 8                               |
 | Base de datos | MongoDB (o en memoria para desarrollo)                       |
 | Autenticación | JWT, contraseñas con bcrypt                                  |
-| Tests         | Jest + Supertest (backend), Karma + Jasmine (frontend)       |
+| Tests         | Jest + Supertest, Karma + Jasmine, Playwright (e2e)          |
 
 ## Estructura
 
@@ -99,15 +99,18 @@ backend/
   routes/        endpoints y sus validadores
   utils/         clave de profesor, paginación, generación de JWT
   scripts/       datos de demostración
-  __tests__/     119 tests, incluidos los de regresión de seguridad
+  __tests__/     256 tests, incluidos los de regresión de seguridad
 
 frontend/src/app/
   core/          sesión, guards, interceptor, errores HTTP, rutas por rol
   data/          el contrato con el backend: un servicio por recurso,
                  modelos y el mapper nombre↔titulo
   features/      una carpeta por área: landing, auth, cuenta,
-                 admin, profesor, estudiante
-  shared/        navbar, diálogos, estado-vista, módulo de Material
+                 admin, profesor, estudiante, curso
+  shared/        navbar, diálogos, estado-vista, descarga de ficheros
+  testing/       ayudas para los tests de componente (sembrar sesión)
+
+e2e/             recorridos de extremo a extremo con Playwright
 ```
 
 `app.js` no conecta a la base ni llama a `listen()`: eso vive en `server.js`. Los tests importan `app` para Supertest y no deben provocar conexiones.
@@ -138,11 +141,32 @@ cualquier `any` nuevo rompe la build.
 ## Tests
 
 ```bash
-npm test        # backend: 202 tests (Jest + Supertest)
-npm run test:web  # frontend: 29 tests (Karma + Jasmine)
+npm test          # backend:  256 tests (Jest + Supertest)
+npm run test:web  # frontend: 108 tests (Karma + Jasmine)
+npm run test:e2e  # extremo a extremo: 13 recorridos (Playwright)
 ```
 
+### Extremo a extremo
+
+`npm run test:e2e` levanta la aplicación entera —`npm run serve`, con Mongo en
+memoria y los datos de ejemplo— y la recorre con un navegador de verdad: el
+estudiante busca, se matricula y se da de baja; el profesor entra en su clase,
+lee la lista de alumnos y exporta el CSV; administración crea un curso, le
+asigna profesor, matricula a alguien y lo borra. Y una regresión del control de
+acceso: un profesor no ve las acciones de un curso ajeno **ni en la pantalla ni
+llamando a la API por su cuenta**.
+
+Van en un solo worker a propósito: los tres roles comparten una única base de
+datos y en paralelo se pisarían las matrículas. Ir en serie no es lo mismo que
+depender del orden — cada recorrido deja la base como se la encontró, y por eso
+se pueden ejecutar sueltos (`npm run test:e2e -- estudiante`). Está comprobado
+lanzando la tanda tres veces seguidas contra el mismo servidor.
+
+### Cobertura
+
 Cobertura del backend, medida con `npm run test:cov`: **85,7 % sentencias · 76,9 % ramas · 97,8 % funciones · 87,1 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
+
+Cobertura del frontend, con `npm run test:web:cov`: **71,6 % sentencias · 47,1 % ramas · 66,8 % funciones · 73,6 % líneas**, y los umbrales de `frontend/karma.conf.js` un par de puntos por debajo. Las ramas van muy por detrás del resto y no es casualidad: cada `?? ''`, cada `| null` y cada estado que la interfaz no llega a pintar es una rama. Subirlas es el siguiente trabajo, no un número que se pueda escribir en el fichero.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
