@@ -1,10 +1,11 @@
 # Integración continua de EduControl.
 #
-# Tres trabajos en paralelo, porque fallan por motivos distintos y conviene
-# saber cuál de los tres se ha roto sin leer un log de diez minutos:
+# Cuatro trabajos en paralelo, porque fallan por motivos distintos y conviene
+# saber cuál se ha roto sin leer un log de diez minutos:
 #   · calidad  → ESLint y Prettier
-#   · backend  → 119 tests con cobertura (los umbrales viven en jest.config.js)
-#   · frontend → 25 tests en Chrome sin interfaz
+#   · backend  → 256 tests con cobertura (los umbrales viven en jest.config.js)
+#   · frontend → 108 tests con cobertura (los umbrales viven en karma.conf.js)
+#   · e2e      → 13 recorridos con Playwright sobre la aplicación de verdad
 name: CI
 
 on:
@@ -93,10 +94,12 @@ jobs:
 
       # El runner de GitHub trae Chrome y no corre como root, así que
       # ChromeHeadless arranca con su sandbox puesto: no hace falta
-      # --no-sandbox. (karma.conf.js no se usa: el builder @angular/build:karma
-      # trae su propia configuración salvo que se le indique otra.)
-      - name: Karma en Chrome sin interfaz
-        run: npm test --prefix frontend -- --watch=false --browsers=ChromeHeadless
+      # --no-sandbox.
+      #
+      # test:cov añade --code-coverage, así que el bloque `check` de
+      # karma.conf.js (70/45/65/72) hace fallar el trabajo si la cobertura baja.
+      - name: Karma en Chrome sin interfaz, con cobertura
+        run: npm run test:cov --prefix frontend
 
       - name: Build de producción
         run: npm run build --prefix frontend
@@ -113,3 +116,63 @@ jobs:
             echo "El index.html tiene un manejador en línea: la CSP lo bloqueará."
             exit 1
           fi
+
+  e2e:
+    name: Extremo a extremo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      # El servidor levanta un Mongo en memoria: se cachea su binario igual que
+      # en el trabajo del backend, o cada ejecución vuelve a bajarlo.
+      - name: Caché del mongod en memoria
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}
+
+      - name: Caché del navegador de Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # Los tres: `npm run serve` construye el frontend y arranca el backend.
+      - name: Instalar dependencias
+        run: |
+          npm ci
+          npm ci --prefix backend
+          npm ci --prefix frontend
+
+      # `--with-deps` instala también las librerías del sistema que pide
+      # Chromium en el runner. Con la caché puesta, el navegador ya está y
+      # esto solo comprueba.
+      - name: Navegador de Playwright
+        run: npx playwright install --with-deps chromium
+
+      # playwright.config.ts levanta el servidor por su cuenta y espera al
+      # health-check, no al puerto: el puerto responde antes de que Mongo esté
+      # conectado y sembrado.
+      - name: Playwright
+        run: npm run test:e2e
+        env:
+          CI: 'true'
+
+      # Solo cuando algo falla: el informe lleva la traza y la captura del
+      # momento exacto, que es justo lo que no se puede reproducir después.
+      - name: Informe de Playwright si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
