@@ -33,7 +33,11 @@
       <div class="grid cards">
         @for (c of lista; track trackCurso($index, c)) {
           <mat-card class="course">
-            <h3>{{ c.titulo }}</h3>
+            <!-- El título lleva a la ficha del curso. Antes no llevaba a ningún
+                 sitio: el catálogo era el final del camino. -->
+            <h3>
+              <a [routerLink]="['/cursos', c._id]">{{ c.titulo }}</a>
+            </h3>
             <div class="muted">{{ profName(c.profesor) || '—' }}</div>
             <p class="desc">{{ c.descripcion }}</p>
             <div class="actions">
@@ -46,6 +50,7 @@
                 <mat-icon>how_to_reg</mat-icon>
                 {{ isEnrolled(c._id!) ? 'Ya inscrito' : 'Matricular' }}
               </button>
+              <a mat-button [routerLink]="['/cursos', c._id]">Ver el curso</a>
             </div>
           </mat-card>
         }

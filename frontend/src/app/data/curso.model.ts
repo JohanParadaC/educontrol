@@ -9,3 +9,18 @@ export interface Curso {
   descripcion: string;
   profesor?: string | Usuario; // puede llegar como id o como objeto
 }
+
+/**
+ * Lo que devuelve `GET /api/cursos/:id`: el curso y su contexto.
+ *
+ * `matriculados` viene siempre —cuántos son es un dato del curso—, pero
+ * `estudiantes` solo si quien pregunta gestiona el curso: su profesor o un
+ * administrador. Es `undefined` y no `[]` a propósito: "no puedo verlos" y "no
+ * hay ninguno" llevan a pantallas distintas, y aquí la diferencia decide si se
+ * pinta la lista o no se menciona.
+ */
+export interface CursoDetalle {
+  curso: Curso;
+  matriculados: number;
+  estudiantes?: Usuario[];
+}

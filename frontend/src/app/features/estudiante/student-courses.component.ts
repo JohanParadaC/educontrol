@@ -17,6 +17,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+import { RouterLink } from '@angular/router';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
@@ -44,6 +45,7 @@ import { Inscripcion } from '../../data/inscripcion.model';
   standalone: true,
   selector: 'app-student-courses',
   imports: [
+    RouterLink,
     ReactiveFormsModule,
     MatCardModule,
     MatIconModule,

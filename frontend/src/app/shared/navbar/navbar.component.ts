@@ -181,17 +181,34 @@ export class NavbarComponent {
   /** Todos los enlaces visibles en plano, para titular la barra superior. */
   private readonly planos = computed(() => this.grupos().flatMap(g => g.enlaces));
 
+  /** Título que la propia ruta declara en su `data`, si lo hace. */
+  private readonly tituloDeRuta = signal(this.tituloDeclarado());
+
   /**
-   * Título de la sección actual. Sale de la misma lista que la navegación, así
-   * que no pueden desincronizarse.
+   * Título de la sección actual.
+   *
+   * Sale de la misma lista que la navegación, así que no pueden
+   * desincronizarse. La excepción son las pantallas que no son un destino del
+   * menú —la ficha de un curso—: esas se nombran a sí mismas con `data.titulo`,
+   * porque si no la barra decía "EduControl" en una página que sí sabe qué es.
    */
   readonly titulo = computed(() => {
+    const declarado = this.tituloDeRuta();
+    if (declarado) return declarado;
+
     const actual = this.url();
     const enlace = this.planos()
       .filter(e => actual.startsWith(e.ruta))
       .sort((a, b) => b.ruta.length - a.ruta.length)[0];
     return enlace?.etiqueta ?? 'EduControl';
   });
+
+  /** Baja hasta la ruta activa más profunda y lee su `data.titulo`. */
+  private tituloDeclarado(): string {
+    let ruta = this.router.routerState.root;
+    while (ruta.firstChild) ruta = ruta.firstChild;
+    return (ruta.snapshot.data?.['titulo'] as string) ?? '';
+  }
 
   /** Ruta de la marca: sin sesión, la portada; con sesión, tu panel. */
   readonly rutaInicio = computed(() => (this.isLoggedIn() ? rutaInicioPara(this.role()) : '/'));
@@ -225,6 +242,7 @@ export class NavbarComponent {
       )
       .subscribe(e => {
         this.url.set((e as NavigationEnd).urlAfterRedirects);
+        this.tituloDeRuta.set(this.tituloDeclarado());
         // Navegar cierra el cajón: si no, al elegir una opción se queda abierto
         // tapando la página a la que acabas de llegar.
         this.menuAbierto.set(false);

@@ -17,7 +17,11 @@
       <mat-card class="course">
         <div class="head">
           <div>
-            <h3>{{ tituloDe(i.curso) }}</h3>
+            <!-- "Ir al curso" enseñaba un aviso de "próximamente". Ahora hay
+                 curso al que ir. -->
+            <h3>
+              <a [routerLink]="['/cursos', idCursoDe(i.curso)]">{{ tituloDe(i.curso) }}</a>
+            </h3>
             <div class="muted">{{ profesorDe(i.curso) || '—' }}</div>
           </div>
           <button

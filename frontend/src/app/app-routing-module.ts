@@ -78,6 +78,19 @@ export const routes: Routes = [
         m => m.StudentCoursesComponent
       ),
   },
+  // ===== Ficha de curso =====
+  // La ven los tres roles y enseña cosas distintas a cada uno, así que no vive
+  // bajo ninguno. Qué puede ver cada quien lo decide el servidor, no la ruta.
+  {
+    path: 'cursos/:id',
+    canActivate: [authGuard],
+    // La barra superior toma su título de la navegación, y esta pantalla no es
+    // un destino del menú: sin esto decía "EduControl" en la ficha de un curso.
+    data: { titulo: 'Curso' },
+    loadComponent: () =>
+      import('./features/curso/curso-detalle.component').then(m => m.CursoDetalleComponent),
+  },
+
   {
     path: 'mis-cursos',
     canActivate: [authGuard],

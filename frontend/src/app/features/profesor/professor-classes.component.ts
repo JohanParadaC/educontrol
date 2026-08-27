@@ -1,38 +1,33 @@
-// src/app/professor/professor-classes.component.ts
+// src/app/features/profesor/professor-classes.component.ts
 // -------------------------------------------------------------------
-// Los cursos que imparte el profesor, con sus alumnos inscritos.
+// Los cursos que imparte el profesor.
 //
 // Este componente tenía 314 líneas defendiéndose de un backend desconocido:
 // toleraba cuatro nombres para el campo curso, ocho para el alumno y cuatro
 // para los identificadores, y si `/api/inscripciones` venía vacío probaba siete
-// endpoints a ciegas. Contrastados contra las rutas reales, ninguno servía:
-// `/api/matriculas`, `/api/cursos/:id/inscripciones` y `/api/cursos/:id/estudiantes`
-// no existen (404), y las variantes con query string sí existen pero el
-// controlador hace `Inscripcion.find()` sin leer `req.query`, así que devolvían
-// la colección entera ignorando el filtro.
-//
-// El contrato real es conocido y está en este mismo repositorio:
+// endpoints a ciegas. El contrato real está en este mismo repositorio:
 //   GET /api/inscripciones -> { ok, inscripciones: [{ estudiante, curso, fecha }] }
-// con `estudiante` y `curso` POBLADOS por Mongoose. No hace falta cruzar nada
-// con la lista de usuarios: la inscripción ya trae el alumno dentro.
+// con `estudiante` y `curso` POBLADOS por Mongoose.
+//
+// La tabla de alumnos que vivía dentro de cada tarjeta se ha ido a la ficha del
+// curso (/cursos/:id), que es donde además se puede hacer algo con ellos. Aquí
+// queda el recuento, que es lo que se mira desde un listado: de las
+// inscripciones solo se usa cuántas hay por curso, así que ningún nombre ni
+// correo llega a pintarse en esta pantalla.
 // -------------------------------------------------------------------
 
 import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 
-import { MatCardModule } from '@angular/material/card';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatDividerModule } from '@angular/material/divider';
-import { MatTableModule } from '@angular/material/table';
 
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 import { ApiService } from '../../core/api.service';
-import { AuthService } from '../../core/auth.service';
 import { Curso } from '../../data/curso.model';
-import { Usuario } from '../../data/usuario.model';
 import { Inscripcion } from '../../data/inscripcion.model';
+import { idDe } from '../../data/sesion-local';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 import { mensajeDeError } from '../../core/http-error';
 
@@ -40,27 +35,18 @@ import { mensajeDeError } from '../../core/http-error';
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   selector: 'app-professor-classes',
-  imports: [
-    MatCardModule,
-    MatIconModule,
-    MatButtonModule,
-    MatDividerModule,
-    MatTableModule,
-    EstadoVistaComponent,
-  ],
+  imports: [RouterLink, MatIconModule, EstadoVistaComponent],
   templateUrl: './professor-classes.component.html',
   styleUrls: ['./professor-classes.component.scss'],
 })
 export class ProfessorClassesComponent implements OnInit {
   private api = inject(ApiService);
-  public auth = inject(AuthService);
 
   readonly loading = signal(false);
   readonly error = signal('');
   readonly cursos = signal<Curso[]>([]);
-  /** cursoId -> alumnos inscritos */
-  readonly alumnos = signal(new Map<string, Usuario[]>());
-  cols = ['nombre', 'correo'];
+  /** cursoId -> cuántos matriculados. */
+  readonly inscritos = signal(new Map<string, number>());
 
   ngOnInit(): void {
     this.cargar();
@@ -74,13 +60,13 @@ export class ProfessorClassesComponent implements OnInit {
       // Los cursos son el dato esencial: si esa llamada falla hay que decirlo,
       // no fingir una lista vacía.
       cursos: this.api.listCursosDeProfesorMe(),
-      // Las inscripciones sí toleran fallo: sin ellas se ven los cursos pero
-      // sin alumnos, que es peor que nada pero mejor que una pantalla vacía.
+      // Las inscripciones sí toleran fallo: sin ellas se ven los cursos sin el
+      // recuento, que es peor que nada pero mejor que una pantalla vacía.
       ins: this.api.listInscripciones().pipe(catchError(() => of<Inscripcion[]>([]))),
     }).subscribe({
       next: ({ cursos, ins }) => {
         this.cursos.set(cursos || []);
-        this.alumnos.set(this.agruparAlumnosPorCurso(ins || []));
+        this.inscritos.set(this.contarPorCurso(ins || []));
         this.loading.set(false);
       },
       error: err => {
@@ -91,33 +77,20 @@ export class ProfessorClassesComponent implements OnInit {
     });
   }
 
-  /** Id de un documento que puede venir como objeto poblado o como string. */
-  idOf(x: any): string {
-    return typeof x === 'string' ? x : (x?._id ?? x?.id ?? '');
+  /** Id de un documento que puede venir poblado o como cadena. */
+  idOf(x: unknown): string {
+    return idDe(x);
   }
 
-  /**
-   * Agrupa las inscripciones por curso.
-   * `estudiante` y `curso` vienen poblados desde el backend, así que aquí no se
-   * resuelve ninguna referencia: solo se agrupa.
-   */
-  private agruparAlumnosPorCurso(ins: any[]): Map<string, Usuario[]> {
-    const porCurso = new Map<string, Usuario[]>();
-
+  private contarPorCurso(ins: Inscripcion[]): Map<string, number> {
+    const conteo = new Map<string, number>();
     for (const i of ins) {
-      const cursoId = this.idOf(i?.curso);
-      const alumno: Usuario | null = i?.estudiante ?? null;
-      if (!cursoId || !alumno) continue;
-
-      const lista = porCurso.get(cursoId) ?? [];
-      // Una inscripción duplicada no debería existir (hay índice único en el
-      // modelo), pero si llegara no la pintamos dos veces.
-      if (!lista.some(u => this.idOf(u) === this.idOf(alumno))) lista.push(alumno);
-      porCurso.set(cursoId, lista);
+      const cursoId = idDe(i?.curso);
+      if (!cursoId) continue;
+      conteo.set(cursoId, (conteo.get(cursoId) ?? 0) + 1);
     }
-
-    return porCurso;
+    return conteo;
   }
 
-  trackCurso = (_: number, c: Curso) => this.idOf(c);
+  trackCurso = (_: number, c: Curso) => idDe(c);
 }

@@ -85,6 +85,18 @@ html {
   --rol-admin-texto: #92400e;
 
   /* --- Estado ------------------------------------------------------------ */
+  /* Color derivado de un curso.
+     El TONO lo pone cada curso (un número que calcula la ficha a partir de su
+     id); la saturación y la luminosidad salen de aquí, porque son las que
+     cambian entre claro y oscuro. Un color entero calculado en TypeScript no
+     sabría en qué tema se va a pintar.
+     Sobre `--curso-tinte` se escribe con `--texto` y solo con `--texto`: con
+     `--texto-suave` el amarillo en oscuro se queda en 2,95:1. */
+  --curso-tono: 220; /* respaldo, hasta que la ficha ponga el suyo */
+  --curso-sat: 60%;
+  --curso-luz: 42%; /* la franja y la placa: decorativas, sin texto encima */
+  --curso-tinte-luz: 94%; /* fondo teñido, con --texto encima */
+
   --exito: #059669;
   --aviso: #d97706;
   --error: #dc2626;
@@ -145,6 +157,10 @@ html {
   --rol-estudiante-texto: #7dd3fc;
   --rol-profesor-texto: #c4b5fd;
   --rol-admin-texto: #fcd34d;
+
+  --curso-sat: 55%;
+  --curso-luz: 62%;
+  --curso-tinte-luz: 22%;
 
   --exito: #34d399;
   --aviso: #fbbf24;

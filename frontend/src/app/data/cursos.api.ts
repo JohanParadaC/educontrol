@@ -9,7 +9,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
-import { Curso } from './curso.model';
+import { Curso, CursoDetalle } from './curso.model';
 import { Usuario } from './usuario.model';
 import { aCurso, aCursos, deCurso } from './curso.mapper';
 import { Pagina, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
@@ -33,6 +33,24 @@ export class CursosApi {
 
   getCurso(id: string): Observable<Curso> {
     return this.http.get<any>(`${this.base}/${id}`).pipe(map(aCurso));
+  }
+
+  /**
+   * La misma petición que `getCurso`, pero sin tirar el contexto.
+   *
+   * `aCurso` se queda con el curso y descarta el resto de la respuesta, que es
+   * justo lo que necesita la ficha: cuántos hay matriculados y, si el servidor
+   * ha decidido que puede verlos, quiénes.
+   */
+  getCursoDetalle(id: string): Observable<CursoDetalle> {
+    return this.http.get<any>(`${this.base}/${id}`).pipe(
+      map(r => ({
+        curso: aCurso(r),
+        matriculados: Number(r?.matriculados ?? 0),
+        // Ausente si el servidor no la manda. No se sustituye por [].
+        estudiantes: Array.isArray(r?.estudiantes) ? r.estudiantes : undefined,
+      }))
+    );
   }
 
   /**

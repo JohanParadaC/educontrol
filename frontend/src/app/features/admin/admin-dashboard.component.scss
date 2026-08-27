@@ -219,3 +219,15 @@ $movil: 767px;
   color: var(--acento-fuerte);
   font: var(--mat-sys-label-large);
 }
+
+/* El título del curso enlaza con su ficha. Es el único enlace de la tabla, y
+   se marca al pasar por encima para que no parezca texto suelto. */
+.enlace-curso {
+  color: var(--texto);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--acento);
+    text-decoration: underline;
+  }
+}

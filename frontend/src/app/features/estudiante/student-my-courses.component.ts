@@ -9,9 +9,10 @@
 // que el backend no tiene.
 //
 // Ahora la baja es real (DELETE /api/inscripciones/:id), el campo inventado ha
-// desaparecido y el enlace está en el navbar. "Ir al curso" se ha quitado
-// hasta que exista la ficha de curso: un botón cuyo único efecto es decir que
-// no hace nada es peor que no tener botón.
+// desaparecido y el enlace está en el navbar. "Ir al curso" estuvo quitado
+// mientras no existía la ficha —un botón cuyo único efecto es decir que no
+// hace nada es peor que no tener botón—; desde que existe, el título del curso
+// lleva a ella.
 // ---------------------------------------------------------------------------
 import { Component, OnInit, inject, ChangeDetectionStrategy, signal } from '@angular/core';
 
@@ -25,6 +26,7 @@ import { ApiService } from '../../core/api.service';
 import { mensajeDeError } from '../../core/http-error';
 import { Curso } from '../../data/curso.model';
 import { Inscripcion } from '../../data/inscripcion.model';
+import { idDe } from '../../data/sesion-local';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 
 @Component({
@@ -79,6 +81,11 @@ export class StudentMyCoursesComponent implements OnInit {
         });
       },
     });
+  }
+
+  /** Id del curso de una matrícula, que llega poblado. */
+  idCursoDe(c: string | Curso): string {
+    return idDe(c);
   }
 
   tituloDe(c: string | Curso): string {

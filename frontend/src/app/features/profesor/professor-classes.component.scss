@@ -1,36 +1,78 @@
-.wrap {
-  display: grid;
-  gap: 16px;
-  padding: 0 4px;
+.titulo {
+  margin: 0 0 var(--sp-5);
+  font: var(--mat-sys-headline-small);
 }
-.brand .brand-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.brand h1 {
-  margin: 0;
-}
+
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--sp-4);
 }
+
+/* La tarjeta es un enlace: el objetivo pulsable es la tarjeta entera, no un
+   botón de 80 px dentro de ella. */
 .course {
-  min-height: 140px;
-  border-radius: 16px;
+  display: grid;
+  align-content: start;
+  gap: var(--sp-2);
+  padding: var(--sp-5);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--superficie-0);
+  box-shadow: var(--sombra-1);
+  color: var(--texto);
+  text-decoration: none;
+  transition:
+    box-shadow var(--transicion),
+    border-color var(--transicion);
+
+  &:hover {
+    box-shadow: var(--sombra-2);
+    border-color: color-mix(in srgb, var(--acento) 40%, var(--borde));
+  }
+
+  h2 {
+    margin: 0;
+    font: var(--mat-sys-title-medium);
+  }
 }
-.table-wrap {
-  overflow: auto;
-  margin-top: 8px;
+
+.desc {
+  margin: 0;
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-medium);
 }
-table {
-  width: 100%;
-}
-.empty {
-  opacity: 0.7;
-  display: flex;
+
+.chip {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 0;
+  gap: var(--sp-1);
+  justify-self: start;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--rol-estudiante) 14%, transparent);
+  color: var(--rol-estudiante-texto);
+  font: var(--mat-sys-label-medium);
+
+  mat-icon {
+    /* Tamaño de glifo, no tipografía. */
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.ir {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-top: var(--sp-2);
+  color: var(--acento);
+  font: var(--mat-sys-label-large);
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
 }

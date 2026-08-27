@@ -29,7 +29,9 @@
               }
             </mat-card-content>
             <mat-card-actions>
-              <a mat-button color="primary" routerLink="/mis-cursos">Gestionar</a>
+              <!-- A la ficha del curso, no a la lista de matrículas: "Gestionar"
+                   llevaba al mismo sitio que el enlace del menú. -->
+              <a mat-button color="primary" [routerLink]="['/cursos', idOf(c)]">Ver el curso</a>
             </mat-card-actions>
           </mat-card>
         }
@@ -105,6 +107,7 @@
             >
               {{ matriculandoId() === idOf(c) ? 'Matriculando…' : 'Matricular' }}
             </button>
+            <a mat-button [routerLink]="['/cursos', idOf(c)]">Ver el curso</a>
           </mat-card-actions>
         </mat-card>
       }

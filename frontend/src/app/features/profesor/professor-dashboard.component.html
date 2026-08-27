@@ -47,7 +47,9 @@
               </span>
             </mat-card-content>
             <mat-card-actions>
-              <a mat-button color="primary" [routerLink]="classesLink">Ver la clase</a>
+              <!-- A la ficha del curso, no al listado de clases. Antes esto y
+                   "Ver todas" llevaban al mismo sitio. -->
+              <a mat-button color="primary" [routerLink]="['/cursos', idOf(c)]">Ver la clase</a>
             </mat-card-actions>
           </mat-card>
         }

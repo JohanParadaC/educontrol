@@ -1,0 +1,274 @@
+/* Ficha de curso.
+   El único color propio de esta pantalla es el del curso, y de él solo llega
+   el tono: `--curso-tono` lo pone el componente y el resto son tokens. */
+
+$curso-color: hsl(var(--curso-tono) var(--curso-sat) var(--curso-luz));
+$curso-tinte: hsl(var(--curso-tono) var(--curso-sat) var(--curso-tinte-luz));
+
+/* ---------------------------------------------------------------------------
+   MIGAS
+   --------------------------------------------------------------------------- */
+.migas {
+  margin-bottom: var(--sp-4);
+
+  ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-1);
+    font: var(--mat-sys-body-small);
+    color: var(--texto-suave);
+  }
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    min-width: 0;
+  }
+
+  a {
+    color: var(--texto-suave);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--acento);
+      text-decoration: underline;
+    }
+  }
+
+  /* El último es dónde estás: se lee, no se pulsa. */
+  span {
+    color: var(--texto);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  mat-icon {
+    /* Tamaño de glifo, no tipografía. */
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--texto-suave);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   404
+   --------------------------------------------------------------------------- */
+.perdido {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+}
+
+/* ---------------------------------------------------------------------------
+   CABECERA DE LA FICHA
+   --------------------------------------------------------------------------- */
+.ficha {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: var(--sp-5);
+  padding: var(--sp-6);
+  margin-bottom: var(--sp-6);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--superficie-0);
+  box-shadow: var(--sombra-1);
+
+  /* La franja del curso. Decorativa: no lleva texto encima, así que puede ir
+     al color entero sin comprometer ningún contraste. */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: $curso-color;
+  }
+}
+
+.ficha__cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+/* La placa con la sigla del curso: fondo teñido y --texto encima. */
+.ficha__sigla {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radio-md);
+  background: $curso-tinte;
+  color: var(--texto);
+  font: var(--mat-sys-title-large);
+}
+
+.ficha__titulos {
+  min-width: 0;
+
+  h1 {
+    margin: 0 0 var(--sp-2);
+    font: var(--mat-sys-headline-medium);
+    color: var(--texto);
+    text-wrap: balance;
+  }
+}
+
+.ficha__descripcion {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-medium);
+}
+
+.ficha__descripcion--sin {
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------------------
+   METADATOS
+   --------------------------------------------------------------------------- */
+.ficha__meta {
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--borde);
+}
+
+.meta {
+  min-width: 0;
+
+  dt {
+    margin-bottom: var(--sp-2);
+    font: var(--mat-sys-label-small);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+  }
+
+  dd {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    margin: 0;
+    min-width: 0;
+  }
+}
+
+.meta__texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.meta__principal {
+  font: var(--mat-sys-title-small);
+  color: var(--texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta__secundario {
+  font: var(--mat-sys-body-small);
+  color: var(--texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: $curso-tinte;
+  color: var(--texto);
+  font: var(--mat-sys-label-large);
+}
+
+.avatar--neutro {
+  background: var(--superficie-2);
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: var(--texto-suave);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   ACCIONES
+   --------------------------------------------------------------------------- */
+.ficha__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--borde);
+}
+
+.ficha__estado {
+  font: var(--mat-sys-body-small);
+  color: var(--texto-suave);
+}
+
+/* ---------------------------------------------------------------------------
+   ESTUDIANTES
+   --------------------------------------------------------------------------- */
+.alumnos {
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-lg);
+  background: var(--superficie-0);
+
+  h2 {
+    margin: 0 0 var(--sp-4);
+    font: var(--mat-sys-title-medium);
+  }
+}
+
+/* La tabla puede ser más ancha que la página: el scroll es suyo, no del
+   documento. */
+.alumnos__tabla {
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+  }
+}
+
+@media (max-width: 599px) {
+  .ficha {
+    padding: var(--sp-5) var(--sp-4);
+  }
+
+  .ficha__cabecera {
+    gap: var(--sp-3);
+  }
+
+  .ficha__sigla {
+    width: 44px;
+    height: 44px;
+    font: var(--mat-sys-title-medium);
+  }
+
+  .ficha__acciones button {
+    flex: 1 1 100%;
+  }
+}

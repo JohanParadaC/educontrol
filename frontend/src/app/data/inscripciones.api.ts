@@ -68,6 +68,21 @@ export class InscripcionesApi {
     return this.http.post<any>(this.base, payload).pipe(map(r => r?.inscripcion ?? r));
   }
 
+  /**
+   * Matricula por correo en lugar de por identificador.
+   *
+   * Lo usa el profesor desde la ficha de su curso. No hay desplegable de
+   * estudiantes porque `GET /api/usuarios` es solo de administrador, y abrirlo
+   * a los profesores sería repartir el nombre y el correo de todos los
+   * estudiantes del centro para resolver un caso en el que ya se conoce a la
+   * persona.
+   */
+  matricularPorCorreo(cursoId: string, correo: string): Observable<Inscripcion> {
+    return this.http
+      .post<any>(this.base, { cursoId, correo: correo.trim() })
+      .pipe(map(r => r?.inscripcion ?? r));
+  }
+
   /** Matricula al usuario de la sesión actual en un curso. */
   enrollMe(cursoId: string): Observable<Inscripcion> {
     const estudianteId = idDe(usuarioLocal());

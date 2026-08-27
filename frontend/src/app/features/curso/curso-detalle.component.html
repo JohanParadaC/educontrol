@@ -1,0 +1,167 @@
+<!-- Migas: la sección del medio depende del rol, porque de ahí se viene. -->
+<nav class="migas" aria-label="Ruta de navegación">
+  <ol>
+    @for (m of migas(); track m.texto; let ultima = $last) {
+      <li>
+        @if (m.ruta && !ultima) {
+          <a [routerLink]="m.ruta">{{ m.texto }}</a>
+          <mat-icon aria-hidden="true">chevron_right</mat-icon>
+        } @else {
+          <span aria-current="page">{{ m.texto }}</span>
+        }
+      </li>
+    }
+  </ol>
+</nav>
+
+@if (cargando()) {
+  <app-estado-vista [cargando]="true" textoCargando="Cargando el curso…"></app-estado-vista>
+}
+
+@if (!cargando() && error()) {
+  <app-estado-vista [error]="error()" (reintentar)="cargar()"></app-estado-vista>
+}
+
+<!-- 404: un id que no existe no puede dejar la pantalla en blanco, y
+     "reintentar" no arregla nada aquí, así que la salida es volver. -->
+@if (!cargando() && noExiste()) {
+  <div class="perdido">
+    <app-estado-vista mensajeVacio="Ese curso no existe." ilustracion="busqueda"></app-estado-vista>
+    <button mat-flat-button color="primary" type="button" (click)="volverAlListado()">
+      Volver a {{ seccion().texto }}
+    </button>
+  </div>
+}
+
+@if (!cargando() && !error() && !noExiste() && detalle()) {
+  <!-- El tono es lo único que pone el curso; la saturación y la luminosidad
+       las ponen los tokens, que sí saben en qué tema estamos. -->
+  <article class="ficha" [style.--curso-tono]="tono()">
+    <header class="ficha__cabecera">
+      <span class="ficha__sigla" aria-hidden="true">{{ inicialesCurso() }}</span>
+
+      <div class="ficha__titulos">
+        <h1>{{ titulo() }}</h1>
+        @if (descripcion()) {
+          <p class="ficha__descripcion">{{ descripcion() }}</p>
+        } @else {
+          <p class="ficha__descripcion ficha__descripcion--sin">
+            Este curso todavía no tiene descripción.
+          </p>
+        }
+      </div>
+    </header>
+
+    <dl class="ficha__meta">
+      <div class="meta">
+        <dt>Profesor</dt>
+        <dd>
+          @if (profesor(); as p) {
+            <span class="avatar" aria-hidden="true">{{ inicialesProfesor() }}</span>
+            <span class="meta__texto">
+              <span class="meta__principal">{{ p.nombre }}</span>
+              <span class="meta__secundario">{{ p.correo }}</span>
+            </span>
+          } @else {
+            <span class="meta__principal">Sin asignar</span>
+          }
+        </dd>
+      </div>
+
+      <div class="meta">
+        <dt>Matriculados</dt>
+        <dd>
+          <span class="avatar avatar--neutro" aria-hidden="true">
+            <mat-icon>group</mat-icon>
+          </span>
+          <span class="meta__texto">
+            <span class="meta__principal">{{ matriculados() }}</span>
+            <span class="meta__secundario">
+              {{ matriculados() === 1 ? 'estudiante' : 'estudiantes' }}
+            </span>
+          </span>
+        </dd>
+      </div>
+    </dl>
+
+    <!-- Un profesor que mira un curso ajeno no puede hacer nada aquí: sin esta
+         condición quedaba una franja vacía con su línea de separación. -->
+    @if (esEstudiante() || puedeGestionar()) {
+      <div class="ficha__acciones">
+        @if (esEstudiante()) {
+          @if (matriculado()) {
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="ocupado()"
+              (click)="cancelarMatricula()"
+            >
+              <mat-icon>how_to_reg</mat-icon>
+              Cancelar matrícula
+            </button>
+            <span class="ficha__estado">Estás matriculado en este curso.</span>
+          } @else {
+            <button
+              mat-flat-button
+              color="primary"
+              type="button"
+              [disabled]="ocupado()"
+              (click)="matricularme()"
+            >
+              <mat-icon>add</mat-icon>
+              Matricularme
+            </button>
+          }
+        }
+
+        @if (puedeGestionar()) {
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="ocupado()"
+            (click)="matricularEstudiante()"
+          >
+            <mat-icon>person_add</mat-icon>
+            Matricular estudiante
+          </button>
+          <button mat-stroked-button type="button" [disabled]="ocupado()" (click)="editar()">
+            <mat-icon>edit</mat-icon>
+            Editar
+          </button>
+        }
+      </div>
+    }
+  </article>
+
+  <!-- La lista de matriculados. Se pinta si el servidor la ha mandado, que es
+       lo mismo que decir: si quien mira imparte el curso o administra. Un
+       estudiante ve el número de arriba y nada más. -->
+  @if (puedeVerEstudiantes()) {
+    <section class="alumnos" aria-labelledby="titulo-alumnos">
+      <h2 id="titulo-alumnos">Estudiantes ({{ estudiantes().length }})</h2>
+
+      @if (estudiantes().length) {
+        <div class="alumnos__tabla">
+          <table mat-table [dataSource]="estudiantes()">
+            <ng-container matColumnDef="nombre">
+              <th mat-header-cell *matHeaderCellDef>Nombre</th>
+              <td mat-cell *matCellDef="let e">{{ e.nombre }}</td>
+            </ng-container>
+            <ng-container matColumnDef="correo">
+              <th mat-header-cell *matHeaderCellDef>Correo</th>
+              <td mat-cell *matCellDef="let e">{{ e.correo }}</td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="columnas"></tr>
+            <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+          </table>
+        </div>
+      } @else {
+        <app-estado-vista
+          mensajeVacio="Todavía no hay nadie matriculado en este curso."
+          ilustracion="gente"
+        ></app-estado-vista>
+      }
+    </section>
+  }
+}

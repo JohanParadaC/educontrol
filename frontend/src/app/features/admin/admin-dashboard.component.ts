@@ -10,6 +10,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip'; // ✅ NUEVO: tooltips para íconos
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -26,7 +27,7 @@ import { Usuario } from '../../data/usuario.model';
 import { Curso } from '../../data/curso.model';
 import { idDe } from '../../data/sesion-local';
 import { CourseCreateDialogComponent } from './course-create-dialog.component';
-import { EnrollStudentDialogComponent } from './enroll-student-dialog.component';
+import { EnrollStudentDialogComponent, MatriculaPedida } from './enroll-student-dialog.component';
 
 // diálogo de confirmación propio (standalone)
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
@@ -40,6 +41,7 @@ type Rol = 'estudiante' | 'profesor';
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss'],
   imports: [
+    RouterLink,
     FormsModule,
     ReactiveFormsModule,
     MatCardModule,
@@ -340,7 +342,8 @@ export class AdminDashboardComponent implements OnInit {
         },
       })
       .afterClosed()
-      .subscribe((estudianteId?: string) => {
+      .subscribe((pedida?: MatriculaPedida) => {
+        const estudianteId = pedida?.estudianteId;
         if (!estudianteId) return; // cancelado
         this.api
           .createInscripcion({ curso: String(curso._id), estudiante: estudianteId })

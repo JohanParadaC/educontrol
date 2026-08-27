@@ -18,7 +18,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { Usuario } from '../data/usuario.model';
-import { Curso } from '../data/curso.model';
+import { Curso, CursoDetalle } from '../data/curso.model';
 import { Inscripcion } from '../data/inscripcion.model';
 
 import { AuthApi, RespuestaSesion } from '../data/auth.api';
@@ -83,6 +83,10 @@ export class ApiService {
   getCurso(id: string): Observable<Curso> {
     return this.cursos.getCurso(id);
   }
+  /** El curso con su contexto: matriculados y, si procede, quiénes son. */
+  getCursoDetalle(id: string): Observable<CursoDetalle> {
+    return this.cursos.getCursoDetalle(id);
+  }
   /** Catálogo. `buscar` y `profesor` los resuelve el servidor. */
   listCursos(filtros: FiltroCursos = {}): Observable<Curso[]> {
     return this.cursos.listCursos(filtros);
@@ -128,6 +132,10 @@ export class ApiService {
   }
   enrollMe(cursoId: string): Observable<Inscripcion> {
     return this.inscripciones.enrollMe(cursoId);
+  }
+  /** Matricula a alguien por su correo. Es la vía del profesor. */
+  matricularPorCorreo(cursoId: string, correo: string): Observable<Inscripcion> {
+    return this.inscripciones.matricularPorCorreo(cursoId, correo);
   }
   listInscripcionesMe(): Observable<Inscripcion[]> {
     return this.inscripciones.listInscripcionesMe();

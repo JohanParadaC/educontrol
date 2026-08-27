@@ -205,7 +205,11 @@
         @for (c of cursos(); track c._id) {
           <li class="tarjeta-fila tarjeta-curso">
             <div class="tarjeta-datos">
-              <strong>{{ c.titulo }}</strong>
+              <strong
+                ><a class="enlace-curso" [routerLink]="['/cursos', c._id]">{{
+                  c.titulo
+                }}</a></strong
+              >
               <span class="secundario">{{ nombreProfesor(c) }}</span>
               <span class="descripcion">{{ c.descripcion }}</span>
             </div>
@@ -236,7 +240,11 @@
         <table mat-table [dataSource]="cursos()">
           <ng-container matColumnDef="titulo">
             <th mat-header-cell *matHeaderCellDef>Título</th>
-            <td mat-cell *matCellDef="let c">{{ c.titulo }}</td>
+            <!-- El título es el enlace a la ficha del curso: es lo que se
+                 espera pulsar de una fila. -->
+            <td mat-cell *matCellDef="let c">
+              <a class="enlace-curso" [routerLink]="['/cursos', c._id]">{{ c.titulo }}</a>
+            </td>
           </ng-container>
           <ng-container matColumnDef="descripcion">
             <th mat-header-cell *matHeaderCellDef>Descripción</th>
@@ -279,6 +287,10 @@
 
     <mat-menu #menuCurso="matMenu">
       <ng-template matMenuContent let-curso="curso">
+        <a mat-menu-item [routerLink]="['/cursos', curso._id]">
+          <mat-icon>open_in_new</mat-icon>
+          <span>Ver la ficha</span>
+        </a>
         <button mat-menu-item type="button" (click)="abrirDialogMatricular(curso)">
           <mat-icon>person_add</mat-icon>
           <span>Matricular a alguien</span>
