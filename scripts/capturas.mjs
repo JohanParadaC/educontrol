@@ -135,6 +135,30 @@ const PANTALLAS = [
     `,
   },
 
+  {
+    // El registro de acciones administrativas, que vive al final del panel.
+    // Se baja hasta él en vez de capturar la página entera: lo que interesa
+    // es la tabla, no los mil píxeles que hay por encima.
+    fichero: '09-actividad.png',
+    titulo: 'Registro de actividad (administración)',
+    ruta: '/login',
+    ancho: 1280,
+    alto: 820,
+    preparar: `
+      (async () => {
+        await ${entrarComo('admin@educontrol.com', 'Admin123*')};
+        const esperar = ms => new Promise(r => setTimeout(r, ms));
+        for (let i = 0; i < 80 && !document.querySelector('.actividad table'); i++) {
+          await esperar(100);
+        }
+        const seccion = document.querySelector('.actividad');
+        window.scrollTo({ top: seccion.getBoundingClientRect().top + window.scrollY - 72 });
+        await esperar(600);
+        return location.pathname;
+      })()
+    `,
+  },
+
   // --- Assets de la portada ---------------------------------------------
   // El héroe enseña el panel de verdad. Van en webp y a escala 1 porque estas
   // dos sí las descarga quien abre la página —son el LCP de la portada—, y en

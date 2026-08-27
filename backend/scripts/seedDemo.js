@@ -10,6 +10,7 @@ const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
 const Curso = require('../models/Curso');
 const Inscripcion = require('../models/Inscripcion');
+const Auditoria = require('../models/Auditoria');
 
 const PASSWORD_DEMO = process.env.DEMO_PASSWORD || 'Demo1234';
 
@@ -24,11 +25,15 @@ const ESTUDIANTES = [
   { nombre: 'Sara Molina', correo: 'sara@educontrol.com' },
 ];
 
+// Los cuatro cursos cubren a propósito las cuatro situaciones que existen:
+// con cupo y sitio, con cupo y lleno, cerrado y archivado. Así la aplicación
+// recién arrancada enseña los cuatro estados sin que haya que montarlos a mano.
 const CURSOS = [
   {
     nombre: 'Angular desde cero',
     descripcion: 'Componentes, routing y formularios reactivos.',
     profesor: 0,
+    cupoMaximo: 20,
   },
   {
     nombre: 'Node.js y APIs REST',
@@ -39,11 +44,14 @@ const CURSOS = [
     nombre: 'Testing automatizado',
     descripcion: 'Jest, Supertest y estrategia de cobertura.',
     profesor: 1,
+    cupoMaximo: 2, // ya lleno con la matrícula de abajo: enseña el aviso
+    estado: 'cerrado',
   },
   {
     nombre: 'Bases de datos con MongoDB',
     descripcion: 'Modelado, índices y agregaciones.',
     profesor: 1,
+    estado: 'archivado', // fuera del catálogo del estudiante, no del panel
   },
 ];
 
@@ -76,6 +84,8 @@ module.exports = async function seedDemo() {
           nombre: c.nombre,
           descripcion: c.descripcion,
           profesor: profesores[c.profesor]._id,
+          ...(c.cupoMaximo ? { cupoMaximo: c.cupoMaximo } : {}),
+          ...(c.estado ? { estado: c.estado } : {}),
         })
       );
     }
@@ -85,8 +95,51 @@ module.exports = async function seedDemo() {
       { estudiante: estudiantes[0]._id, curso: cursos[0]._id },
       { estudiante: estudiantes[0]._id, curso: cursos[2]._id },
       { estudiante: estudiantes[1]._id, curso: cursos[0]._id },
+      { estudiante: estudiantes[1]._id, curso: cursos[2]._id }, // deja "Testing" lleno: 2 de 2
       { estudiante: estudiantes[2]._id, curso: cursos[3]._id },
     ]);
+
+    // Un poco de historial. Se escribe a mano porque el registro real lo
+    // producen los controladores, y el sembrado no pasa por la API: sin esto,
+    // la pestaña de actividad de una aplicación recién arrancada sale vacía y
+    // no se entiende para qué está.
+    const admin = await Usuario.findOne({ rol: 'admin' });
+    if (admin) {
+      const hace = minutos => new Date(Date.now() - minutos * 60_000);
+      await Auditoria.insertMany([
+        {
+          actor: admin._id,
+          actorNombre: admin.nombre,
+          actorRol: 'admin',
+          accion: 'curso.creado',
+          recurso: { tipo: 'curso', id: cursos[2]._id, etiqueta: cursos[2].nombre },
+          despues: { nombre: cursos[2].nombre, estado: 'abierto', cupoMaximo: 2 },
+          createdAt: hace(180),
+        },
+        {
+          actor: admin._id,
+          actorNombre: admin.nombre,
+          actorRol: 'admin',
+          accion: 'curso.editado',
+          recurso: { tipo: 'curso', id: cursos[2]._id, etiqueta: cursos[2].nombre },
+          antes: { estado: 'abierto' },
+          despues: { estado: 'cerrado' },
+          createdAt: hace(45),
+        },
+        {
+          actor: profesores[1]._id,
+          actorNombre: profesores[1].nombre,
+          actorRol: 'profesor',
+          accion: 'matricula.creada',
+          recurso: {
+            tipo: 'inscripcion',
+            etiqueta: `${estudiantes[2].nombre} en «${cursos[3].nombre}»`,
+          },
+          despues: { estudiante: estudiantes[2].correo, curso: cursos[3].nombre },
+          createdAt: hace(20),
+        },
+      ]);
+    }
 
     console.log(`🌱 Datos de ejemplo creados. Contraseña para todos: ${PASSWORD_DEMO}`);
     console.log(`   profesor: ${PROFESORES[0].correo} · estudiante: ${ESTUDIANTES[0].correo}`);
