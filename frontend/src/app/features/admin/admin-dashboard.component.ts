@@ -24,10 +24,20 @@ import { catchError, finalize, map, tap } from 'rxjs/operators';
 
 import { ApiService } from '../../core/api.service';
 import { Usuario } from '../../data/usuario.model';
-import { Curso } from '../../data/curso.model';
+import { Curso, CursoEditable } from '../../data/curso.model';
 import { idDe } from '../../data/sesion-local';
 import { CourseCreateDialogComponent } from './course-create-dialog.component';
 import { EnrollStudentDialogComponent, MatriculaPedida } from './enroll-student-dialog.component';
+import { ActividadComponent } from './actividad.component';
+
+/** Lo que devuelve el diálogo de crear/editar curso. */
+interface DatosCurso {
+  titulo: string;
+  descripcion: string;
+  profesor?: string | null;
+  cupoMaximo: number | null;
+  estado: Curso['estado'];
+}
 
 // diálogo de confirmación propio (standalone)
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
@@ -55,6 +65,7 @@ type Rol = 'estudiante' | 'profesor';
     MatCheckboxModule,
     MatPaginatorModule,
     EstadoVistaComponent,
+    ActividadComponent,
   ],
 })
 export class AdminDashboardComponent implements OnInit {
@@ -130,6 +141,20 @@ export class AdminDashboardComponent implements OnInit {
     // backend no lo pobló, no lo sabemos.
     if (!p || typeof p === 'string') return 'Sin profesor asignado';
     return p.nombre || 'Sin profesor asignado';
+  }
+
+  /**
+   * El distintivo del estado, o vacío si el curso está abierto.
+   *
+   * Solo se etiqueta lo que no es lo normal: si todos los cursos llevaran
+   * distintivo, dejaría de leerse ninguno.
+   */
+  etiquetaEstado(curso: Curso): string {
+    return curso?.estado === 'cerrado'
+      ? 'Cerrado'
+      : curso?.estado === 'archivado'
+        ? 'Archivado'
+        : '';
   }
 
   id(u: Partial<Usuario>): string {
@@ -242,7 +267,7 @@ export class AdminDashboardComponent implements OnInit {
         data: { profesores: this.profesoresOpt(), soyAdmin: true },
       })
       .afterClosed()
-      .subscribe((data?: { titulo: string; descripcion: string; profesor?: string | null }) => {
+      .subscribe((data?: DatosCurso) => {
         if (!data) return;
         const profesorId = (data.profesor ?? '').toString();
         if (!profesorId) {
@@ -254,6 +279,8 @@ export class AdminDashboardComponent implements OnInit {
             titulo: data.titulo,
             descripcion: data.descripcion,
             profesor: profesorId,
+            cupoMaximo: data.cupoMaximo,
+            estado: data.estado,
           })
           .subscribe({
             next: () => {
@@ -280,21 +307,27 @@ export class AdminDashboardComponent implements OnInit {
             titulo: curso.titulo,
             descripcion: curso.descripcion,
             profesorId,
+            cupoMaximo: curso.cupoMaximo ?? null,
+            estado: curso.estado ?? 'abierto',
           },
         },
       })
       .afterClosed()
-      .subscribe((data?: { titulo: string; descripcion: string; profesor?: string | null }) => {
+      .subscribe((data?: DatosCurso) => {
         if (!data) return;
         const profId = (data.profesor ?? '').toString();
         if (!profId) {
           this.snack.open('Selecciona un profesor', 'Cerrar', { duration: 2000 });
           return;
         }
-        const payload: Partial<Curso> = {
+        // `cupoMaximo: null` viaja a propósito: es como se quita el límite. Si
+        // se filtrara por "falsy" no habría forma de volver a "sin cupo".
+        const payload: CursoEditable = {
           titulo: data.titulo,
           descripcion: data.descripcion,
           profesor: profId,
+          cupoMaximo: data.cupoMaximo,
+          estado: data.estado,
         };
 
         // Antes esto era un ternario sobre `(this.api as any).updateCursoAdmin`,

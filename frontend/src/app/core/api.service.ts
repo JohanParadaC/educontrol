@@ -15,16 +15,19 @@
 // — una ruta que el backend no define.
 // ---------------------------------------------------------------------------
 import { Injectable, inject } from '@angular/core';
+import { HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Usuario } from '../data/usuario.model';
-import { Curso, CursoDetalle } from '../data/curso.model';
+import { Curso, CursoDetalle, CursoEditable } from '../data/curso.model';
 import { Inscripcion } from '../data/inscripcion.model';
 
 import { AuthApi, RespuestaSesion } from '../data/auth.api';
 import { UsuariosApi } from '../data/usuarios.api';
 import { CursosApi, FiltroCursos } from '../data/cursos.api';
 import { InscripcionesApi, FiltroInscripciones } from '../data/inscripciones.api';
+import { AuditoriaApi, FiltroAuditoria } from '../data/auditoria.api';
+import { RegistroAuditoria } from '../data/auditoria.model';
 import { Pagina, LIMITE_PAGINA } from '../data/paginacion';
 
 export { LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA, type Pagina } from '../data/paginacion';
@@ -35,6 +38,7 @@ export class ApiService {
   private usuarios = inject(UsuariosApi);
   private cursos = inject(CursosApi);
   private inscripciones = inject(InscripcionesApi);
+  private auditoria = inject(AuditoriaApi);
 
   // ---------------- AUTH ----------------
   login(body: { correo: string; password: string }): Observable<RespuestaSesion> {
@@ -98,14 +102,10 @@ export class ApiService {
   ): Observable<Pagina<Curso>> {
     return this.cursos.listCursosPaginado(pagina, limite, filtros);
   }
-  createCursoAdmin(body: {
-    titulo: string;
-    descripcion: string;
-    profesor?: string | Usuario;
-  }): Observable<Curso> {
+  createCursoAdmin(body: CursoEditable): Observable<Curso> {
     return this.cursos.createCurso(body);
   }
-  updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {
+  updateCurso(id: string, body: CursoEditable): Observable<Curso> {
     return this.cursos.updateCurso(id, body);
   }
   deleteCurso(id: string): Observable<void> {
@@ -116,6 +116,17 @@ export class ApiService {
   }
   listCursosDeProfesorMe(): Observable<Curso[]> {
     return this.cursos.listCursosDeProfesorMe();
+  }
+  /** La lista de matriculados en CSV, con la respuesta entera: el nombre del
+      fichero viene en una cabecera. */
+  descargarEstudiantesCsv(id: string): Observable<HttpResponse<Blob>> {
+    return this.cursos.descargarEstudiantesCsv(id);
+  }
+
+  // ---------------- AUDITORÍA ----------------
+  /** El historial de acciones administrativas. Solo lo puede leer un admin. */
+  listAuditoria(pagina = 1, limite = LIMITE_PAGINA, filtros: FiltroAuditoria = {}) {
+    return this.auditoria.listar(pagina, limite, filtros) as Observable<Pagina<RegistroAuditoria>>;
   }
 
   // ---------------- INSCRIPCIONES ----------------

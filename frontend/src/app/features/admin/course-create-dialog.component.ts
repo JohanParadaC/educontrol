@@ -14,10 +14,25 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule, MatSelectChange } from '@angular/material/select';
 import { TextFieldModule } from '@angular/cdk/text-field';
 
+import { EstadoCurso } from '../../data/curso.model';
+
+/** Las tres opciones de estado, con el texto que se lee en pantalla. */
+const ESTADOS: Array<{ valor: EstadoCurso; etiqueta: string; ayuda: string }> = [
+  { valor: 'abierto', etiqueta: 'Abierto', ayuda: 'Admite matrículas' },
+  { valor: 'cerrado', etiqueta: 'Cerrado', ayuda: 'Sigue visible, ya no admite' },
+  { valor: 'archivado', etiqueta: 'Archivado', ayuda: 'Fuera del catálogo del estudiante' },
+];
+
 interface DialogData {
   profesores: Array<{ _id: string; nombre: string; correo: string }>;
   soyAdmin: boolean;
-  initial?: { titulo: string; descripcion: string; profesorId?: string };
+  initial?: {
+    titulo: string;
+    descripcion: string;
+    profesorId?: string;
+    cupoMaximo?: number | null;
+    estado?: EstadoCurso;
+  };
 }
 
 @Component({
@@ -50,6 +65,28 @@ interface DialogData {
         }
       </mat-form-field>
 
+      <div class="dos">
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Plazas</mat-label>
+          <input matInput type="number" min="1" step="1" formControlName="cupoMaximo" />
+          <!-- Vacío no es cero: es "sin límite". Se dice, porque un campo
+               numérico en blanco se lee de las dos maneras. -->
+          <mat-hint>Déjalo vacío para no poner límite</mat-hint>
+          @if (form.controls.cupoMaximo.hasError('min')) {
+            <mat-error>Al menos una plaza</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Estado</mat-label>
+          <mat-select formControlName="estado">
+            @for (e of estados; track e.valor) {
+              <mat-option [value]="e.valor">{{ e.etiqueta }} — {{ e.ayuda }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+
       @if (soyAdmin) {
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>Profesor</mat-label>
@@ -81,6 +118,12 @@ interface DialogData {
         display: grid;
         gap: 12px;
       }
+      /* Plazas y estado caben en una fila; en móvil se apilan solas. */
+      .dos {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
     `,
   ],
   imports: [
@@ -96,11 +139,14 @@ interface DialogData {
 export class CourseCreateDialogComponent {
   soyAdmin = false;
   profesores: Array<{ _id: string; nombre: string; correo: string }> = [];
+  readonly estados = ESTADOS;
 
   form!: FormGroup<{
     titulo: FormControl<string>;
     descripcion: FormControl<string>;
     profesorId: FormControl<string>;
+    cupoMaximo: FormControl<number | null>;
+    estado: FormControl<EstadoCurso>;
   }>;
 
   constructor(
@@ -115,6 +161,9 @@ export class CourseCreateDialogComponent {
       titulo: ['', Validators.required],
       descripcion: ['', Validators.required],
       profesorId: [''],
+      // `null` y no 0: el campo vacío significa "sin límite".
+      cupoMaximo: this.fb.control<number | null>(null, Validators.min(1)),
+      estado: this.fb.nonNullable.control<EstadoCurso>('abierto'),
     });
     if (this.soyAdmin) {
       this.form.controls.profesorId.addValidators(Validators.required);
@@ -126,6 +175,8 @@ export class CourseCreateDialogComponent {
           titulo: data.initial.titulo ?? '',
           descripcion: data.initial.descripcion ?? '',
           profesorId: data.initial.profesorId ?? '',
+          cupoMaximo: data.initial.cupoMaximo ?? null,
+          estado: data.initial.estado ?? 'abierto',
         },
         { emitEvent: false }
       );
@@ -143,10 +194,19 @@ export class CourseCreateDialogComponent {
 
   submit() {
     if (this.form.invalid) return;
-    const { titulo, descripcion, profesorId } = this.form.getRawValue();
-    const payload = this.soyAdmin
-      ? { titulo: titulo.trim(), descripcion: descripcion.trim(), profesor: profesorId }
-      : { titulo: titulo.trim(), descripcion: descripcion.trim(), profesor: null };
-    this.dialogRef.close(payload);
+    const { titulo, descripcion, profesorId, cupoMaximo, estado } = this.form.getRawValue();
+
+    // Un input numérico vacío da cadena vacía, no null: se normaliza aquí para
+    // que el backend reciba siempre `null` cuando se quiere quitar el límite.
+    const cupo =
+      cupoMaximo === null || (cupoMaximo as unknown as string) === '' ? null : Number(cupoMaximo);
+
+    this.dialogRef.close({
+      titulo: titulo.trim(),
+      descripcion: descripcion.trim(),
+      profesor: this.soyAdmin ? profesorId : null,
+      cupoMaximo: cupo,
+      estado,
+    });
   }
 }

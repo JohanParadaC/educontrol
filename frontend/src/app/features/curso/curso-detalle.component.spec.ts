@@ -10,7 +10,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { signal } from '@angular/core';
 import { of, throwError } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -50,6 +50,7 @@ describe('CursoDetalleComponent', () => {
       'listInscripcionesPorCurso',
       'enrollMe',
       'deleteInscripcion',
+      'descargarEstudiantesCsv',
     ]);
 
     const ficha = opciones.ficha ?? FICHA;
@@ -59,6 +60,14 @@ describe('CursoDetalleComponent', () => {
     api.listInscripcionesPorCurso.and.returnValue(of(opciones.mias ?? []) as never);
     api.enrollMe.and.returnValue(of({}) as never);
     api.deleteInscripcion.and.returnValue(of(undefined) as never);
+    api.descargarEstudiantesCsv.and.returnValue(
+      of(
+        new HttpResponse({
+          body: new Blob(['x'], { type: 'text/csv' }),
+          headers: new HttpHeaders({ 'Content-Disposition': 'attachment; filename="a.csv"' }),
+        })
+      ) as never
+    );
 
     dialogo = {
       open: jasmine
@@ -216,6 +225,99 @@ describe('CursoDetalleComponent', () => {
     TestBed.resetTestingModule();
     montar({ rol: 'estudiante' });
     expect(componente.seccion().ruta).toBe('/cursos');
+  });
+
+  it('con cupo, la ficha dice cuántas plazas van y cuántas quedan', () => {
+    montar({
+      rol: 'estudiante',
+      mias: [],
+      ficha: { ...FICHA, matriculados: 12, curso: { ...FICHA.curso, cupoMaximo: 30 } },
+    });
+
+    expect(texto()).toContain('12 / 30 plazas');
+    expect(texto()).toContain('18 libres');
+    expect(componente.lleno()).toBeFalse();
+    expect(componente.motivoBloqueo()).toBe('');
+  });
+
+  it('sin plazas, el botón se apaga Y se ve el motivo', () => {
+    montar({
+      rol: 'estudiante',
+      mias: [],
+      ficha: { ...FICHA, matriculados: 30, curso: { ...FICHA.curso, cupoMaximo: 30 } },
+    });
+
+    expect(componente.lleno()).toBeTrue();
+    expect(componente.motivoBloqueo()).toContain('No quedan plazas');
+    // Lo importante: el motivo se pinta. Un botón apagado sin explicación deja
+    // a la gente probando a pulsarlo.
+    expect(texto()).toContain('No quedan plazas');
+    expect(fixture.nativeElement.querySelector('.ficha__acciones button').disabled).toBeTrue();
+  });
+
+  it('un curso cerrado o archivado bloquea la matrícula, cada uno con su motivo', () => {
+    montar({
+      rol: 'estudiante',
+      mias: [],
+      ficha: { ...FICHA, curso: { ...FICHA.curso, estado: 'cerrado' } },
+    });
+    expect(componente.motivoBloqueo()).toContain('cerrado');
+    expect(componente.etiquetaEstado()).toBe('Cerrado');
+
+    TestBed.resetTestingModule();
+    montar({
+      rol: 'estudiante',
+      mias: [],
+      ficha: { ...FICHA, curso: { ...FICHA.curso, estado: 'archivado' } },
+    });
+    expect(componente.motivoBloqueo()).toContain('archivado');
+    expect(componente.etiquetaEstado()).toBe('Archivado');
+  });
+
+  it('un curso abierto no lleva distintivo: el que sale siempre deja de leerse', () => {
+    montar({ rol: 'estudiante', mias: [] });
+
+    expect(componente.etiquetaEstado()).toBe('');
+    expect(fixture.nativeElement.querySelector('.estado')).toBeNull();
+  });
+
+  it('estar lleno no impide darse de baja', () => {
+    montar({
+      rol: 'estudiante',
+      mias: [{ _id: 'i1', curso: 'c1', estudiante: 'e1' }],
+      ficha: { ...FICHA, matriculados: 30, curso: { ...FICHA.curso, cupoMaximo: 30 } },
+    });
+
+    const boton = fixture.nativeElement.querySelector('.ficha__acciones button');
+    expect(boton.textContent).toContain('Cancelar matrícula');
+    expect(boton.disabled).toBeFalse();
+  });
+
+  it('exportar pide el CSV y usa el nombre que manda el servidor', () => {
+    montar({
+      rol: 'profesor',
+      usuario: { id: 'p1', rol: 'profesor' },
+      ficha: { ...FICHA, estudiantes: [] },
+    });
+
+    // El <a> de descarga se crea y se pulsa: se intercepta para no bajar nada.
+    const enlaces: HTMLAnchorElement[] = [];
+    const crear = document.createElement.bind(document);
+    spyOn(document, 'createElement').and.callFake(((etiqueta: string) => {
+      const el = crear(etiqueta);
+      if (etiqueta === 'a') {
+        spyOn(el as HTMLAnchorElement, 'click');
+        enlaces.push(el as HTMLAnchorElement);
+      }
+      return el;
+    }) as never);
+
+    componente.exportar();
+
+    expect(api.descargarEstudiantesCsv).toHaveBeenCalledWith('c1');
+    expect(enlaces.length).toBe(1);
+    expect(enlaces[0].download).toBe('a.csv');
+    expect(componente.exportando()).toBeFalse();
   });
 
   it('el tono del curso es estable y está dentro del círculo', () => {

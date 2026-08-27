@@ -4,12 +4,12 @@
 // La traducción nombre↔titulo la hace curso.mapper y solo él.
 // ---------------------------------------------------------------------------
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
-import { Curso, CursoDetalle } from './curso.model';
+import { Curso, CursoDetalle, CursoEditable } from './curso.model';
 import { Usuario } from './usuario.model';
 import { aCurso, aCursos, deCurso } from './curso.mapper';
 import { Pagina, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
@@ -54,6 +54,21 @@ export class CursosApi {
   }
 
   /**
+   * La lista de matriculados en CSV.
+   *
+   * Se pide con HttpClient y no con un enlace porque la ruta exige el token en
+   * una cabecera, y un `<a href>` no la manda: la descarga saldría 401. Se
+   * devuelve la respuesta ENTERA porque el nombre del fichero viene en
+   * `Content-Disposition` y lo decide el servidor.
+   */
+  descargarEstudiantesCsv(id: string): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.base}/${id}/estudiantes.csv`, {
+      responseType: 'blob',
+      observe: 'response',
+    });
+  }
+
+  /**
    * Catálogo. `buscar` viaja al servidor: antes se traían 100 cursos y se
    * filtraban aquí, así que a partir del curso 101 la búsqueda mentia sin
    * decirlo.
@@ -78,9 +93,7 @@ export class CursosApi {
     );
   }
 
-  createCurso(
-    body: Partial<Curso> & { nombre?: string; descripcion?: string; profesor?: string | Usuario }
-  ): Observable<Curso> {
+  createCurso(body: CursoEditable): Observable<Curso> {
     return this.http.post<any>(this.base, deCurso(body)).pipe(map(aCurso));
   }
 
@@ -93,7 +106,7 @@ export class CursosApi {
    * más y una condición de carrera —lees, otro edita, escribes encima de su
    * cambio sin enterarte—.
    */
-  updateCurso(id: string, body: Partial<Curso>): Observable<Curso> {
+  updateCurso(id: string, body: CursoEditable): Observable<Curso> {
     return this.http.put<any>(`${this.base}/${id}`, deCurso(body)).pipe(map(aCurso));
   }
 

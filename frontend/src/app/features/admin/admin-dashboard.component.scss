@@ -231,3 +231,25 @@ $movil: 767px;
     text-decoration: underline;
   }
 }
+
+/* Distintivo de estado del curso. Solo aparece cuando el curso NO está
+   abierto: una etiqueta que sale siempre deja de leerse. Fondo teñido y
+   encima la variante legible del token, nunca el color entero. */
+.estado {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: var(--sp-2);
+  padding: 1px 8px;
+  border-radius: 999px;
+  font: var(--mat-sys-label-small);
+
+  &.cerrado {
+    background: color-mix(in srgb, var(--aviso) 16%, transparent);
+    color: var(--aviso-texto);
+  }
+
+  &.archivado {
+    background: var(--superficie-2);
+    color: var(--texto-suave);
+  }
+}

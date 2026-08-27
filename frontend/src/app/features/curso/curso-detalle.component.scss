@@ -272,3 +272,46 @@ $curso-tinte: hsl(var(--curso-tono) var(--curso-sat) var(--curso-tinte-luz));
     flex: 1 1 100%;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   ESTADO Y PLAZAS
+   --------------------------------------------------------------------------- */
+
+/* Distintivo junto al título. Solo aparece cuando el curso NO está abierto:
+   una etiqueta que sale siempre deja de leerse. */
+.estado {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: var(--sp-2);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font: var(--mat-sys-label-medium);
+
+  &.cerrado {
+    background: color-mix(in srgb, var(--aviso) 16%, transparent);
+    color: var(--aviso-texto);
+  }
+
+  &.archivado {
+    background: var(--superficie-2);
+    color: var(--texto-suave);
+  }
+}
+
+/* Las plazas agotadas se marcan, pero no en rojo: no es un error, es un dato. */
+.meta__principal--lleno {
+  color: var(--aviso-texto);
+}
+
+.ficha__estado--bloqueo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+
+  mat-icon {
+    /* Tamaño de glifo, no tipografía. */
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}

@@ -1,0 +1,100 @@
+<section class="actividad" aria-labelledby="titulo-actividad">
+  <header class="actividad__cabecera">
+    <h2 id="titulo-actividad">Actividad</h2>
+    <p class="actividad__ayuda">
+      Quién ha cambiado un rol, tocado un curso o movido una matrícula. Solo se registran las
+      acciones administrativas: que alguien se matricule a sí mismo no aparece aquí.
+    </p>
+  </header>
+
+  <div class="filtros">
+    <mat-form-field appearance="outline" class="filtro">
+      <mat-label>Acción</mat-label>
+      <mat-select [formControl]="accion">
+        <mat-option value="">Todas</mat-option>
+        @for (a of acciones; track a[0]) {
+          <mat-option [value]="a[0]">{{ a[1] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filtro filtro--busqueda">
+      <mat-label>Buscar</mat-label>
+      <input matInput [formControl]="buscar" placeholder="Quién o sobre qué" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+  </div>
+
+  @if (cargando() || error() || !registros().length) {
+    <app-estado-vista
+      [cargando]="cargando()"
+      [error]="error()"
+      mensajeVacio="No hay actividad registrada todavía."
+      ilustracion="bandeja"
+      (reintentar)="cargar()"
+    ></app-estado-vista>
+  }
+
+  @if (!cargando() && !error() && registros().length) {
+    <!-- Móvil: una tarjeta por registro. Una tabla de cuatro columnas a 375 px
+         no se lee, y recortar columnas escondería justo lo que se viene a ver. -->
+    <ul class="lista-tarjetas">
+      @for (r of registros(); track trackRegistro($index, r)) {
+        <li class="tarjeta-fila">
+          <span class="accion" [class]="tono(r.accion)">{{ etiqueta(r.accion) }}</span>
+          <strong>{{ r.recurso.etiqueta || '—' }}</strong>
+          <span class="secundario">{{ r.actorNombre }} · {{ cuando(r.createdAt) }}</span>
+          @if (resumen(r)) {
+            <span class="cambio">{{ resumen(r) }}</span>
+          }
+        </li>
+      }
+    </ul>
+
+    <div class="table-wrap">
+      <table mat-table [dataSource]="registros()" class="tabla-consola">
+        <ng-container matColumnDef="cuando">
+          <th mat-header-cell *matHeaderCellDef>Cuándo</th>
+          <td mat-cell *matCellDef="let r" class="col-cuando">
+            {{ cuando(r.createdAt) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="quien">
+          <th mat-header-cell *matHeaderCellDef>Quién</th>
+          <td mat-cell *matCellDef="let r">
+            {{ r.actorNombre }}
+            <span class="rol">{{ r.actorRol }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef>Acción</th>
+          <td mat-cell *matCellDef="let r">
+            <span class="accion" [class]="tono(r.accion)">{{ etiqueta(r.accion) }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="sobre">
+          <th mat-header-cell *matHeaderCellDef>Sobre qué</th>
+          <td mat-cell *matCellDef="let r">
+            <span class="sobre">{{ r.recurso.etiqueta || '—' }}</span>
+            @if (resumen(r)) {
+              <span class="cambio">{{ resumen(r) }}</span>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnas; sticky: true"></tr>
+        <tr mat-row *matRowDef="let fila; columns: columnas"></tr>
+      </table>
+    </div>
+
+    <mat-paginator
+      [length]="total()"
+      [pageSize]="tamPagina"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="onPagina($event)"
+    ></mat-paginator>
+  }
+</section>

@@ -41,7 +41,14 @@
       <span class="ficha__sigla" aria-hidden="true">{{ inicialesCurso() }}</span>
 
       <div class="ficha__titulos">
-        <h1>{{ titulo() }}</h1>
+        <h1>
+          {{ titulo() }}
+          <!-- Solo cuando NO está abierto: un distintivo que sale siempre deja
+               de leerse a los dos días. -->
+          @if (etiquetaEstado()) {
+            <span class="estado" [class]="estado()">{{ etiquetaEstado() }}</span>
+          }
+        </h1>
         @if (descripcion()) {
           <p class="ficha__descripcion">{{ descripcion() }}</p>
         } @else {
@@ -69,16 +76,25 @@
       </div>
 
       <div class="meta">
-        <dt>Matriculados</dt>
+        <dt>{{ cupoMaximo() ? 'Plazas' : 'Matriculados' }}</dt>
         <dd>
           <span class="avatar avatar--neutro" aria-hidden="true">
             <mat-icon>group</mat-icon>
           </span>
           <span class="meta__texto">
-            <span class="meta__principal">{{ matriculados() }}</span>
-            <span class="meta__secundario">
-              {{ matriculados() === 1 ? 'estudiante' : 'estudiantes' }}
-            </span>
+            @if (cupoMaximo()) {
+              <span class="meta__principal" [class.meta__principal--lleno]="lleno()">
+                {{ matriculados() }} / {{ cupoMaximo() }} plazas
+              </span>
+              <span class="meta__secundario">
+                {{ lleno() ? 'sin plazas libres' : cupoMaximo() - matriculados() + ' libres' }}
+              </span>
+            } @else {
+              <span class="meta__principal">{{ matriculados() }}</span>
+              <span class="meta__secundario">
+                {{ matriculados() === 1 ? 'estudiante' : 'estudiantes' }}
+              </span>
+            }
           </span>
         </dd>
       </div>
@@ -105,12 +121,20 @@
               mat-flat-button
               color="primary"
               type="button"
-              [disabled]="ocupado()"
+              [disabled]="ocupado() || !!motivoBloqueo()"
               (click)="matricularme()"
             >
               <mat-icon>add</mat-icon>
               Matricularme
             </button>
+            <!-- El motivo va al lado del botón, no escondido: un botón apagado
+                 sin explicación deja a la gente probando a pulsarlo. -->
+            @if (motivoBloqueo()) {
+              <span class="ficha__estado ficha__estado--bloqueo">
+                <mat-icon aria-hidden="true">info</mat-icon>
+                {{ motivoBloqueo() }}
+              </span>
+            }
           }
         }
 
@@ -128,6 +152,10 @@
           <button mat-stroked-button type="button" [disabled]="ocupado()" (click)="editar()">
             <mat-icon>edit</mat-icon>
             Editar
+          </button>
+          <button mat-stroked-button type="button" [disabled]="exportando()" (click)="exportar()">
+            <mat-icon>download</mat-icon>
+            {{ exportando() ? 'Exportando…' : 'Exportar CSV' }}
           </button>
         }
       </div>

@@ -30,11 +30,12 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { mensajeDeError } from '../../core/http-error';
 import { rutaInicioPara } from '../../core/rutas';
-import { Curso, CursoDetalle } from '../../data/curso.model';
+import { CursoEditable, CursoDetalle, EstadoCurso } from '../../data/curso.model';
 import { Inscripcion } from '../../data/inscripcion.model';
 import { Usuario } from '../../data/usuario.model';
 import { idDe } from '../../data/sesion-local';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
+import { descargarBlob, nombreDeCabecera } from '../../shared/descargar';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { CourseCreateDialogComponent } from '../admin/course-create-dialog.component';
 import {
@@ -112,6 +113,32 @@ export class CursoDetalleComponent {
   readonly columnas = ['nombre', 'correo'];
 
   readonly matriculado = computed(() => !!this.miInscripcion());
+
+  readonly cupoMaximo = computed(() => this.detalle()?.curso?.cupoMaximo ?? 0);
+  readonly estado = computed<EstadoCurso>(() => this.detalle()?.curso?.estado ?? 'abierto');
+  readonly lleno = computed(() => !!this.cupoMaximo() && this.matriculados() >= this.cupoMaximo());
+
+  /**
+   * Por qué no se puede uno matricular, o cadena vacía si sí se puede.
+   *
+   * Es un texto y no un booleano porque se pinta: un botón apagado sin motivo
+   * al lado deja al usuario probando a pulsarlo. El servidor comprueba lo
+   * mismo y devuelve 409; esto solo evita el viaje.
+   */
+  readonly motivoBloqueo = computed(() => {
+    if (this.estado() === 'archivado') return 'Este curso está archivado y no admite matrículas.';
+    if (this.estado() === 'cerrado') return 'Este curso está cerrado a nuevas matrículas.';
+    if (this.lleno()) return 'No quedan plazas libres.';
+    return '';
+  });
+
+  /** La etiqueta del estado, para el distintivo de la cabecera. */
+  readonly etiquetaEstado = computed(() =>
+    this.estado() === 'cerrado' ? 'Cerrado' : this.estado() === 'archivado' ? 'Archivado' : ''
+  );
+
+  /** Descarga en curso: bloquea el botón y cambia su texto. */
+  readonly exportando = signal(false);
 
   readonly titulo = computed(() => this.detalle()?.curso?.titulo ?? '');
   readonly descripcion = computed(() => this.detalle()?.curso?.descripcion ?? '');
@@ -354,32 +381,76 @@ export class CursoDetalleComponent {
             titulo: this.titulo(),
             descripcion: this.descripcion(),
             profesorId: idDe(this.detalle()?.curso?.profesor),
+            cupoMaximo: this.cupoMaximo() || null,
+            estado: this.estado(),
           },
         },
       })
       .afterClosed()
-      .subscribe((datos?: { titulo: string; descripcion: string; profesor?: string | null }) => {
-        if (!datos) return;
+      .subscribe(
+        (datos?: {
+          titulo: string;
+          descripcion: string;
+          profesor?: string | null;
+          cupoMaximo: number | null;
+          estado: EstadoCurso;
+        }) => {
+          if (!datos) return;
 
-        const cambios: Partial<Curso> = {
-          titulo: datos.titulo,
-          descripcion: datos.descripcion,
-        };
-        // El profesor solo viaja si lo ha decidido un administrador. El
-        // diálogo devuelve `null` cuando no enseña el selector, y mandar eso
-        // sería pedirle al backend que borre el profesor del curso.
-        if (this.esAdmin() && datos.profesor) cambios.profesor = datos.profesor;
+          // `cupoMaximo: null` viaja tal cual: es como se quita el límite.
+          const cambios: CursoEditable = {
+            titulo: datos.titulo,
+            descripcion: datos.descripcion,
+            cupoMaximo: datos.cupoMaximo,
+            estado: datos.estado,
+          };
+          // El profesor solo viaja si lo ha decidido un administrador. El
+          // diálogo devuelve `null` cuando no enseña el selector, y mandar eso
+          // sería pedirle al backend que borre el profesor del curso.
+          if (this.esAdmin() && datos.profesor) cambios.profesor = datos.profesor;
 
-        this.ocupado.set(true);
-        this.api.updateCurso(this.id(), cambios).subscribe({
-          next: () => {
-            this.ocupado.set(false);
-            this.snack.open('Curso actualizado', 'OK', { duration: 2000 });
-            this.cargar();
-          },
-          error: err => this.falla(err, 'No se pudo actualizar el curso.'),
-        });
-      });
+          this.ocupado.set(true);
+          this.api.updateCurso(this.id(), cambios).subscribe({
+            next: () => {
+              this.ocupado.set(false);
+              this.snack.open('Curso actualizado', 'OK', { duration: 2000 });
+              this.cargar();
+            },
+            error: err => this.falla(err, 'No se pudo actualizar el curso.'),
+          });
+        }
+      );
+  }
+
+  /**
+   * Descarga la lista de matriculados en CSV.
+   *
+   * El nombre del fichero lo pone el servidor en `Content-Disposition`: quien
+   * sabe cómo se llama el curso es quien lo tiene, y aquí solo se lee.
+   */
+  exportar(): void {
+    if (this.exportando()) return;
+    this.exportando.set(true);
+
+    this.api.descargarEstudiantesCsv(this.id()).subscribe({
+      next: respuesta => {
+        this.exportando.set(false);
+        const cuerpo = respuesta.body;
+        if (!cuerpo) {
+          this.snack.open('El servidor no devolvió el fichero.', 'Cerrar', { duration: 4000 });
+          return;
+        }
+        const nombre = nombreDeCabecera(
+          respuesta.headers.get('Content-Disposition'),
+          'estudiantes.csv'
+        );
+        descargarBlob(cuerpo, nombre);
+      },
+      error: err => {
+        this.exportando.set(false);
+        this.falla(err, 'No se pudo exportar la lista.');
+      },
+    });
   }
 
   /** Un solo sitio para soltar el bloqueo y decir qué ha pasado. */

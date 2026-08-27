@@ -12,26 +12,46 @@
 }
 
 @if (!loading() && !error() && cursos().length) {
-  <!-- La tarjeta entera es el enlace a la ficha del curso. Antes cada tarjeta
-       llevaba dentro la tabla de alumnos: esa tabla vive ahora en la ficha,
-       que es donde se puede hacer algo con ella. -->
-  <div class="cards">
+  <!-- El título lleva a la ficha del curso. Antes cada tarjeta llevaba dentro
+       la tabla de alumnos: esa tabla vive ahora en la ficha, que es donde se
+       puede hacer algo con ella. -->
+  <ul class="cards">
     @for (c of cursos(); track trackCurso($index, c)) {
-      <a class="course" [routerLink]="['/cursos', idOf(c)]">
-        <h2>{{ c.titulo }}</h2>
+      <li class="course">
+        <h2>
+          <a [routerLink]="['/cursos', idOf(c)]">{{ c.titulo }}</a>
+          @if (etiquetaEstado(c)) {
+            <span class="estado" [class]="c.estado">{{ etiquetaEstado(c) }}</span>
+          }
+        </h2>
+
         <p class="desc">{{ c.descripcion || 'Sin descripción.' }}</p>
 
-        <span class="chip">
+        <span class="chip" [class.chip--lleno]="lleno(c)">
           <mat-icon aria-hidden="true">group</mat-icon>
-          {{ inscritos().get(idOf(c)) || 0 }}
-          {{ (inscritos().get(idOf(c)) || 0) === 1 ? 'estudiante' : 'estudiantes' }}
+          @if (c.cupoMaximo) {
+            {{ inscritos().get(idOf(c)) || 0 }} / {{ c.cupoMaximo }} plazas
+          } @else {
+            {{ inscritos().get(idOf(c)) || 0 }}
+            {{ (inscritos().get(idOf(c)) || 0) === 1 ? 'estudiante' : 'estudiantes' }}
+          }
         </span>
 
-        <span class="ir">
-          Ver la ficha
-          <mat-icon aria-hidden="true">arrow_forward</mat-icon>
-        </span>
-      </a>
+        <div class="acciones">
+          <a mat-button color="primary" [routerLink]="['/cursos', idOf(c)]">Ver la ficha</a>
+          <!-- Exportar desde el listado ahorra entrar en cada curso cuando lo
+               que se quiere es la lista de los cinco. -->
+          <button
+            mat-button
+            type="button"
+            [disabled]="exportandoId() === idOf(c)"
+            (click)="exportar(c)"
+          >
+            <mat-icon>download</mat-icon>
+            {{ exportandoId() === idOf(c) ? 'Exportando…' : 'Exportar CSV' }}
+          </button>
+        </div>
+      </li>
     }
-  </div>
+  </ul>
 }

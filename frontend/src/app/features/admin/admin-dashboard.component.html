@@ -205,12 +205,16 @@
         @for (c of cursos(); track c._id) {
           <li class="tarjeta-fila tarjeta-curso">
             <div class="tarjeta-datos">
-              <strong
-                ><a class="enlace-curso" [routerLink]="['/cursos', c._id]">{{
-                  c.titulo
-                }}</a></strong
-              >
+              <strong>
+                <a class="enlace-curso" [routerLink]="['/cursos', c._id]">{{ c.titulo }}</a>
+                @if (etiquetaEstado(c)) {
+                  <span class="estado" [class]="c.estado">{{ etiquetaEstado(c) }}</span>
+                }
+              </strong>
               <span class="secundario">{{ nombreProfesor(c) }}</span>
+              @if (c.cupoMaximo) {
+                <span class="secundario">Cupo: {{ c.cupoMaximo }} plazas</span>
+              }
               <span class="descripcion">{{ c.descripcion }}</span>
             </div>
             <div class="tarjeta-acciones">
@@ -244,6 +248,10 @@
                  espera pulsar de una fila. -->
             <td mat-cell *matCellDef="let c">
               <a class="enlace-curso" [routerLink]="['/cursos', c._id]">{{ c.titulo }}</a>
+              <!-- Archivar no es borrar: el curso sigue aquí, etiquetado. -->
+              @if (etiquetaEstado(c)) {
+                <span class="estado" [class]="c.estado">{{ etiquetaEstado(c) }}</span>
+              }
             </td>
           </ng-container>
           <ng-container matColumnDef="descripcion">
@@ -358,3 +366,7 @@
     </div>
   </mat-card>
 </div>
+
+<!-- Quién ha tocado qué. Va al final del panel: se consulta cuando algo no
+     cuadra, no cada vez que se entra. -->
+<app-actividad />

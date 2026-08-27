@@ -1,0 +1,163 @@
+/* Historial de acciones administrativas.
+   Misma densidad que las otras tablas del panel: filas de 44 px y 13,5 px de
+   tipografía. Esta pantalla existe para mirar listas largas. */
+
+$movil: 767px;
+
+.actividad {
+  margin-top: var(--sp-7);
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--borde);
+}
+
+.actividad__cabecera {
+  margin-bottom: var(--sp-4);
+
+  h2 {
+    margin: 0 0 var(--sp-2);
+    font: var(--mat-sys-title-large);
+  }
+}
+
+.actividad__ayuda {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-small);
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.filtro {
+  min-width: 200px;
+}
+
+.filtro--busqueda {
+  flex: 1;
+  max-width: 360px;
+}
+
+/* ---------------------------------------------------------------------------
+   TABLA (escritorio) / TARJETAS (móvil)
+   --------------------------------------------------------------------------- */
+.table-wrap {
+  overflow: auto;
+  max-height: 60vh;
+
+  @media (max-width: $movil) {
+    display: none;
+  }
+}
+
+.lista-tarjetas {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  @media (max-width: $movil) {
+    display: grid;
+    gap: var(--sp-3);
+  }
+}
+
+.tarjeta-fila {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-md);
+
+  /* El distintivo es una etiqueta, no una barra: sin esto el grid lo estira. */
+  > .accion {
+    justify-self: start;
+  }
+
+  strong {
+    font: var(--mat-sys-title-small);
+  }
+}
+
+.tabla-consola {
+  width: 100%;
+
+  .mat-mdc-header-row {
+    height: 40px;
+  }
+
+  .mat-mdc-row {
+    height: 44px;
+  }
+
+  .mat-mdc-cell,
+  .mat-mdc-header-cell {
+    font-size: 13.5px;
+    padding-inline: var(--sp-3);
+  }
+}
+
+/* Las fechas se comparan en vertical: en tabular, las cifras se alinean. */
+.col-cuando {
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-suave);
+  white-space: nowrap;
+}
+
+.rol {
+  margin-left: var(--sp-1);
+  color: var(--texto-suave);
+  font: var(--mat-sys-label-small);
+}
+
+.secundario {
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-small);
+}
+
+.sobre {
+  color: var(--texto);
+}
+
+/* Qué cambió, en gris y en una línea: es el detalle, no el titular. */
+.cambio {
+  display: block;
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-small);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------------
+   DISTINTIVO DE ACCIÓN
+   Crear, cambiar y borrar no pesan lo mismo, y el color lo dice antes que el
+   texto. El fondo va teñido y encima la variante legible del token, nunca el
+   color entero: es la misma regla de los roles.
+   --------------------------------------------------------------------------- */
+.accion {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font: var(--mat-sys-label-medium);
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+}
+
+.accion.alta {
+  background: color-mix(in srgb, var(--exito) 14%, transparent);
+  color: var(--exito-texto);
+}
+
+.accion.cambio {
+  background: var(--acento-suave);
+  color: var(--acento-fuerte);
+}
+
+.accion.baja {
+  background: color-mix(in srgb, var(--error) 14%, transparent);
+  color: var(--error-texto);
+}

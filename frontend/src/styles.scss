@@ -78,7 +78,10 @@ html {
   /* El color del rol sirve para pintar el fondo de un chip, no para escribir
      encima: el ámbar sobre blanco da 2,3:1. Estos son la versión legible del
      mismo color, para el texto. */
-  --rol-estudiante-texto: #0369a1;
+  /* Sky 800 y no 700: el chip de estudiante de la tabla de administración se
+     quedaba en 4,30:1, por debajo del 4,5 de AA. Es el único de los tres
+     roles que no llegaba, y se ve solo midiendo. */
+  --rol-estudiante-texto: #075985;
   --rol-profesor-texto: #6d28d9;
   /* amber-800 y no 700: sobre su propio fondo teñido, el 700 se quedaba en
      4,44:1, a seis centésimas de AA. El ámbar es el color difícil de la paleta. */
@@ -101,6 +104,16 @@ html {
   --aviso: #d97706;
   --error: #dc2626;
   --sobre-error: #ffffff;
+
+  /* Igual que los roles: el color de estado tiñe fondos, y para escribir
+     encima hay una variante legible. Medido sobre el propio tinte al 14-16 %:
+     `--exito` daba 3,18, `--aviso` 2,68 y `--error` 3,88 — los tres por debajo
+     de AA. Las variantes 800 los suben a 6,49, 5,97 y 6,68.
+     En oscuro los colores base ya contrastan (7,12 / 10,69 / 5,34) y no
+     cambian: aclararlos más los volvería fosforito. */
+  --exito-texto: #065f46;
+  --aviso-texto: #92400e;
+  --error-texto: #991b1b;
 
   /* --- Forma ------------------------------------------------------------- */
   --radio-sm: 6px;
@@ -165,6 +178,10 @@ html {
   --exito: #34d399;
   --aviso: #fbbf24;
   --error: #f87171;
+
+  --exito-texto: #34d399;
+  --aviso-texto: #fbbf24;
+  --error-texto: #f87171;
   --sobre-error: #0b1120;
 
   /* Sobre fondo oscuro una sombra negra no se ve: la profundidad la da el
