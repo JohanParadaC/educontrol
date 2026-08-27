@@ -5,24 +5,12 @@ const { leerPaginacion, metadatos } = require('../utils/paginacion');
 const { escaparRegex } = require('../utils/regex');
 const { generarCsv, cabeceraDescarga } = require('../utils/csv');
 const { registrar, instantaneaCurso } = require('../utils/auditoria');
+const { puedeGestionarCurso } = require('../utils/propiedad');
 
-/**
- * ¿Puede este usuario tocar este curso?
- *
- * roleCheck ya ha dejado pasar solo a profesores y administradores, pero el rol
- * no dice de quién es el curso: sin esta comprobación cualquier profesor
- * editaba o borraba los cursos de otro. El admin sí puede con todos, que para
- * eso administra.
- */
-const puedeGestionar = (curso, usuario) => {
-  if (usuario?.rol === 'admin') return true;
-  // El profesor puede llegar como referencia o ya poblado, y de un documento
-  // poblado `String(doc)` no devuelve su identificador sino su volcado: la
-  // comparación salía siempre falsa y el dueño del curso perdía su propio
-  // curso.
-  const profesor = curso?.profesor?._id ?? curso?.profesor;
-  return String(profesor) === String(usuario?._id);
-};
+// La regla de propiedad vive en utils/propiedad.js: la necesitan también las
+// inscripciones, y copiarla sería garantizar que dentro de un mes solo se
+// cumple en uno de los dos sitios.
+const puedeGestionar = puedeGestionarCurso;
 
 // Crear un curso
 const crearCurso = async (req, res, next) => {

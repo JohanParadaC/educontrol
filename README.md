@@ -196,6 +196,9 @@ El backend cubre el CRUD completo, la validación de payloads, el manejo de erro
 | `GET /api/inscripciones/:id` de una matrícula ajena     | 404, ni confirma que existe           |
 | `DELETE` de un curso o un estudiante                    | se van también sus inscripciones      |
 | `DELETE` de un profesor con cursos                      | 409 diciendo cuántos, sin borrar nada |
+| `POST /api/inscripciones` de un estudiante a otro       | 403, y el otro no queda matriculado   |
+| Ídem con el `correo` de un tercero                      | 403 idéntico, exista ese correo o no  |
+| `POST /api/inscripciones` de un profesor en curso ajeno | 403, sin matricular a nadie           |
 | Login con correo inexistente vs. contraseña mala        | misma respuesta, palabra por palabra  |
 | Sexto intento fallido de login                          | 429                                   |
 | `CastError` y `E11000` que llegan al manejador          | 400 y 409, sin texto de Mongo         |
@@ -451,9 +454,8 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 
 - **No hay recuperación de contraseña.** Si un usuario la olvida, solo un administrador puede restablecérsela.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
-- **`POST /api/inscripciones` acepta el `estudianteId` (o el `correo`) del cuerpo sin comprobar de quién es.** Lo necesitan el panel de administración y la ficha del curso para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
 - **El cupo se comprueba contando, y contar no es atómico.** Entre el recuento y la inserción cabe otra petición, así que dos matrículas simultáneas sobre la última plaza pueden entrar las dos. Cerrarlo de verdad pide una transacción y este Mongo es de un solo nodo. Pasarse de uno en una plaza es preferible a fingir que no pasa.
-- **El profesor matricula escribiendo un correo, no eligiendo de una lista.** `GET /api/usuarios` es solo de administrador y abrirlo a los profesores repartiría el nombre y el correo de todos los estudiantes del centro. Un buscador que resuelva por prefijo en el servidor sería mejor, pero es otra pieza.
+- **El profesor matricula escribiendo un correo, no eligiendo de una lista.** `GET /api/usuarios` es solo de administrador y abrirlo a los profesores repartiría el nombre y el correo de todos los estudiantes del centro. Un buscador que resuelva por prefijo en el servidor sería mejor, pero es otra pieza. Solo puede hacerlo en **sus** cursos: en los de otro profesor recibe un 403, igual que si intentara editarlos.
 - **El bundle inicial pesa ~733 kB** (180 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
 
 ## Licencia

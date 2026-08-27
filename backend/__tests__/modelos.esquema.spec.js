@@ -187,11 +187,15 @@ describe('POST /api/inscripciones — el contenido también se valida', () => {
   });
 
   it('un estudiante que no existe → 404', async () => {
-    const alumno = await createUserAndLogin('estudiante');
+    // Con el token de un ADMIN, que es quien puede apuntar a otra persona. Un
+    // estudiante recibe 403 antes de que se resuelva ese identificador: si
+    // llegara a distinguir el 404, la ruta serviría para averiguar qué cuentas
+    // existen. Ese caso está en seguridad.inscripciones.autorizacion.spec.js.
+    const admin = await createUserAndLogin('admin');
     const profesor = await crearUsuario({ rol: 'profesor' });
     const curso = await Curso.create({ nombre: 'Curso', profesor: profesor.id });
 
-    const res = await inscribir(alumno.token, {
+    const res = await inscribir(admin.token, {
       cursoId: curso._id,
       estudianteId: idInexistente(),
     });

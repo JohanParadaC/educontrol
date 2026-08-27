@@ -20,20 +20,16 @@ router.post(
     // llegaba hasta Mongoose, lanzaba un CastError y salía como 500. Un dato
     // mal formado por el cliente es un 400, no un fallo del servidor.
     check('cursoId', 'El ID de curso no es válido').isMongoId(),
-    // Uno de los dos: el identificador (panel de administración) o el correo
-    // (el profesor, que no tiene lista de estudiantes de la que elegir).
+    // El identificador lo usa el panel de administración, que tiene la lista;
+    // el correo, el profesor, que no la tiene ni debe tenerla. Los dos son
+    // opcionales.
     check('estudianteId', 'El ID de estudiante no es válido').optional().isMongoId(),
     // El trim va antes del isEmail: un correo pegado del portapapeles trae
     // espacios y "Correo no válido" sería mentir sobre lo que pasa.
     check('correo', 'Correo no válido').optional().trim().isEmail(),
-    check('estudianteId')
-      .custom((valor, { req }) => {
-        if (!valor && !req.body?.correo) {
-          throw new Error('Hace falta el ID del estudiante o su correo');
-        }
-        return true;
-      })
-      .withMessage('Hace falta el ID del estudiante o su correo'),
+    // Ya no se exige que venga uno de los dos: sin destinatario, se matricula
+    // quien lo pide, que es lo que hace la pantalla del estudiante. Quién puede
+    // matricular a quién lo decide el controlador leyendo el curso.
     validateFields,
   ],
   inscribirEstudiante

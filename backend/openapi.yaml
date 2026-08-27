@@ -497,9 +497,19 @@ paths:
       summary: Matricular a un estudiante
       description: >
         Por `estudianteId` (lo usa el panel de administración, que tiene la
-        lista) o por `correo` (lo usa el profesor, que no la tiene ni debe
-        tenerla). El duplicado lo decide el índice único de la base, no una
-        consulta previa.
+        lista), por `correo` (lo usa el profesor, que no la tiene ni debe
+        tenerla) o **sin destinatario**, y entonces se matricula quien lo pide.
+
+
+        Quién puede matricular a quién: un administrador a cualquiera en
+        cualquier curso; un profesor a cualquiera, pero solo en **los cursos
+        que imparte**; un estudiante, solo a sí mismo. La comprobación va antes
+        de resolver la cuenta destino, así que un 403 es idéntico exista ese
+        correo o no.
+
+
+        El duplicado lo decide el índice único de la base, no una consulta
+        previa.
       requestBody:
         required: true
         content:
@@ -529,6 +539,14 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403':
+          description: >
+            No puedes matricular a esa persona en ese curso. Un estudiante solo
+            se matricula a sí mismo; un profesor, solo en los cursos que
+            imparte.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '404':
           description: El curso o la cuenta no existen
           content:

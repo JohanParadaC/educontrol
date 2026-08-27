@@ -4,6 +4,7 @@ const Usuario = require('../models/Usuario');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 const { normalizarCorreo } = require('../utils/correo');
 const { registrar } = require('../utils/auditoria');
+const { puedeGestionarCurso, esElMismo } = require('../utils/propiedad');
 
 /**
  * El curso, con su profesor dentro.
@@ -82,31 +83,81 @@ const resolverEstudiante = ({ estudianteId, correo }) => {
 };
 
 /**
+ * ¿Puede quien pide matricular a quien dice, en el curso que dice?
+ *
+ *   admin       a cualquiera, en cualquier curso.
+ *   profesor    a cualquiera, pero SOLO en los cursos que imparte. Por lo
+ *               mismo por lo que no edita cursos ajenos: el rol dice qué clase
+ *               de usuario entra, de quién es el curso lo decide leerlo.
+ *   estudiante  solo a sí mismo.
+ *
+ * Devuelve `null` si puede, o el motivo si no. Se resuelve mirando lo que pide,
+ * sin tocar la cuenta a la que apunta: eso es lo que impide usar esta ruta para
+ * averiguar si un correo existe.
+ */
+const motivoParaNegar = ({ usuario, curso, estudianteId, correo }) => {
+  if (usuario?.rol === 'admin') return null;
+
+  if (usuario?.rol === 'profesor') {
+    return puedeGestionarCurso(curso, usuario)
+      ? null
+      : 'Solo puedes matricular en los cursos que impartes';
+  }
+
+  // Un estudiante, solo a sí mismo: sin destinatario (se matricula él), con su
+  // propio identificador, o con su propio correo.
+  const aOtroPorId = estudianteId && !esElMismo(estudianteId, usuario?._id);
+  const aOtroPorCorreo =
+    correo && normalizarCorreo(correo) !== normalizarCorreo(usuario?.correo ?? '');
+
+  return aOtroPorId || aOtroPorCorreo ? 'Solo puedes matricularte a ti mismo' : null;
+};
+
+/**
  * Inscribe un estudiante en un curso.
  *
  * Antes no se comprobaba nada del contenido: se podía matricular a un
  * administrador en un curso inexistente y el sistema lo aceptaba. Los dos
  * identificadores tienen formato válido —de eso se encarga el validador de la
  * ruta— pero que un ObjectId esté bien escrito no quiere decir que exista.
+ *
+ * Y tampoco se comprobaba QUIÉN pedía qué: cualquier usuario autenticado podía
+ * matricular a cualquier otro. Lo llamativo es que el código ya distinguía el
+ * caso unas líneas más abajo, para decidir si lo registraba en auditoría.
  */
 const inscribirEstudiante = async (req, res, next) => {
   try {
     const { cursoId, estudianteId, correo } = req.body;
 
-    const [curso, estudiante] = await Promise.all([
-      Curso.findById(cursoId).select('_id nombre estado cupoMaximo'),
-      resolverEstudiante({ estudianteId, correo }),
-    ]);
+    const curso = await Curso.findById(cursoId).select('_id nombre profesor estado cupoMaximo');
 
     // El curso no está: 404, porque el recurso al que apunta no existe.
     if (!curso) {
       return res.status(404).json({ ok: false, msg: 'El curso no existe' });
     }
 
+    // La autorización va ANTES de resolver a quién se matricula, y no es solo
+    // orden: si fuera después, un estudiante podría distinguir "no hay ninguna
+    // cuenta con ese correo" (404) de "esa cuenta no es de un estudiante"
+    // (400) de un 201 — la misma enumeración de correos que se cerró en el
+    // login, entrando por otra puerta. Aquí el 403 es idéntico exista ese
+    // correo o no.
+    const negado = motivoParaNegar({ usuario: req.usuario, curso, estudianteId, correo });
+    if (negado) {
+      return res.status(403).json({ ok: false, msg: negado });
+    }
+
+    // Sin destinatario, se matricula quien lo pide. Es lo que hace la interfaz
+    // del estudiante, que no tiene por qué mandar su propio identificador.
+    const estudiante =
+      estudianteId || correo
+        ? await resolverEstudiante({ estudianteId, correo })
+        : await Usuario.findById(req.usuario?._id).select('rol nombre correo');
+
     // El estudiante sí existe pero no es un estudiante: 400, porque el dato
     // que manda el cliente está mal, no falta.
     if (!estudiante) {
-      const msg = estudianteId ? 'El estudiante no existe' : 'No hay ninguna cuenta con ese correo';
+      const msg = correo ? 'No hay ninguna cuenta con ese correo' : 'El estudiante no existe';
       return res.status(404).json({ ok: false, msg });
     }
     if (estudiante.rol !== 'estudiante') {
