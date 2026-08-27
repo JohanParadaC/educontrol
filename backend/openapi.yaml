@@ -1,0 +1,953 @@
+# openapi.yaml
+# ---------------------------------------------------------------------------
+# El contrato HTTP de EduControl, escrito a mano contra routes/ y
+# controllers/ — no generado, y por eso hay un test que lo compara con la
+# tabla de rutas real (`__tests__/openapi.contrato.spec.js`): un documento que
+# se escribe a mano y no se comprueba envejece en dos semanas.
+#
+# Lo que NO está aquí, a propósito:
+#   · `/api/admin/boom`, que solo existe con NODE_ENV=test.
+#   · `/api/docs` y `/api/openapi.yaml`, que son la propia documentación.
+#
+# El linter deja tres avisos de `operation-4xx-response`, uno por sonda de
+# salud: no tienen ningún 4xx porque son públicas y solo contestan 200 o 503.
+# Inventarles una respuesta de error para callar al linter sería documentar
+# algo que no ocurre.
+# ---------------------------------------------------------------------------
+openapi: 3.0.3
+
+info:
+  title: EduControl API
+  version: '1.0'
+  description: |
+    Gestión de cursos, estudiantes y profesores.
+
+    **Autorización.** Casi todo pide `Authorization: Bearer <token>`. El rol se
+    lee de la base de datos en cada petición, no del claim del token: a quien
+    degradan pierde el acceso de inmediato en vez de conservarlo hasta que
+    caduque.
+
+    **Propiedad.** El rol dice qué clase de usuario entra; de quién es el
+    recurso lo decide el controlador leyéndolo. Un profesor solo toca sus
+    cursos; un estudiante, sus matrículas.
+
+    **Paginación.** Los listados devuelven `total`, `pagina`, `limite` y
+    `paginas`, con un tope duro de 100 por página.
+  license:
+    name: MIT
+    url: https://github.com/JohanParadaC/educontrol/blob/main/LICENSE
+
+servers:
+  - url: /
+    description: El mismo origen que sirve la aplicación
+
+tags:
+  - name: Salud
+    description: Sondas para el orquestador. Sin autenticación.
+  - name: Autenticación
+    description: Entrar y renovar. El token se firma en un solo sitio, con 12 h de vida.
+  - name: Usuarios
+    description: >
+      Registro público, listado (solo administración) y edición. El rol se lee
+      de la base de datos en cada petición, nunca del claim del token.
+  - name: Cursos
+    description: >
+      Catálogo, ficha y exportación. Un profesor solo toca los suyos; de quién
+      es el curso lo decide el controlador leyéndolo, no el rol.
+  - name: Inscripciones
+    description: >
+      Matrículas. Cada rol ve un alcance distinto y los filtros se cruzan con
+      él: pedir algo fuera de lo permitido vacía el resultado, no lo amplía.
+  - name: Auditoría
+    description: Quién ha hecho qué. Solo lectura y solo para administración.
+  - name: Administración
+    description: Herramientas de desarrollo. En producción devuelven 404.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/health:
+    get:
+      operationId: salud
+      tags: [Salud]
+      summary: Disponibilidad (atajo de /api/health/ready)
+      security: []
+      responses:
+        '200':
+          description: La aplicación puede atender peticiones
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Salud' }
+        '503':
+          description: En pie pero sin base de datos, así que no puede servir
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Salud' }
+
+  /api/health/live:
+    get:
+      operationId: saludVida
+      tags: [Salud]
+      summary: ¿El proceso está vivo?
+      description: >
+        No mira la base de datos a propósito: si lo hiciera, un corte de Mongo
+        reiniciaría el contenedor una y otra vez sin arreglar nada.
+      security: []
+      responses:
+        '200':
+          description: El proceso responde
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  status: { type: string, example: live }
+                  uptime: { type: integer, example: 42 }
+
+  /api/health/ready:
+    get:
+      operationId: saludDisponibilidad
+      tags: [Salud]
+      summary: ¿Puede atender peticiones?
+      description: >
+        Devuelve 503 sin base de datos **y también durante el apagado
+        ordenado**: es lo primero que se marca al recibir SIGTERM, antes de
+        dejar de escuchar, para que el balanceador deje de mandar tráfico
+        mientras el proceso todavía termina lo que tiene entre manos.
+      security: []
+      responses:
+        '200':
+          description: Listo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Salud' }
+        '503':
+          description: No listo — el balanceador debería dejar de mandar tráfico
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Salud' }
+
+  /api/auth/login:
+    post:
+      operationId: iniciarSesion
+      tags: [Autenticación]
+      summary: Iniciar sesión
+      description: >
+        Un correo que no existe y una contraseña mala devuelven exactamente la
+        misma respuesta, palabra por palabra. Cinco fallos por IP y correo cada
+        quince minutos; acertar no consume intentos.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, contraseña]
+              properties:
+                correo: { type: string, format: email }
+                contraseña: { type: string, format: password }
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sesion' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Demasiados intentos fallidos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/auth/renew:
+    get:
+      operationId: renovarSesion
+      tags: [Autenticación]
+      summary: Renovar el token y releer el rol
+      responses:
+        '200':
+          description: Token nuevo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Sesion' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /api/usuarios:
+    post:
+      operationId: registrarUsuario
+      tags: [Usuarios]
+      summary: Registro público
+      description: >
+        Nunca crea un `admin`, venga como venga el cuerpo. `profesor` sí, pero
+        exige la clave del centro (`profesorClave`).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, correo, contraseña]
+              properties:
+                nombre: { type: string }
+                correo: { type: string, format: email }
+                contraseña: { type: string, minLength: 6 }
+                rol: { type: string, enum: [estudiante, profesor] }
+                profesorClave: { type: string }
+      responses:
+        '201':
+          description: Cuenta creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  usuario: { $ref: '#/components/schemas/Usuario' }
+        '400':
+          description: Datos inválidos o correo ya registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: Clave de profesor inválida
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    get:
+      operationId: listarUsuarios
+      tags: [Usuarios]
+      summary: Listar usuarios
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+        - name: rol
+          in: query
+          schema: { type: string, enum: [estudiante, profesor, admin] }
+      responses:
+        '200':
+          description: Página de usuarios
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginacion'
+                  - type: object
+                    properties:
+                      usuarios:
+                        type: array
+                        items: { $ref: '#/components/schemas/Usuario' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+
+  /api/usuarios/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: obtenerUsuario
+      tags: [Usuarios]
+      summary: Un usuario por id
+      responses:
+        '200':
+          description: El usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  usuario: { $ref: '#/components/schemas/Usuario' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    put:
+      operationId: actualizarUsuario
+      tags: [Usuarios]
+      summary: Editar un usuario (uno mismo, o cualquiera si eres admin)
+      description: >
+        Cambiar la **propia** contraseña exige `contraseñaActual`. Un admin
+        puede restablecer la de otra persona sin ella: es una acción
+        administrativa, no un cambio propio. Ascender a `profesor` exige
+        `profesorClave`, salvo que lo haga un admin.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre: { type: string }
+                correo: { type: string, format: email }
+                contraseña: { type: string, minLength: 6 }
+                contraseñaActual: { type: string }
+                rol: { type: string, enum: [estudiante, profesor] }
+                profesorClave: { type: string }
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  usuario: { $ref: '#/components/schemas/Usuario' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    delete:
+      operationId: borrarUsuario
+      tags: [Usuarios]
+      summary: Borrar un usuario
+      description: >
+        Se lleva por delante sus inscripciones. Un profesor con cursos NO se
+        borra: devuelve 409 diciendo cuántos hay que reasignar.
+      responses:
+        '200':
+          description: Borrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  msg: { type: string }
+                  inscripcionesEliminadas: { type: integer }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409':
+          description: Imparte cursos; hay que reasignarlos antes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      cursos: { type: integer }
+
+  /api/cursos:
+    post:
+      operationId: crearCurso
+      tags: [Cursos]
+      summary: Crear un curso
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CursoEditable' }
+      responses:
+        '201':
+          description: Curso creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  curso: { $ref: '#/components/schemas/Curso' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+    get:
+      operationId: listarCursos
+      tags: [Cursos]
+      summary: Catálogo de cursos
+      description: >
+        Los cursos archivados no salen para un estudiante; administración y
+        profesorado sí los ven. `buscar` mira en nombre y descripción, y el
+        texto se escapa antes de convertirlo en expresión regular.
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+        - name: profesor
+          in: query
+          description: '`me` para los que imparte quien pregunta, o un id'
+          schema: { type: string }
+        - name: buscar
+          in: query
+          schema: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: Página de cursos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginacion'
+                  - type: object
+                    properties:
+                      cursos:
+                        type: array
+                        items: { $ref: '#/components/schemas/Curso' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+
+  /api/cursos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: obtenerCurso
+      tags: [Cursos]
+      summary: Ficha de un curso
+      description: >
+        `matriculados` viene siempre. `estudiantes` **solo** si quien pregunta
+        es el profesor de ese curso o un administrador: la clave se omite en
+        vez de mandarse vacía, porque `[]` significaría "no hay ninguno". Un
+        estudiante sabe cuántos son en su clase, no quiénes.
+      responses:
+        '200':
+          description: El curso y su contexto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CursoDetalle' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    put:
+      operationId: actualizarCurso
+      tags: [Cursos]
+      summary: Editar un curso
+      description: >
+        Solo su profesor o un administrador. `cupoMaximo: null` quita el
+        límite; el campo se borra en vez de guardarse a null.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CursoEditable' }
+      responses:
+        '200':
+          description: Curso actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  curso: { $ref: '#/components/schemas/Curso' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    delete:
+      operationId: borrarCurso
+      tags: [Cursos]
+      summary: Borrar un curso
+      description: Se lleva por delante sus inscripciones.
+      responses:
+        '200':
+          description: Borrado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  msg: { type: string }
+                  inscripcionesEliminadas: { type: integer }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /api/cursos/{id}/estudiantes.csv:
+    get:
+      operationId: exportarEstudiantesCsv
+      tags: [Cursos]
+      summary: Exportar los matriculados a CSV
+      description: >
+        Solo el profesor del curso o un administrador. El fichero lleva BOM
+        UTF-8 (para que Excel no rompa las tildes), saltos CRLF y entrecomillado
+        RFC 4180. El nombre viaja en `Content-Disposition` dos veces: en ASCII
+        y en RFC 5987, porque una cabecera HTTP no puede llevar tildes.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: El CSV
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              example: >-
+                attachment; filename="Algebra_-_estudiantes.csv";
+                filename*=UTF-8''%C3%81lgebra%20-%20estudiantes.csv
+          content:
+            text/csv:
+              schema: { type: string }
+              example: |
+                Nombre,Correo,Matriculado el
+                "Ruiz, Ana",ana@educontrol.com,2026-08-26
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /api/inscripciones:
+    post:
+      operationId: crearInscripcion
+      tags: [Inscripciones]
+      summary: Matricular a un estudiante
+      description: >
+        Por `estudianteId` (lo usa el panel de administración, que tiene la
+        lista) o por `correo` (lo usa el profesor, que no la tiene ni debe
+        tenerla). El duplicado lo decide el índice único de la base, no una
+        consulta previa.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cursoId]
+              properties:
+                cursoId: { type: string, description: ObjectId del curso }
+                estudianteId: { type: string, description: ObjectId del estudiante }
+                correo: { type: string, format: email }
+      responses:
+        '201':
+          description: Matrícula creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  inscripcion: { $ref: '#/components/schemas/Inscripcion' }
+        '400':
+          description: >
+            Datos inválidos, la cuenta no es de un estudiante, o ya estaba
+            matriculado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404':
+          description: El curso o la cuenta no existen
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: >
+            El curso está lleno, cerrado o archivado. No es un 400: el dato que
+            manda el cliente está bien, lo que pasa es que el estado del recurso
+            lo impide.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                  - type: object
+                    properties:
+                      estado: { type: string, enum: [cerrado, archivado] }
+                      ocupadas: { type: integer }
+                      cupoMaximo: { type: integer }
+    get:
+      operationId: listarInscripciones
+      tags: [Inscripciones]
+      summary: Listar matrículas
+      description: >
+        Devuelve lo que el rol permite ver: un estudiante las suyas, un profesor
+        las de los cursos que imparte, un administrador todas. Los filtros se
+        **cruzan** con esa regla: pedir algo fuera de lo permitido no amplía el
+        resultado, lo vacía.
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+        - name: curso
+          in: query
+          schema: { type: string }
+        - name: estudiante
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Página de matrículas, con estudiante y curso poblados
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginacion'
+                  - type: object
+                    properties:
+                      inscripciones:
+                        type: array
+                        items: { $ref: '#/components/schemas/Inscripcion' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+
+  /api/inscripciones/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: obtenerInscripcion
+      tags: [Inscripciones]
+      summary: Una matrícula por id
+      description: >
+        Con el mismo alcance que el listado. Quien no puede verla recibe 404 y
+        no 403: tampoco tiene por qué saber que existe.
+      responses:
+        '200':
+          description: La matrícula
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  inscripcion: { $ref: '#/components/schemas/Inscripcion' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+    delete:
+      operationId: borrarInscripcion
+      tags: [Inscripciones]
+      summary: Dar de baja una matrícula
+      description: >
+        El dueño de la matrícula o un administrador. El profesor todavía no:
+        echar a un alumno de clase es otra cosa y no está decidida.
+      responses:
+        '200':
+          description: Baja hecha
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mensaje' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404': { $ref: '#/components/responses/NoEncontrado' }
+
+  /api/auditoria:
+    get:
+      operationId: listarAuditoria
+      tags: [Auditoría]
+      summary: Historial de acciones administrativas
+      description: >
+        Solo lectura y solo para administración. No hay POST ni DELETE, y no es
+        un olvido: el registro lo escriben los controladores y nadie más. Se
+        registran el cambio de rol, el alta, edición y baja de un curso, y las
+        matrículas hechas **por un tercero** — que alguien se matricule a sí
+        mismo es uso normal y taparía lo que importa.
+      parameters:
+        - $ref: '#/components/parameters/Pagina'
+        - $ref: '#/components/parameters/Limite'
+        - name: accion
+          in: query
+          schema:
+            type: string
+            enum:
+              - rol.cambiado
+              - curso.creado
+              - curso.editado
+              - curso.borrado
+              - matricula.creada
+              - matricula.borrada
+        - name: buscar
+          in: query
+          description: Busca en quién lo hizo y en sobre qué
+          schema: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: Página del historial, lo más reciente primero
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginacion'
+                  - type: object
+                    properties:
+                      registros:
+                        type: array
+                        items: { $ref: '#/components/schemas/RegistroAuditoria' }
+        '400': { $ref: '#/components/responses/DatosInvalidos' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+
+  /api/admin/purge:
+    delete:
+      operationId: purgarBaseDeDatos
+      tags: [Administración]
+      summary: Vaciar la base de datos (solo desarrollo)
+      description: >
+        Puerta de entorno *fail-closed*: si `NODE_ENV` no está definida se
+        asume producción y devuelve 404 — un 404 y no un 403, para no
+        confirmar siquiera que la ruta existe.
+      responses:
+        '200':
+          description: Base vaciada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mensaje' }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/Prohibido' }
+        '404':
+          description: En producción la ruta no existe
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/admin/seed-admin:
+    post:
+      operationId: sembrarAdmin
+      tags: [Administración]
+      summary: Crear el administrador inicial (solo desarrollo)
+      description: >
+        Sin JWT a propósito — es el problema del huevo y la gallina: sirve para
+        crear la primera cuenta administradora. Nunca modifica una cuenta que
+        ya exista.
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre: { type: string }
+                correo: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Ya existía; no se ha tocado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mensaje' }
+        '201':
+          description: Administrador creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mensaje' }
+        '404':
+          description: En producción la ruta no existe
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        `Authorization: Bearer <token>`. Es la única cabecera de sesión que se
+        acepta: la antigua `x-token` se retiró, porque dos puertas para lo
+        mismo son el doble de superficie.
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      description: ObjectId de 24 caracteres hexadecimales
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+    Pagina:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limite:
+      name: limit
+      in: query
+      description: Tope duro de 100; pedir más se recorta en silencio
+      schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+
+  responses:
+    NoAutenticado:
+      description: Falta el token o no es válido
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Prohibido:
+      description: El rol o la propiedad del recurso no lo permiten
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NoEncontrado:
+      description: No existe
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    DatosInvalidos:
+      description: >
+        Validación fallida. `errors` lleva un campo por cada problema, tal y
+        como lo devuelve express-validator.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorValidacion' }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        ok: { type: boolean, example: false }
+        msg: { type: string }
+
+    ErrorValidacion:
+      type: object
+      properties:
+        ok: { type: boolean, example: false }
+        errors:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              type: { type: string }
+              msg: { type: string }
+              path: { type: string }
+              location: { type: string }
+
+    Mensaje:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        msg: { type: string }
+
+    Paginacion:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        total: { type: integer }
+        pagina: { type: integer }
+        limite: { type: integer }
+        paginas: { type: integer }
+
+    Salud:
+      type: object
+      properties:
+        ok: { type: boolean }
+        status: { type: string, enum: [up, degraded] }
+        mongo:
+          type: string
+          enum: [conectada, conectando, desconectando, desconectada, desconocido]
+        uptime: { type: integer, description: Segundos en pie }
+
+    Usuario:
+      type: object
+      description: >
+        El modelo renombra `_id` a `id` al serializar y nunca incluye la
+        contraseña.
+      properties:
+        id: { type: string }
+        nombre: { type: string }
+        correo: { type: string, format: email }
+        rol: { type: string, enum: [estudiante, profesor, admin] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    Sesion:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        token: { type: string }
+        usuario:
+          type: object
+          properties:
+            _id: { type: string }
+            nombre: { type: string }
+            correo: { type: string, format: email }
+            rol: { type: string, enum: [estudiante, profesor, admin] }
+
+    Curso:
+      type: object
+      description: >
+        El backend llama `nombre` a lo que la interfaz llama `titulo`; la
+        traducción vive solo en el frontend.
+      properties:
+        _id: { type: string }
+        nombre: { type: string, maxLength: 120 }
+        descripcion: { type: string, maxLength: 500 }
+        profesor:
+          oneOf:
+            - type: string
+            - $ref: '#/components/schemas/Usuario'
+        cupoMaximo:
+          type: integer
+          minimum: 1
+          description: Ausente es «sin límite» — nunca 0, que sería «no cabe nadie»
+        estado: { type: string, enum: [abierto, cerrado, archivado], default: abierto }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CursoEditable:
+      type: object
+      properties:
+        nombre: { type: string, maxLength: 120 }
+        descripcion: { type: string, maxLength: 500 }
+        profesor: { type: string, description: ObjectId de un usuario con rol profesor }
+        cupoMaximo:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: '`null` quita el límite; el campo se borra'
+        estado: { type: string, enum: [abierto, cerrado, archivado] }
+
+    CursoDetalle:
+      type: object
+      properties:
+        ok: { type: boolean, example: true }
+        curso: { $ref: '#/components/schemas/Curso' }
+        matriculados: { type: integer }
+        estudiantes:
+          type: array
+          description: >
+            Solo para el profesor del curso o un administrador. Si no, la clave
+            **no viene**: mandar `[]` diría «no hay ninguno», que es otra cosa.
+          items: { $ref: '#/components/schemas/Usuario' }
+
+    Inscripcion:
+      type: object
+      properties:
+        _id: { type: string }
+        estudiante:
+          oneOf:
+            - type: string
+            - $ref: '#/components/schemas/Usuario'
+        curso:
+          oneOf:
+            - type: string
+            - $ref: '#/components/schemas/Curso'
+        fecha:
+          type: string
+          format: date-time
+          description: Se conserva por compatibilidad; para código nuevo, `createdAt`
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    RegistroAuditoria:
+      type: object
+      properties:
+        _id: { type: string }
+        actor: { type: string }
+        actorNombre:
+          type: string
+          description: Congelado en el momento — una cuenta borrada no deja el registro sin autor
+        actorRol: { type: string }
+        accion:
+          type: string
+          enum:
+            - rol.cambiado
+            - curso.creado
+            - curso.editado
+            - curso.borrado
+            - matricula.creada
+            - matricula.borrada
+        recurso:
+          type: object
+          properties:
+            tipo: { type: string, enum: [usuario, curso, inscripcion] }
+            id: { type: string }
+            etiqueta:
+              type: string
+              description: >
+                Cómo se llamaba entonces. La mitad de lo que se audita son
+                borrados: sin esto, la fila apuntaría a la nada.
+        antes: { description: Valor previo; su forma depende de la acción }
+        despues: { description: Valor nuevo; su forma depende de la acción }
+        createdAt: { type: string, format: date-time }

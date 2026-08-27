@@ -15,6 +15,7 @@ const morgan = require('morgan');
 
 const { verificarEntorno } = require('./config/env');
 const { montarFrontend } = require('./static');
+const { montarDocumentacion } = require('./docs');
 const errorHandler = require('./middlewares/errorHandler');
 const { cabecerasSeguras, limiteGeneral } = require('./middlewares/seguridadHttp');
 
@@ -24,6 +25,30 @@ const cursosRoutes = require('./routes/cursos.routes');
 const inscripcionesRoutes = require('./routes/inscripciones.routes');
 const adminRoutes = require('./routes/admin.routes');
 const auditoriaRoutes = require('./routes/auditoria.routes');
+const healthRoutes = require('./routes/health.routes');
+
+/**
+ * Dónde vive cada router.
+ *
+ * Es una tabla y no seis `app.use` sueltos porque hace de única fuente de
+ * verdad: el test que compara `docs/openapi.yaml` con la realidad recorre esta
+ * misma lista, así que una ruta nueva sin documentar sale en rojo el mismo día.
+ *
+ * `antesDelLimite` marca lo que se monta ANTES del freno de peticiones.
+ */
+const RUTAS_API = [
+  // Las sondas de salud las llama el orquestador cada pocos segundos y no
+  // tiene credenciales que dar. Un 429 en la sonda de vida reiniciaría el
+  // contenedor sin que pase nada malo, así que van fuera del límite.
+  { base: '/api/health', router: healthRoutes, antesDelLimite: true },
+
+  { base: '/api/usuarios', router: usuariosRoutes },
+  { base: '/api/auth', router: authRoutes },
+  { base: '/api/cursos', router: cursosRoutes },
+  { base: '/api/inscripciones', router: inscripcionesRoutes },
+  { base: '/api/auditoria', router: auditoriaRoutes },
+  { base: '/api/admin', router: adminRoutes },
+];
 
 if (process.env.NODE_ENV !== 'test') verificarEntorno();
 
@@ -52,26 +77,21 @@ if (process.env.NODE_ENV !== 'test') {
 
 app.use(express.json());
 
+/* ===========================
+ * 2) Rutas de la API
+ * =========================== */
+for (const r of RUTAS_API.filter(r => r.antesDelLimite)) app.use(r.base, r.router);
+
 // Freno general de la API. El del login, mucho más estricto, se monta dentro
 // de routes/auth.routes.js, junto a la ruta que protege.
 app.use('/api', limiteGeneral());
 
-/* ===========================
- * 2) Rutas de la API
- * =========================== */
-app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/cursos', cursosRoutes);
-app.use('/api/inscripciones', inscripcionesRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/auditoria', auditoriaRoutes);
+for (const r of RUTAS_API.filter(r => !r.antesDelLimite)) app.use(r.base, r.router);
 
 /* ===========================
- * 3) Health-check
+ * 3) Documentación de la API (solo fuera de producción)
  * =========================== */
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({ ok: true, status: 'up' });
-});
+montarDocumentacion(app);
 
 /* ===========================
  * 4) Frontend (SPA), si hay build
@@ -97,3 +117,4 @@ app.use(errorHandler);
 
 module.exports = app;
 module.exports.hayBuildFrontend = hayBuildFrontend;
+module.exports.RUTAS_API = RUTAS_API;
