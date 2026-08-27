@@ -247,6 +247,7 @@ Copia `backend/.env.example` a `backend/.env`. En desarrollo todas tienen valor 
 | `MONGO_URI`                      | Conexión a MongoDB. Sin ella, base en memoria.      |
 | `JWT_SECRET`                     | Firma de los tokens. **Obligatoria en producción.** |
 | `JWT_EXPIRES_IN`                 | Duración del token. Por defecto, 12 h.              |
+| `TRUST_PROXY`                    | Cuántos proxies hay delante. Por defecto, 0.        |
 | `PROFESOR_CLAVE`                 | Clave para ascender a profesor.                     |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Administrador inicial.                              |
 
@@ -362,13 +363,21 @@ porque un puerto que acepta conexiones todavía no es una base lista.
 
 ### Variables obligatorias en producción
 
-| Variable         | Por qué es obligatoria                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------- |
-| `JWT_SECRET`     | Sin ella el servidor **no arranca**. Un secreto de desarrollo conocido es no tener firma.   |
-| `MONGO_URI`      | Sin ella no hay respaldo en memoria: en producción se aborta en vez de fingir que hay base. |
-| `ADMIN_EMAIL`    | La cuenta administradora inicial.                                                           |
-| `ADMIN_PASSWORD` | Sin ella el sembrado del admin se salta, y te quedas sin poder entrar.                      |
-| `TRUST_PROXY`    | Solo si hay un proxy delante. Por defecto 0 — ver abajo, porque equivocarse aquí duele.     |
+| Variable         | Por qué es obligatoria                                                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`     | Sin ella el servidor **no arranca**. Y no vale cualquiera: mínimo 32 caracteres, y el de desarrollo se rechaza por su nombre — está escrito en este repositorio. |
+| `MONGO_URI`      | Sin ella no hay respaldo en memoria: en producción se aborta en vez de fingir que hay base.                                                                      |
+| `ADMIN_EMAIL`    | La cuenta administradora inicial.                                                                                                                                |
+| `ADMIN_PASSWORD` | Sin ella el sembrado del admin se salta, y te quedas sin poder entrar.                                                                                           |
+| `TRUST_PROXY`    | Solo si hay un proxy delante. Por defecto 0 — ver abajo, porque equivocarse aquí duele.                                                                          |
+
+`JWT_EXPIRES_IN` no es obligatoria —sin ella son 12 h—, pero si la pones, se
+comprueba al arrancar: el servidor **firma un token de prueba** con esa duración
+y aborta si no vale. Se hace así, y no con una expresión regular, porque la
+gramática de `ms` tiene recovecos (`12 h` con espacio es válido, `12 horas` no)
+y un validador escrito a mano acabaría discrepando del código que firma de
+verdad. También se rechaza `0`, que `jwt.sign` acepta sin protestar y que haría
+nacer vencida cada sesión. En desarrollo solo avisa y cae a 12 h.
 
 Conviene poner también `PROFESOR_CLAVE`: sin ella nadie puede darse de alta
 como profesor. El resto está en [`.env.example`](.env.example).
