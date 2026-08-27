@@ -11,6 +11,28 @@ const { registrar } = require('../utils/auditoria');
 const ROLES_PUBLICOS = ['estudiante', 'profesor'];
 const ROLES = [...ROLES_PUBLICOS, 'admin'];
 
+/**
+ * ¿Es este el último administrador que queda?
+ *
+ * Se cuenta en el momento, no se cachea: entre dos peticiones puede haber
+ * cambiado. Como el cupo de un curso, no es atómico —dos degradaciones
+ * simultáneas del penúltimo y el último podrían colarse—, pero cerrar eso pide
+ * una transacción y este Mongo es de un solo nodo. Es infinitamente mejor que
+ * lo que había, que era nada.
+ */
+async function esElUltimoAdmin(id) {
+  const objetivo = await Usuario.findById(id).select('rol');
+  if (objetivo?.rol !== 'admin') return false;
+  return (await Usuario.countDocuments({ rol: 'admin' })) <= 1;
+}
+
+/** 409 y no 403: no es que no puedas, es que el estado no lo permite todavía. */
+const respuestaUltimoAdmin = (res, accion) =>
+  res.status(409).json({
+    ok: false,
+    msg: `Es el único administrador: nombra otro antes de ${accion}.`,
+  });
+
 // Crear un usuario (registro público)
 const crearUsuario = async (req, res, next) => {
   try {
@@ -150,6 +172,20 @@ const updateUsuario = async (req, res, next) => {
       ? solicitante.rol
       : (await Usuario.findById(id).select('rol'))?.rol;
 
+    // Degradar al último administrador deja el sistema sin ninguno, y de eso no
+    // se sale desde la aplicación: hay que reiniciar el proceso con
+    // ADMIN_PASSWORD para que el sembrado recree la cuenta — y si ese correo ya
+    // existe con otro rol, ni eso, porque el sembrado no toca cuentas que ya
+    // están (y hace bien).
+    //
+    // Nada impedía hacerlo: `rol` se valida contra los roles públicos, y un
+    // admin está exento de la clave de profesor, así que podía ponerse
+    // 'estudiante' a sí mismo de una sola petición.
+    if (cambios.rol && rolPrevio === 'admin' && cambios.rol !== 'admin') {
+      const sinRelevo = await esElUltimoAdmin(id);
+      if (sinRelevo) return respuestaUltimoAdmin(res, 'degradarlo');
+    }
+
     const updated = await Usuario.findByIdAndUpdate(id, cambios, { new: true }).select(
       '-contraseña'
     );
@@ -184,6 +220,14 @@ const borrarUsuario = async (req, res, next) => {
     const usuario = await Usuario.findById(req.params.id);
     if (!usuario) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
 
+    // Borrar al último administrador —incluido uno mismo— deja el sistema sin
+    // ninguno, y de eso no se sale desde la aplicación. Mismo 409 que el del
+    // profesor con cursos, aquí al lado: no es que no puedas, es que hay algo
+    // que hacer antes.
+    if (usuario.rol === 'admin' && (await esElUltimoAdmin(usuario._id))) {
+      return respuestaUltimoAdmin(res, 'borrarlo');
+    }
+
     // Un profesor con cursos no se borra en silencio.
     //
     // Borrarlo dejaba los cursos apuntando a un id inexistente: `populate`
@@ -206,6 +250,23 @@ const borrarUsuario = async (req, res, next) => {
     // en su clase a un alumno que ya no existe.
     const { deletedCount = 0 } = await Inscripcion.deleteMany({ estudiante: usuario._id });
     await Usuario.findByIdAndDelete(usuario._id);
+
+    // Es la acción más destructiva del sistema —se lleva la cuenta y todas sus
+    // matrículas— y era la única que no dejaba autor ni fecha. La etiqueta
+    // guarda el nombre por lo mismo que en `curso.borrado`: después ya no hay
+    // dónde mirarlo.
+    registrar({
+      actor: req.usuario,
+      accion: 'usuario.borrado',
+      tipo: 'usuario',
+      id: usuario._id,
+      etiqueta: usuario.nombre,
+      antes: {
+        correo: usuario.correo,
+        rol: usuario.rol,
+        inscripcionesEliminadas: deletedCount,
+      },
+    });
 
     res.json({ ok: true, msg: 'Usuario eliminado', inscripcionesEliminadas: deletedCount });
   } catch (err) {

@@ -31,6 +31,7 @@ import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 /** El texto que se lee en pantalla para cada acción. El backend guarda claves. */
 const ETIQUETAS: Record<AccionAuditada, string> = {
   'rol.cambiado': 'Cambio de rol',
+  'usuario.borrado': 'Cuenta borrada',
   'curso.creado': 'Curso creado',
   'curso.editado': 'Curso editado',
   'curso.borrado': 'Curso borrado',

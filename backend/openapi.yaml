@@ -303,13 +303,22 @@ paths:
         '401': { $ref: '#/components/responses/NoAutenticado' }
         '403': { $ref: '#/components/responses/Prohibido' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
+        '409':
+          description: >
+            Es el único administrador que queda: degradarlo dejaría el sistema
+            sin ninguno, y de eso no se sale desde la aplicación.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
     delete:
       operationId: borrarUsuario
       tags: [Usuarios]
       summary: Borrar un usuario
       description: >
-        Se lleva por delante sus inscripciones. Un profesor con cursos NO se
-        borra: devuelve 409 diciendo cuántos hay que reasignar.
+        Se lleva por delante sus inscripciones, y queda registrado en el
+        historial: es la acción más destructiva del sistema. Dos casos devuelven
+        **409** en vez de borrar — un profesor con cursos (dice cuántos hay que
+        reasignar) y el último administrador que quede.
       responses:
         '200':
           description: Borrado
@@ -325,7 +334,9 @@ paths:
         '403': { $ref: '#/components/responses/Prohibido' }
         '404': { $ref: '#/components/responses/NoEncontrado' }
         '409':
-          description: Imparte cursos; hay que reasignarlos antes
+          description: >
+            Imparte cursos y hay que reasignarlos antes, o es el único
+            administrador que queda.
           content:
             application/json:
               schema:
@@ -661,6 +672,7 @@ paths:
             type: string
             enum:
               - rol.cambiado
+              - usuario.borrado
               - curso.creado
               - curso.editado
               - curso.borrado
@@ -951,6 +963,7 @@ components:
           type: string
           enum:
             - rol.cambiado
+            - usuario.borrado
             - curso.creado
             - curso.editado
             - curso.borrado

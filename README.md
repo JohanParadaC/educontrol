@@ -196,6 +196,8 @@ El backend cubre el CRUD completo, la validación de payloads, el manejo de erro
 | `GET /api/inscripciones/:id` de una matrícula ajena     | 404, ni confirma que existe           |
 | `DELETE` de un curso o un estudiante                    | se van también sus inscripciones      |
 | `DELETE` de un profesor con cursos                      | 409 diciendo cuántos, sin borrar nada |
+| Degradar o borrar al único administrador que queda      | 409, y sigue siendo admin             |
+| `DELETE` de una cuenta                                  | queda en el historial, con su nombre  |
 | `POST /api/inscripciones` de un estudiante a otro       | 403, y el otro no queda matriculado   |
 | Ídem con el `correo` de un tercero                      | 403 idéntico, exista ese correo o no  |
 | `POST /api/inscripciones` de un profesor en curso ajeno | 403, sin matricular a nadie           |
