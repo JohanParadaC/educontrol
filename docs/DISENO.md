@@ -114,6 +114,25 @@ tiñe fondos, no escribe.
 | `--aviso`  | `#d97706` | `#fbbf24` |
 | `--error`  | `#dc2626` | `#f87171` |
 
+### Texto sobre color
+
+Los colores de estado y de rol tiñen fondos; para escribir encima hay una
+variante legible. No es una preferencia: medido sobre el propio tinte al
+14-16 %, los colores base se quedan cortos.
+
+| Token            | Claro     | Oscuro    | Sobre su tinte (claro) |
+| ---------------- | --------- | --------- | ---------------------- |
+| `--exito-texto`  | `#065f46` | `#34d399` | 3,18 → **6,49**        |
+| `--aviso-texto`  | `#92400e` | `#fbbf24` | 2,68 → **5,97**        |
+| `--error-texto`  | `#991b1b` | `#f87171` | 3,88 → **6,68**        |
+
+En oscuro los colores base ya contrastan (7,12 · 10,69 · 5,34) y las variantes
+son el mismo color: aclararlos más los volvería fosforito.
+
+`--rol-estudiante-texto` pasó de sky-700 a **sky-800** por la misma razón: el
+chip de la tabla de administración se quedaba en 4,30:1, por debajo del 4,5 de
+AA. Era el único de los tres roles que no llegaba, y solo se ve midiendo.
+
 ### Forma y profundidad
 
 | Token         | Valor                      | Cuándo                          |
@@ -241,6 +260,7 @@ Las capturas de esta carpeta están hechas con el sistema aplicado:
 | Admin en móvil          | [06-movil-admin.png](06-movil-admin.png)   |
 | **Admin en modo oscuro** | [07-admin-oscuro.png](07-admin-oscuro.png) |
 | Ficha de curso           | [08-curso.png](08-curso.png)               |
+| Registro de actividad    | [09-actividad.png](09-actividad.png)       |
 
 Se regeneran con `npm run capturas` (necesita el servidor levantado; recorre
 las pantallas con un Chrome sin interfaz). El script fija el tema en cada

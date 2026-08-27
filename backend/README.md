@@ -189,6 +189,22 @@ Todas las rutas van bajo el prefijo `/api`.
 | PUT    | `/api/cursos/:id` | Actualizar curso | `profesor`, `admin` |
 | DELETE | `/api/cursos/:id` | Borrar curso     | `profesor`, `admin` |
 
+| Método | Ruta                              | Descripción                 | Roles                        |
+| ------ | --------------------------------- | --------------------------- | ---------------------------- |
+| GET    | `/api/cursos/:id/estudiantes.csv` | Exportar matriculados a CSV | profesor del curso o `admin` |
+
+El CSV va con BOM UTF-8 —sin él, Excel abre el fichero en la codificación del
+sistema y «Fernández» sale como «FernÃ¡ndez»—, saltos CRLF y entrecomillado
+RFC 4180: un alumno llamado «Ruiz, Ana» no parte la fila. El nombre del fichero
+viaja en `Content-Disposition` dos veces, en ASCII y en RFC 5987, porque una
+cabecera HTTP no puede llevar tildes.
+
+Un curso tiene además `cupoMaximo` (opcional; ausente es «sin límite») y
+`estado` (`abierto` · `cerrado` · `archivado`). Matricularse en uno lleno o no
+abierto devuelve **409**, no 400: el dato que manda el cliente está bien, lo que
+pasa es que el estado del recurso lo impide. Los archivados salen del catálogo
+del estudiante, no del panel de administración.
+
 `GET /api/cursos/:id` devuelve `{ ok, curso, matriculados }` siempre, y añade
 `estudiantes` **solo** si quien pregunta es el profesor del curso o un
 administrador. La clave se omite en vez de mandarse vacía: `[]` significaría
@@ -211,6 +227,26 @@ existe para el profesor, que matricula desde la ficha de su curso y no tiene
 `PUT /api/inscripciones/:id` ya no existe: pasaba `req.body` entero a
 `findByIdAndUpdate` sin lista blanca, así que servía para reescribir de quién y
 de qué curso era una matrícula. Para cambiar de curso se cancela y se crea otra.
+
+### Auditoría
+
+| Método | Ruta             | Descripción                           | Roles   |
+| ------ | ---------------- | ------------------------------------- | ------- |
+| GET    | `/api/auditoria` | Historial de acciones administrativas | `admin` |
+
+Acepta `?accion=` y `?buscar=`, y pagina como el resto. **Solo lectura**: no hay
+POST ni DELETE, y no es un olvido. El registro lo escriben los controladores a
+través de `utils/auditoria.js` y nadie más; un historial que se puede editar
+desde la aplicación no sirve para lo que sirve un historial.
+
+Se registran el cambio de rol, la creación, edición y borrado de un curso, y las
+matrículas y bajas hechas **por un tercero**. Que alguien se matricule o se dé
+de baja a sí mismo no aparece: es uso normal, y meterlo taparía lo que sí
+importa.
+
+Auditar nunca tumba la operación: la entrada se escribe sin esperarla y con su
+propio `catch`. Si el registro falla, la acción ya ha ocurrido y devolver un 500
+sobre un curso que sí se ha creado sería peor.
 
 ### Admin (desarrollo)
 

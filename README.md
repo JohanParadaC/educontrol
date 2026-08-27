@@ -55,14 +55,25 @@ npm run dev:web    # Angular dev server con proxy a la API, puerto 4200
 
 ## Qué hace
 
-- **Administrador** — gestiona usuarios y sus roles, crea y edita cursos, asigna profesores y matricula estudiantes.
-- **Profesor** — consulta los cursos que imparte, ve quién está matriculado y matricula a alguien por su correo.
+- **Administrador** — gestiona usuarios y sus roles, crea y edita cursos, asigna profesores, matricula estudiantes y revisa el registro de actividad.
+- **Profesor** — consulta los cursos que imparte, ve quién está matriculado, matricula a alguien por su correo y exporta la lista a CSV.
 - **Estudiante** — busca en el catálogo, se matricula y ve sus cursos.
 
 Todos los caminos acaban en la **ficha del curso** (`/cursos/:id`): título,
 descripción, profesor, cuántos hay matriculados y las acciones que le tocan a
 cada rol. La lista de matriculados solo la ve quien imparte el curso o
 administra; un estudiante sabe cuántos son, no quiénes.
+
+Un curso tiene **plazas** y **estado**. Con cupo, la ficha dice «12 / 30
+plazas»; sin plazas o con el curso cerrado, el botón de matricularse se apaga
+**con el motivo al lado** —un botón muerto sin explicación deja a la gente
+probando a pulsarlo— y el servidor devuelve 409 por si alguien lo intenta por su
+cuenta. Archivar saca el curso del catálogo del estudiante, no del panel de
+administración: archivar no es borrar.
+
+Y todo lo que hace administración queda registrado:
+
+![Registro de actividad](docs/09-actividad.png)
 
 ## Stack
 
@@ -295,6 +306,7 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 - **No hay recuperación de contraseña.** Si un usuario la olvida, solo un administrador puede restablecérsela.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
 - **`POST /api/inscripciones` acepta el `estudianteId` (o el `correo`) del cuerpo sin comprobar de quién es.** Lo necesitan el panel de administración y la ficha del curso para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
+- **El cupo se comprueba contando, y contar no es atómico.** Entre el recuento y la inserción cabe otra petición, así que dos matrículas simultáneas sobre la última plaza pueden entrar las dos. Cerrarlo de verdad pide una transacción y este Mongo es de un solo nodo. Pasarse de uno en una plaza es preferible a fingir que no pasa.
 - **El profesor matricula escribiendo un correo, no eligiendo de una lista.** `GET /api/usuarios` es solo de administrador y abrirlo a los profesores repartiría el nombre y el correo de todos los estudiantes del centro. Un buscador que resuelva por prefijo en el servidor sería mejor, pero es otra pieza.
 - **El bundle inicial pesa ~733 kB** (180 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
 
