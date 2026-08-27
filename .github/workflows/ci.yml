@@ -3,7 +3,7 @@
 # Cuatro trabajos en paralelo, porque fallan por motivos distintos y conviene
 # saber cuál se ha roto sin leer un log de diez minutos:
 #   · calidad  → ESLint y Prettier
-#   · backend  → 256 tests con cobertura (los umbrales viven en jest.config.js)
+#   · backend  → 272 tests con cobertura (los umbrales viven en jest.config.js)
 #   · frontend → 108 tests con cobertura (los umbrales viven en karma.conf.js)
 #   · e2e      → 13 recorridos con Playwright sobre la aplicación de verdad
 name: CI

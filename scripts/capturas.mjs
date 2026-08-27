@@ -159,6 +159,17 @@ const PANTALLAS = [
     `,
   },
 
+  {
+    // La documentación de la API. No es una pantalla de la aplicación, así que
+    // se espera a un selector suyo y no al contenedor de la SPA.
+    fichero: '10-api-docs.png',
+    titulo: 'Documentación de la API (OpenAPI)',
+    ruta: '/api/docs/',
+    selector: '.swagger-ui .opblock',
+    ancho: 1280,
+    alto: 900,
+  },
+
   // --- Assets de la portada ---------------------------------------------
   // El héroe enseña el panel de verdad. Van en webp y a escala 1 porque estas
   // dos sí las descarga quien abre la página —son el LCP de la portada—, y en
@@ -201,12 +212,12 @@ const PANTALLAS = [
  * La portada salía en blanco: es la primera captura de la tanda, o sea la que
  * paga el arranque en frío, y 1500 ms no le llegaban.
  */
-const ESPERAR_PINTADO = `
+const esperarPintado = (selector = 'main.pagina') => `
   (async () => {
     const esperar = ms => new Promise(r => setTimeout(r, ms));
     for (let i = 0; i < 100; i++) {
-      const pagina = document.querySelector('main.pagina');
-      if (pagina && pagina.textContent.trim()) return true;
+      const nodo = document.querySelector(${JSON.stringify(selector)});
+      if (nodo && nodo.textContent.trim()) return true;
       await esperar(100);
     }
     return false;
@@ -333,7 +344,10 @@ async function main() {
       expression: 'try{localStorage.clear();sessionStorage.clear()}catch(e){}',
     });
     await enviar('Page.navigate', { url: `${BASE}${p.ruta}` });
-    await enviar('Runtime.evaluate', { expression: ESPERAR_PINTADO, awaitPromise: true });
+    await enviar('Runtime.evaluate', {
+      expression: esperarPintado(p.selector),
+      awaitPromise: true,
+    });
     await new Promise(r => setTimeout(r, 600));
 
     if (p.preparar) {

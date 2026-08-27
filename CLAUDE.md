@@ -6,9 +6,10 @@ Plataforma de gestión académica: Angular 20 en el frontend, Express 5 y Mongoo
 
 ```bash
 npm run install:all && npm run serve   # build del frontend + servidor en :3000
-npm test                               # backend, 256 tests
+npm test                               # backend, 272 tests
 npm run test:web                       # frontend, 108 tests
 npm run test:e2e                       # extremo a extremo, 13 recorridos
+docker compose up -d --build           # despliegue: la app y su Mongo persistente
 ```
 
 No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el servidor levanta uno en memoria y siembra datos de ejemplo. Tampoco hace falta `.env`: en desarrollo los secretos que falten se rellenan con valores obvios y se avisa por consola.
@@ -78,6 +79,9 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - `helmet` con CSP propia. `'unsafe-inline'` está **solo** en `style-src`, porque Material escribe estilos en línea en tiempo de ejecución. En `script-src` no, y por eso `inlineCritical` está desactivado en `angular.json`: Angular difería la hoja de estilos con un `onload=` en el atributo, la CSP lo bloqueaba y la aplicación salía sin estilos. Hay un paso de CI que lo vigila.
 - Nada de CORS. El backend sirve su propio frontend: no hay petición cruzada que permitir, solo superficie que abrir.
 - El login admite 5 intentos fallidos cada 15 minutos por IP+correo; acertar no consume intentos. El resto de `/api` tiene un tope laxo, desactivado en test.
+- **Las sondas de salud son dos preguntas distintas.** `/api/health/live` dice si el proceso está vivo y **no mira Mongo**: si lo mirase, un corte de la base reiniciaría el contenedor una y otra vez sin arreglar nada. `/api/health/ready` sí lo mira y devuelve **503** —no 500— cuando no puede servir, para que el balanceador deje de mandar tráfico. Van montadas **antes** del limitador de peticiones: un 429 en la sonda reiniciaría el contenedor sin motivo.
+- **SIGTERM no corta peticiones en curso.** El orden es: marcar 503, esperar a que el balanceador se entere, dejar de aceptar conexiones y esperar a lo que está a medias, y soltar Mongoose. Las conexiones ociosas se cierran en un repaso periódico: con keep-alive, `server.close()` también espera a los sockets que no hacen nada, y sin ese repaso el apagado ordenado acaba siempre en el corte por tiempo.
+- **`openapi.yaml` se escribe a mano y se comprueba.** Un documento a mano que nadie contrasta envejece en dos semanas: `__tests__/openapi.contrato.spec.js` lo compara con `RUTAS_API` de app.js, así que una ruta nueva sin documentar sale en rojo el mismo día. Por eso los routers se montan desde una tabla y no con seis `app.use` sueltos.
 - `errorHandler` traduce los errores de Mongo antes de que salgan: `CastError` → 400, `E11000` → 409, `ValidationError` → 400 con los campos. Un 5xx en producción sale genérico y el detalle se queda en el log.
 
 **Interfaz**

@@ -34,6 +34,8 @@ Y abre <http://localhost:3000>. No hace falta instalar MongoDB: si no encuentra 
 
 Un solo proceso sirve la API y la aplicación web desde el mismo origen, así que no hay CORS ni URLs absolutas que configurar.
 
+Eso es para mirarlo. Para **desplegarlo** hay Docker: `docker compose up -d --build`, con MongoDB persistente y apagado ordenado — está en [Despliegue](#despliegue).
+
 ### Entrar
 
 La portada y la pantalla de login tienen un botón por rol que entra directamente. Si prefieres escribirlas:
@@ -84,6 +86,7 @@ Y todo lo que hace administración queda registrado:
 | Base de datos | MongoDB (o en memoria para desarrollo)                       |
 | Autenticación | JWT, contraseñas con bcrypt                                  |
 | Tests         | Jest + Supertest, Karma + Jasmine, Playwright (e2e)          |
+| Despliegue    | Docker multietapa, docker-compose, OpenAPI 3                 |
 
 ## Estructura
 
@@ -99,7 +102,9 @@ backend/
   routes/        endpoints y sus validadores
   utils/         clave de profesor, paginación, generación de JWT
   scripts/       datos de demostración
-  __tests__/     256 tests, incluidos los de regresión de seguridad
+  docs.js        Swagger UI en /api/docs, solo fuera de producción
+  openapi.yaml   el contrato de la API, escrito a mano y comprobado con un test
+  __tests__/     272 tests, incluidos los de regresión de seguridad
 
 frontend/src/app/
   core/          sesión, guards, interceptor, errores HTTP, rutas por rol
@@ -111,6 +116,10 @@ frontend/src/app/
   testing/       ayudas para los tests de componente (sembrar sesión)
 
 e2e/             recorridos de extremo a extremo con Playwright
+
+Dockerfile           imagen de producción, en tres etapas
+docker-compose.yml   la aplicación y su MongoDB con volumen persistente
+.env.example         las variables, con lo que pasa si falta cada una
 ```
 
 `app.js` no conecta a la base ni llama a `listen()`: eso vive en `server.js`. Los tests importan `app` para Supertest y no deben provocar conexiones.
@@ -126,14 +135,14 @@ npm run format        # Prettier sobre todo el repositorio
 npm run format:check  # sin escribir: solo dice qué no está formateado
 ```
 
-Cada push y cada pull request pasan por `.github/workflows/ci.yml`: lint,
-formato, los tests del backend con cobertura y los del frontend en Chrome sin
-interfaz, más el build de producción.
+Cada push y cada pull request pasan por `.github/workflows/ci.yml`, en cuatro
+trabajos: lint y formato, los tests del backend con cobertura, los del frontend
+con cobertura y el build de producción, y los recorridos de extremo a extremo.
 
 Dos reglas de ESLint están como aviso y no como error, porque su deuda es
 anterior: `no-explicit-any` (usos heredados) y `prefer-inject` (27 componentes
 que aún inyectan por constructor). El script de lint del frontend lleva
-`--max-warnings=59`, el número exacto de hoy: los avisos solo pueden bajar, y
+`--max-warnings=58`, el número exacto de hoy: los avisos solo pueden bajar, y
 cualquier `any` nuevo rompe la build.
 
 ---
@@ -141,7 +150,7 @@ cualquier `any` nuevo rompe la build.
 ## Tests
 
 ```bash
-npm test          # backend:  256 tests (Jest + Supertest)
+npm test          # backend:  272 tests (Jest + Supertest)
 npm run test:web  # frontend: 108 tests (Karma + Jasmine)
 npm run test:e2e  # extremo a extremo: 13 recorridos (Playwright)
 ```
@@ -322,6 +331,106 @@ Otras decisiones que se ven en el código:
   el cable.
 
 ---
+
+## Despliegue
+
+`npm run serve` con Mongo en memoria es un buen truco de demostración, no un
+despliegue: los datos se pierden al parar el proceso y no hay nada que vigile
+si la aplicación sigue en pie.
+
+### Con Docker
+
+```bash
+cp .env.example .env   # y rellenar los huecos
+docker compose up -d --build
+```
+
+Levanta dos servicios: la aplicación en el puerto 3000 y un MongoDB con
+**volumen persistente** (`mongo-datos`). `docker compose down` conserva los
+datos; solo `down -v` se los lleva, y eso hay que escribirlo a propósito.
+
+La aplicación **espera a que Mongo esté sano**, no a que exista: el `depends_on`
+usa `condition: service_healthy` y la sonda de Mongo le pregunta con un `ping`,
+porque un puerto que acepta conexiones todavía no es una base lista.
+
+### Variables obligatorias en producción
+
+| Variable         | Por qué es obligatoria                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`     | Sin ella el servidor **no arranca**. Un secreto de desarrollo conocido es no tener firma.   |
+| `MONGO_URI`      | Sin ella no hay respaldo en memoria: en producción se aborta en vez de fingir que hay base. |
+| `ADMIN_EMAIL`    | La cuenta administradora inicial.                                                           |
+| `ADMIN_PASSWORD` | Sin ella el sembrado del admin se salta, y te quedas sin poder entrar.                      |
+
+Conviene poner también `PROFESOR_CLAVE`: sin ella nadie puede darse de alta
+como profesor. El resto está en [`.env.example`](.env.example).
+
+### Qué comprobar tras el primer arranque
+
+```bash
+docker compose ps                       # los dos servicios, y "healthy"
+curl -s localhost:3000/api/health/ready # {"ok":true,"status":"up","mongo":"conectada"}
+curl -s localhost:3000/api/health/live  # responde aunque Mongo esté caído
+```
+
+1. Que **puedes entrar** con `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Si el sembrado
+   se saltó, el log lo dice con un aviso.
+2. Que `docker compose restart mongo` deja `ready` en **503** unos segundos y
+   luego vuelve a 200: si se queda en 200 todo el rato, la sonda no está
+   comprobando nada.
+3. Que los datos siguen ahí tras `docker compose down && docker compose up -d`.
+4. Que `/api/docs` **no** responde: la documentación es solo para desarrollo.
+
+### Cómo está hecha la imagen
+
+Tres etapas. La primera construye Angular —necesita todas sus dependencias de
+desarrollo y ninguna tiene por qué acabar dentro—; la segunda instala solo las
+de producción del backend, sin copiar el código, para que cambiar un
+controlador no reinstale nada; la tercera junta las dos sobre una base limpia.
+La imagen final no lleva compilador de Angular, ni Jest, ni Playwright, ni
+`swagger-ui`.
+
+Corre como el usuario `node`, sin privilegios. Y con **dumb-init como PID 1**,
+que no es cosmético: un proceso con PID 1 no recibe las señales por defecto, así
+que sin él el `SIGTERM` del `docker stop` no llegaría nunca al apagado ordenado
+y el contenedor moriría de un `SIGKILL` diez segundos después, cortando lo que
+estuviera sirviendo.
+
+### Apagado ordenado
+
+`SIGTERM` no corta peticiones en curso. El orden es:
+
+1. la sonda de disponibilidad pasa a **503** —antes de cerrar nada, para que el
+   balanceador deje de mandar tráfico mientras todavía se atiende lo que hay
+   entre manos—;
+2. se deja de aceptar conexiones y se espera a las peticiones **en curso**;
+3. se suelta Mongoose.
+
+Las conexiones ociosas se cierran en un repaso periódico: con `keep-alive`,
+`server.close()` también espera a los sockets que no están haciendo nada, y un
+navegador abierto los mantiene vivos minutos. Sin ese repaso, el apagado
+"ordenado" terminaría siempre en el corte por tiempo. Hay un test que lo
+comprueba con una petición a medias (`backend/__tests__/server.apagado.spec.js`).
+
+`stop_grace_period: 30s` en el compose: el valor por defecto de Docker son 10 s,
+justo lo que dura el corte de emergencia del servidor — dejarlo así sería cortar
+en el peor momento.
+
+### La API, documentada
+
+`backend/openapi.yaml` describe la API entera, **escrito a mano** contra
+`routes/` y `controllers/`. Se sirve con Swagger UI en `/api/docs` fuera de
+producción, y en crudo en `/api/openapi.yaml`.
+
+![Documentación de la API en Swagger UI](docs/10-api-docs.png)
+
+Un documento escrito a mano que nadie comprueba envejece en dos semanas, así que
+hay un test (`backend/__tests__/openapi.contrato.spec.js`) que lo compara con la
+tabla de routers real: si aparece una ruta sin documentar, o el documento
+describe una que no existe, sale en rojo. Valida con `npx @redocly/cli lint
+backend/openapi.yaml` — quedan tres avisos, uno por sonda de salud, porque no
+tienen ningún 4xx que documentar: inventárselo para callar al linter sería
+describir algo que no ocurre.
 
 ## Limitaciones conocidas
 
