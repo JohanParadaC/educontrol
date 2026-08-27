@@ -203,6 +203,58 @@ describe('CursoDetalleComponent', () => {
     expect(texto()).toContain('Todavía no hay nadie matriculado');
   });
 
+  it('cuando el servidor recorta la lista, la ficha lo dice y ofrece el CSV', () => {
+    const cien = Array.from({ length: 100 }, (_, i) => ({
+      _id: `e${i}`,
+      nombre: `Alumno ${i}`,
+      correo: `alumno${i}@x.com`,
+      rol: 'estudiante',
+    }));
+
+    montar({
+      rol: 'profesor',
+      usuario: { id: 'p1', rol: 'profesor' },
+      ficha: {
+        ...FICHA,
+        matriculados: 340,
+        estudiantes: cien as never,
+        estudiantesTruncados: true,
+      },
+    });
+
+    expect(componente.listaTruncada()).toBeTrue();
+    expect(texto()).toContain('Mostrando los primeros 100 de 340');
+    // El encabezado dice el total, no lo que ha cabido.
+    expect(texto()).toContain('Estudiantes (340)');
+
+    // Y el aviso lleva a la lista completa, que es la salida de verdad.
+    const boton = fixture.nativeElement.querySelector(
+      '.alumnos__aviso button'
+    ) as HTMLButtonElement;
+    expect(boton).not.toBeNull();
+    boton.click();
+    expect(api.descargarEstudiantesCsv).toHaveBeenCalledWith('c1');
+  });
+
+  it('sin recorte no hay aviso: el que sale siempre deja de leerse', () => {
+    montar({
+      rol: 'profesor',
+      usuario: { id: 'p1', rol: 'profesor' },
+      ficha: {
+        ...FICHA,
+        matriculados: 2,
+        estudiantes: [
+          { _id: 'e1', nombre: 'Carlos', correo: 'carlos@x.com', rol: 'estudiante' },
+          { _id: 'e2', nombre: 'Nuria', correo: 'nuria@x.com', rol: 'estudiante' },
+        ] as never,
+      },
+    });
+
+    expect(componente.listaTruncada()).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.alumnos__aviso')).toBeNull();
+    expect(texto()).not.toContain('Mostrando los primeros');
+  });
+
   it('el profesor ajeno no puede gestionar el curso', () => {
     montar({ rol: 'profesor', usuario: { id: 'otro', rol: 'profesor' } });
 

@@ -429,6 +429,12 @@ paths:
         es el profesor de ese curso o un administrador: la clave se omite en
         vez de mandarse vacía, porque `[]` significaría "no hay ninguno". Un
         estudiante sabe cuántos son en su clase, no quiénes.
+
+
+        La lista está recortada a 100, el tope de los listados del proyecto. Si
+        se ha cortado, llega `estudiantesTruncados: true`; el total sigue en
+        `matriculados`, y la lista completa se saca por
+        `/api/cursos/{id}/estudiantes.csv`.
       responses:
         '200':
           description: El curso y su contexto
@@ -940,10 +946,23 @@ components:
         matriculados: { type: integer }
         estudiantes:
           type: array
+          maxItems: 100
           description: >
             Solo para el profesor del curso o un administrador. Si no, la clave
             **no viene**: mandar `[]` diría «no hay ninguno», que es otra cosa.
+
+
+            Como máximo 100, el mismo tope que los listados paginados. Cuando se
+            corta, `estudiantesTruncados` viene a `true` y `matriculados` sigue
+            trayendo el total. Para la lista entera está la exportación en CSV,
+            que no tiene tope.
           items: { $ref: '#/components/schemas/Usuario' }
+        estudiantesTruncados:
+          type: boolean
+          description: >
+            Presente y `true` solo cuando `estudiantes` se ha recortado. No
+            aparece en caso contrario.
+          example: true
 
     Inscripcion:
       type: object

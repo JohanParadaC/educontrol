@@ -41,6 +41,15 @@ export type CursoEditable = Partial<Omit<Curso, 'cupoMaximo'>> & {
  */
 export interface CursoDetalle {
   curso: Curso;
+  /** El total de matriculados, siempre. Puede ser mayor que `estudiantes.length`. */
   matriculados: number;
+  /**
+   * Los matriculados, hasta 100.
+   *
+   * Ausente significa "no puedes verlos" y `[]` significa "no hay ninguno":
+   * son cosas distintas y el servidor las distingue a propósito.
+   */
   estudiantes?: Usuario[];
+  /** Presente y `true` solo si la lista de arriba se ha quedado corta. */
+  estudiantesTruncados?: boolean;
 }

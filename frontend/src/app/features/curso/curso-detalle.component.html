@@ -167,7 +167,20 @@
        estudiante ve el número de arriba y nada más. -->
   @if (puedeVerEstudiantes()) {
     <section class="alumnos" aria-labelledby="titulo-alumnos">
-      <h2 id="titulo-alumnos">Estudiantes ({{ estudiantes().length }})</h2>
+      <h2 id="titulo-alumnos">Estudiantes ({{ matriculados() }})</h2>
+
+      <!-- El servidor recorta la lista en 100. Enseñar 100 de 340 sin decirlo
+           es la misma clase de mentira que pintar un error como lista vacía,
+           así que se dice, y con la salida al lado: el CSV los trae todos. -->
+      @if (listaTruncada()) {
+        <p class="alumnos__aviso">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          <span>{{ avisoTruncado() }}</span>
+          <button mat-button type="button" [disabled]="exportando()" (click)="exportar()">
+            {{ exportando() ? 'Exportando…' : 'Descargar la lista completa (CSV)' }}
+          </button>
+        </p>
+      }
 
       @if (estudiantes().length) {
         <div class="alumnos__tabla">

@@ -1,7 +1,7 @@
 const Curso = require('../models/Curso');
 const Usuario = require('../models/Usuario'); // CAMBIO: lo usamos para validar el profesor
 const Inscripcion = require('../models/Inscripcion');
-const { leerPaginacion, metadatos } = require('../utils/paginacion');
+const { leerPaginacion, metadatos, LIMITE_MAXIMO } = require('../utils/paginacion');
 const { escaparRegex } = require('../utils/regex');
 const { generarCsv, cabeceraDescarga } = require('../utils/csv');
 const { registrar, instantaneaCurso } = require('../utils/auditoria');
@@ -140,14 +140,35 @@ const obtenerCursoPorId = async (req, res, next) => {
     const respuesta = { ok: true, curso, matriculados };
 
     if (puedeGestionar(curso, req.usuario)) {
-      const inscripciones = await Inscripcion.find({ curso: curso._id }).populate(
-        'estudiante',
-        'nombre correo'
-      );
+      // Con tope, y con el MISMO tope que el resto del proyecto. Esto era el
+      // último listado sin límite: un curso de 800 matriculados metía 800
+      // objetos poblados dentro del JSON de la ficha y la interfaz los pintaba
+      // todos. `cupoMaximo` lo hace menos probable, pero es opcional y los
+      // cursos anteriores al campo no lo tienen.
+      //
+      // El corte va por fecha de matrícula y no por nombre: el nombre vive en
+      // otra colección, así que Mongo no puede ordenar por él antes de cortar.
+      // Ordenar la página ya recortada —que es lo que se pinta— sí se puede, y
+      // es lo que se hace justo debajo.
+      const inscripciones = await Inscripcion.find({ curso: curso._id })
+        .sort({ createdAt: 1, _id: 1 })
+        .limit(LIMITE_MAXIMO)
+        .populate('estudiante', 'nombre correo');
+
       respuesta.estudiantes = inscripciones
         .map(i => i.estudiante)
         .filter(Boolean)
         .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+
+      // `matriculados` ya viaja con el total, así que con esta marca la ficha
+      // tiene los dos números y puede decir "los primeros 100 de 340". Enseñar
+      // 100 de 340 sin avisar es la misma clase de mentira que pintar un error
+      // como una lista vacía.
+      //
+      // La clave solo aparece cuando hay corte: `estudiantes` sigue siendo
+      // ausente-o-lista, que es la señal de permiso que usa el frontend, y
+      // añadir un `false` constante a todas las respuestas no informa de nada.
+      if (matriculados > LIMITE_MAXIMO) respuesta.estudiantesTruncados = true;
     }
 
     return res.json(respuesta);

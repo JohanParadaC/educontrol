@@ -243,6 +243,30 @@ $curso-tinte: hsl(var(--curso-tono) var(--curso-sat) var(--curso-tinte-luz));
   }
 }
 
+/* El aviso de lista recortada. Ámbar sobre su propio tinte se queda en 2,7:1,
+   así que el texto va con `--aviso-texto`, que es el que está medido. */
+.alumnos__aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--aviso);
+  border-radius: var(--radio-md);
+  background: color-mix(in srgb, var(--aviso) 12%, transparent);
+  color: var(--aviso-texto);
+  font: var(--mat-sys-body-medium);
+
+  mat-icon {
+    flex: none;
+  }
+
+  span {
+    flex: 1 1 12rem;
+  }
+}
+
 /* La tabla puede ser más ancha que la página: el scroll es suyo, no del
    documento. */
 .alumnos__tabla {

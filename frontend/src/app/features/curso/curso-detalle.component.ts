@@ -112,6 +112,19 @@ export class CursoDetalleComponent {
   readonly estudiantes = computed<Usuario[]>(() => this.detalle()?.estudiantes ?? []);
   readonly columnas = ['nombre', 'correo'];
 
+  /**
+   * El servidor recorta la lista en 100. Cuando lo hace, hay que decirlo.
+   *
+   * Enseñar 100 de 340 sin avisar es la misma clase de mentira que pintar un
+   * error como una lista vacía. El aviso lleva al CSV, que sí los trae todos.
+   */
+  readonly listaTruncada = computed(() => !!this.detalle()?.estudiantesTruncados);
+  readonly avisoTruncado = computed(() =>
+    this.listaTruncada()
+      ? `Mostrando los primeros ${this.estudiantes().length} de ${this.matriculados()}.`
+      : ''
+  );
+
   readonly matriculado = computed(() => !!this.miInscripcion());
 
   readonly cupoMaximo = computed(() => this.detalle()?.curso?.cupoMaximo ?? 0);
