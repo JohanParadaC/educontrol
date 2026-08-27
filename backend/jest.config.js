@@ -26,9 +26,10 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
 
   // Umbrales ajustados a la cobertura real, medida con `npm run test:cov`:
-  // 85,74 sentencias / 76,86 ramas / 97,77 funciones / 87,12 líneas.
+  // 91,07 sentencias / 84,15 ramas / 100 funciones / 92,37 líneas.
   // (Los tests de control de acceso de agosto de 2026 subieron las ramas casi
-  // ocho puntos: cada regla nueva es una rama que antes no se recorría.)
+  // ocho puntos, y los cuatro cabos sueltos del cierre de la auditoría otros
+  // siete: cada regla nueva es una rama que antes no se recorría.)
   //
   // Estaban en 82/68/95/84, por encima de dos de esas cifras: `test:cov`
   // fallaba desde antes de que existiera la integración continua, y como
@@ -40,10 +41,10 @@ module.exports = {
   // un umbral que va por detrás de la realidad no protege de nada.)
   coverageThreshold: {
     global: {
-      statements: 85,
-      branches: 76,
-      functions: 97,
-      lines: 87,
+      statements: 89,
+      branches: 82,
+      functions: 99,
+      lines: 90,
     },
   },
 
