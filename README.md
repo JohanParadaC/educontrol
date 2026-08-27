@@ -184,6 +184,7 @@ El backend cubre el CRUD completo, la validación de payloads, el manejo de erro
 | `DELETE /api/admin/purge` sin token                     | 401                                   |
 | `DELETE /api/admin/purge` con token de estudiante       | 403                                   |
 | `POST /api/admin/seed-admin` sobre una cuenta existente | no la modifica                        |
+| `POST /api/admin/seed-admin` sin contraseña             | 400, no se inventa ninguna            |
 | `POST /api/usuarios` con `rol: admin`                   | 400                                   |
 | `PUT /api/usuarios/:id` de un tercero                   | 403, sin efecto                       |
 | Auto-ascenso a profesor sin clave                       | 403                                   |

@@ -751,6 +751,11 @@ paths:
         Sin JWT a propósito — es el problema del huevo y la gallina: sirve para
         crear la primera cuenta administradora. Nunca modifica una cuenta que
         ya exista.
+
+
+        La contraseña hay que darla: en el cuerpo o en `ADMIN_PASSWORD`. No hay
+        valor por defecto, porque una contraseña escrita en el repositorio es lo
+        mismo que no tener contraseña.
       security: []
       requestBody:
         content:
@@ -760,7 +765,11 @@ paths:
               properties:
                 nombre: { type: string }
                 correo: { type: string, format: email }
-                password: { type: string }
+                password:
+                  type: string
+                  minLength: 6
+                  description: >
+                    Obligatoria si no está configurada `ADMIN_PASSWORD`.
       responses:
         '200':
           description: Ya existía; no se ha tocado
@@ -772,6 +781,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Mensaje' }
+        '400':
+          description: Falta la contraseña, o tiene menos de 6 caracteres
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '404':
           description: En producción la ruta no existe
           content:

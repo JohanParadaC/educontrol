@@ -123,6 +123,76 @@ describe('POST /api/admin/seed-admin', () => {
     await expect(login(victima.correo, 'MiClave123')).resolves.toEqual(expect.any(String));
   });
 
+  it('sin contraseña no inventa ninguna: 400 y ni una cuenta creada', async () => {
+    const sinPassword = { ...process.env };
+    delete process.env.ADMIN_PASSWORD;
+
+    try {
+      const res = await request(app)
+        .post('/api/admin/seed-admin')
+        .send({ correo: 'admin@educontrol.com', nombre: 'Admin' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.msg).toMatch(/ADMIN_PASSWORD/);
+      // Aquí había un `|| 'admin123'`: una contraseña de repositorio público
+      // es lo mismo que no tener contraseña.
+      expect(await Usuario.countDocuments()).toBe(0);
+    } finally {
+      process.env = sinPassword;
+    }
+  });
+
+  it('con ADMIN_PASSWORD configurada sí siembra, y esa es la que vale', async () => {
+    const antes = { ...process.env };
+    process.env.ADMIN_PASSWORD = 'DesdeElEntorno1';
+
+    try {
+      const res = await request(app)
+        .post('/api/admin/seed-admin')
+        .send({ correo: 'admin@educontrol.com' });
+
+      expect(res.status).toBe(201);
+
+      const login = await request(app)
+        .post('/api/auth/login')
+        .send({ correo: 'admin@educontrol.com', contraseña: 'DesdeElEntorno1' });
+      expect(login.status).toBe(200);
+
+      // Y la que estaba escrita en el código ya no abre nada.
+      const conLaVieja = await request(app)
+        .post('/api/auth/login')
+        .send({ correo: 'admin@educontrol.com', contraseña: 'admin123' });
+      expect(conLaVieja.status).toBe(401);
+    } finally {
+      process.env = antes;
+    }
+  });
+
+  it('una contraseña de un carácter no cuela: el hash mide 60 y el modelo no la ve', async () => {
+    const res = await request(app)
+      .post('/api/admin/seed-admin')
+      .send({ correo: 'admin@educontrol.com', password: 'x' });
+
+    expect(res.status).toBe(400);
+    expect(await Usuario.countDocuments()).toBe(0);
+  });
+
+  it('el correo se guarda normalizado aunque venga en mayúsculas', async () => {
+    const res = await request(app)
+      .post('/api/admin/seed-admin')
+      .send({ correo: '  Admin@Centro.com  ', password: 'Secreta123' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.correo).toBe('admin@centro.com');
+
+    // Y la segunda llamada lo encuentra: buscar y crear usan el mismo valor.
+    const otra = await request(app)
+      .post('/api/admin/seed-admin')
+      .send({ correo: 'ADMIN@CENTRO.COM', password: 'Secreta123' });
+    expect(otra.status).toBe(200);
+    expect(await Usuario.countDocuments()).toBe(1);
+  });
+
   it('en producción la ruta no existe', async () => {
     const envOriginal = process.env.NODE_ENV;
 
