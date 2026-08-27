@@ -3,6 +3,7 @@ const Curso = require('../models/Curso');
 const Usuario = require('../models/Usuario');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 const { normalizarCorreo } = require('../utils/correo');
+const { registrar } = require('../utils/auditoria');
 
 /**
  * El curso, con su profesor dentro.
@@ -72,8 +73,11 @@ const alcanceDe = async usuario => {
  * minúsculas y "Ana@x.com" no encontraría nada.
  */
 const resolverEstudiante = ({ estudianteId, correo }) => {
-  if (estudianteId) return Usuario.findById(estudianteId).select('rol');
-  if (correo) return Usuario.findOne({ correo: normalizarCorreo(correo) }).select('rol');
+  // El nombre no es decorado: es la etiqueta que se guarda en el registro de
+  // auditoría, que tiene que seguir leyéndose si la cuenta desaparece.
+  const campos = 'rol nombre correo';
+  if (estudianteId) return Usuario.findById(estudianteId).select(campos);
+  if (correo) return Usuario.findOne({ correo: normalizarCorreo(correo) }).select(campos);
   return null;
 };
 
@@ -90,7 +94,7 @@ const inscribirEstudiante = async (req, res, next) => {
     const { cursoId, estudianteId, correo } = req.body;
 
     const [curso, estudiante] = await Promise.all([
-      Curso.findById(cursoId).select('_id'),
+      Curso.findById(cursoId).select('_id nombre estado cupoMaximo'),
       resolverEstudiante({ estudianteId, correo }),
     ]);
 
@@ -109,11 +113,57 @@ const inscribirEstudiante = async (req, res, next) => {
       return res.status(400).json({ ok: false, msg: 'Solo se puede matricular a un estudiante' });
     }
 
+    // 409 y no 400: el dato que manda el cliente está bien, lo que pasa es que
+    // el estado del recurso lo impide. Es la diferencia entre "esto está mal
+    // escrito" y "esto ya no se puede".
+    if (curso.estado !== 'abierto') {
+      return res.status(409).json({
+        ok: false,
+        msg:
+          curso.estado === 'archivado'
+            ? 'Este curso está archivado y no admite matrículas.'
+            : 'Este curso está cerrado a nuevas matrículas.',
+        estado: curso.estado,
+      });
+    }
+
+    // El cupo se comprueba contando, y contar no es atómico: entre el recuento
+    // y la inserción cabe otra petición, así que dos matrículas simultáneas
+    // sobre la última plaza pueden entrar las dos. Cerrarlo de verdad pide una
+    // transacción, y este Mongo es de un solo nodo. Se deja dicho aquí y en el
+    // README: pasarse de uno en una plaza es preferible a fingir que no pasa.
+    if (curso.cupoMaximo) {
+      const ocupadas = await Inscripcion.countDocuments({ curso: curso._id });
+      if (ocupadas >= curso.cupoMaximo) {
+        return res.status(409).json({
+          ok: false,
+          msg: `No quedan plazas en este curso (${ocupadas} de ${curso.cupoMaximo}).`,
+          ocupadas,
+          cupoMaximo: curso.cupoMaximo,
+        });
+      }
+    }
+
     try {
       const inscripcion = await Inscripcion.create({
         curso: cursoId,
         estudiante: estudiante._id,
       });
+
+      // Solo cuando matricula un tercero. Que alguien se apunte a sí mismo es
+      // uso normal de la aplicación, no una acción administrativa: registrarlo
+      // llenaría el historial de ruido y taparía lo que sí importa.
+      if (String(req.usuario?._id) !== String(estudiante._id)) {
+        registrar({
+          actor: req.usuario,
+          accion: 'matricula.creada',
+          tipo: 'inscripcion',
+          id: inscripcion._id,
+          etiqueta: `${estudiante.nombre} en «${curso.nombre}»`,
+          despues: { estudiante: estudiante.correo, curso: curso.nombre },
+        });
+      }
+
       return res.status(201).json({ ok: true, inscripcion });
     } catch (err) {
       // El duplicado lo decide el índice único, no una consulta previa.
@@ -213,18 +263,40 @@ const obtenerInscripcionPorId = async (req, res, next) => {
  */
 const borrarInscripcion = async (req, res, next) => {
   try {
-    const inscripcion = await Inscripcion.findById(req.params.id);
+    // Poblada porque, si la baja la da un tercero, el registro necesita saber
+    // a quién y de qué curso — y después del borrado ya no hay dónde mirarlo.
+    const inscripcion = await Inscripcion.findById(req.params.id)
+      .populate('estudiante', 'nombre correo')
+      .populate('curso', 'nombre');
     if (!inscripcion) {
       return res.status(404).json({ ok: false, msg: 'Inscripción no encontrada' });
     }
 
     const rol = req.usuario?.rol;
-    const esSuya = String(inscripcion.estudiante) === String(req.usuario?._id);
+    const idEstudiante = inscripcion.estudiante?._id ?? inscripcion.estudiante;
+    const esSuya = String(idEstudiante) === String(req.usuario?._id);
     if (rol !== 'admin' && !(rol === 'estudiante' && esSuya)) {
       return res.status(403).json({ ok: false, msg: 'Esta matrícula no es tuya' });
     }
 
     await Inscripcion.findByIdAndDelete(inscripcion._id);
+
+    // Igual que el alta: darse de baja uno mismo no es una acción
+    // administrativa. Que te la den, sí.
+    if (!esSuya) {
+      registrar({
+        actor: req.usuario,
+        accion: 'matricula.borrada',
+        tipo: 'inscripcion',
+        id: inscripcion._id,
+        etiqueta: `${inscripcion.estudiante?.nombre ?? '(cuenta borrada)'} en «${inscripcion.curso?.nombre ?? '(curso borrado)'}»`,
+        antes: {
+          estudiante: inscripcion.estudiante?.correo,
+          curso: inscripcion.curso?.nombre,
+        },
+      });
+    }
+
     res.json({ ok: true, msg: 'Inscripción eliminada' });
   } catch (err) {
     next(err);

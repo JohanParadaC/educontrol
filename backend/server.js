@@ -9,11 +9,13 @@
 const app = require('./app');
 const { connectDB } = require('./config/db');
 const { ensureAdminSeed } = require('./config/seed');
+const { migrar } = require('./config/migraciones');
 const { usandoMongoEnMemoria } = require('./config/memoryDb');
 
 async function arrancar() {
   try {
     await connectDB();
+    await migrar();
     await ensureAdminSeed();
 
     // Con Mongo en memoria la base arranca vacía en cada ejecución, así que

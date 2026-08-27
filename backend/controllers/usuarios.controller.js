@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const { claveProfesorValida, extraerClave } = require('../utils/profesorClave');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 const { normalizarCorreo } = require('../utils/correo');
+const { registrar } = require('../utils/auditoria');
 
 const ROLES_PUBLICOS = ['estudiante', 'profesor'];
 const ROLES = [...ROLES_PUBLICOS, 'admin'];
@@ -144,10 +145,30 @@ const updateUsuario = async (req, res, next) => {
       cambios.rol = rol;
     }
 
+    // El rol de antes, leído mientras todavía es el de antes.
+    const rolPrevio = soyElMismo
+      ? solicitante.rol
+      : (await Usuario.findById(id).select('rol'))?.rol;
+
     const updated = await Usuario.findByIdAndUpdate(id, cambios, { new: true }).select(
       '-contraseña'
     );
     if (!updated) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
+
+    // Se registra el cambio de rol y solo el cambio de rol: cambiar de nombre
+    // o de contraseña es cosa de cada cual, pero quién puede hacer qué en la
+    // plataforma es exactamente lo que hay que poder reconstruir después.
+    if (cambios.rol && cambios.rol !== rolPrevio) {
+      registrar({
+        actor: solicitante,
+        accion: 'rol.cambiado',
+        tipo: 'usuario',
+        id: updated._id,
+        etiqueta: updated.nombre,
+        antes: { rol: rolPrevio },
+        despues: { rol: updated.rol },
+      });
+    }
 
     res.json({ ok: true, usuario: updated });
   } catch (err) {

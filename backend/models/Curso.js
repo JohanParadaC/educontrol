@@ -26,6 +26,41 @@ const CursoSchema = new mongoose.Schema(
       // borrar a un profesor.
       index: true,
     },
+
+    /**
+     * Plazas. Opcional: sin cupo, no hay límite.
+     *
+     * `undefined` y no 0 para "sin límite": un 0 significaría "cero plazas", y
+     * la diferencia entre "no lo hemos decidido" y "no cabe nadie" importa.
+     */
+    cupoMaximo: {
+      type: Number,
+      min: [1, 'El cupo tiene que ser de al menos una plaza'],
+      validate: {
+        validator: v => v === undefined || v === null || Number.isInteger(v),
+        message: 'El cupo tiene que ser un número entero',
+      },
+    },
+
+    /**
+     * En qué punto de su vida está el curso:
+     *
+     *   abierto    admite matrículas.
+     *   cerrado    ya no admite, pero sigue visible y con sus alumnos dentro.
+     *   archivado  desaparece del catálogo del estudiante. Administración lo
+     *              sigue viendo, etiquetado: archivar no es borrar.
+     *
+     * Indexado porque el catálogo filtra por él en cada carga.
+     */
+    estado: {
+      type: String,
+      enum: {
+        values: ['abierto', 'cerrado', 'archivado'],
+        message: 'El estado tiene que ser abierto, cerrado o archivado',
+      },
+      default: 'abierto',
+      index: true,
+    },
   },
   { timestamps: true }
 );

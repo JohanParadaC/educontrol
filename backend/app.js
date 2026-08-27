@@ -23,6 +23,7 @@ const authRoutes = require('./routes/auth.routes');
 const cursosRoutes = require('./routes/cursos.routes');
 const inscripcionesRoutes = require('./routes/inscripciones.routes');
 const adminRoutes = require('./routes/admin.routes');
+const auditoriaRoutes = require('./routes/auditoria.routes');
 
 if (process.env.NODE_ENV !== 'test') verificarEntorno();
 
@@ -63,6 +64,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cursos', cursosRoutes);
 app.use('/api/inscripciones', inscripcionesRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/auditoria', auditoriaRoutes);
 
 /* ===========================
  * 3) Health-check

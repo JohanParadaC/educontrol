@@ -3,6 +3,8 @@ const Usuario = require('../models/Usuario'); // CAMBIO: lo usamos para validar 
 const Inscripcion = require('../models/Inscripcion');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
 const { escaparRegex } = require('../utils/regex');
+const { generarCsv, cabeceraDescarga } = require('../utils/csv');
+const { registrar, instantaneaCurso } = require('../utils/auditoria');
 
 /**
  * ¿Puede este usuario tocar este curso?
@@ -26,7 +28,7 @@ const puedeGestionar = (curso, usuario) => {
 const crearCurso = async (req, res, next) => {
   try {
     // CAMBIO: ahora leemos también "profesor" del body
-    const { nombre, descripcion, profesor } = req.body;
+    const { nombre, descripcion, profesor, cupoMaximo, estado } = req.body;
 
     // CAMBIO: resolver profesorId correctamente
     // - Si viene en el body, usarlo.
@@ -47,8 +49,24 @@ const crearCurso = async (req, res, next) => {
       return res.status(400).json({ ok: false, msg: 'Profesor inválido' });
     }
 
-    // Crear curso con el profesor resuelto
-    const curso = await Curso.create({ nombre, descripcion, profesor: profesorId });
+    // Crear curso con el profesor resuelto. `cupoMaximo` y `estado` solo se
+    // mandan si vienen: si no, manda el esquema (sin cupo y abierto).
+    const curso = await Curso.create({
+      nombre,
+      descripcion,
+      profesor: profesorId,
+      ...(cupoMaximo !== undefined && cupoMaximo !== null ? { cupoMaximo } : {}),
+      ...(estado !== undefined ? { estado } : {}),
+    });
+
+    registrar({
+      actor: req.usuario,
+      accion: 'curso.creado',
+      tipo: 'curso',
+      id: curso._id,
+      etiqueta: curso.nombre,
+      despues: instantaneaCurso(curso),
+    });
 
     // CAMBIO: devolver populado para que el front lo vea al instante
     await curso.populate('profesor', 'nombre correo');
@@ -81,6 +99,14 @@ const obtenerCursos = async (req, res, next) => {
 
     // El texto del usuario es literal, no un patrón: se escapa antes de
     // convertirlo en regex.
+    // Un curso archivado no desaparece: deja de ofrecerse. El estudiante no lo
+    // ve en el catálogo; administración y profesorado sí, que archivar no es
+    // borrar. El `$ne` cubre además a los cursos anteriores al campo, que no
+    // lo tienen escrito en la base.
+    if (req.usuario?.rol === 'estudiante') {
+      filtro.estado = { $ne: 'archivado' };
+    }
+
     const buscar = String(req.query.buscar ?? '').trim();
     if (buscar) {
       const patron = new RegExp(escaparRegex(buscar), 'i');
@@ -142,6 +168,56 @@ const obtenerCursoPorId = async (req, res, next) => {
   }
 };
 
+/**
+ * La lista de matriculados en CSV.
+ *
+ * GET /api/cursos/:id/estudiantes.csv
+ *
+ * Misma puerta que la lista de la ficha —su profesor o un administrador—, pero
+ * aquí el 403 es explícito en vez de una clave que no viaja: quien pide este
+ * recurso ya sabe que el curso existe, así que callar no protege nada y
+ * confunde.
+ */
+const exportarEstudiantesCsv = async (req, res, next) => {
+  try {
+    const curso = await Curso.findById(req.params.id).select('nombre profesor');
+    if (!curso) {
+      return res.status(404).json({ ok: false, msg: 'Curso no encontrado' });
+    }
+    if (!puedeGestionar(curso, req.usuario)) {
+      return res.status(403).json({ ok: false, msg: 'Este curso no es tuyo' });
+    }
+
+    const inscripciones = await Inscripcion.find({ curso: curso._id }).populate(
+      'estudiante',
+      'nombre correo'
+    );
+
+    const filas = inscripciones
+      .filter(i => i.estudiante)
+      .map(i => [
+        i.estudiante.nombre,
+        i.estudiante.correo,
+        // ISO y no formato local: es lo único que cualquier hoja de cálculo y
+        // cualquier script leen igual. `fecha` es el respaldo de los
+        // documentos anteriores a `timestamps`.
+        new Date(i.createdAt ?? i.fecha).toISOString().slice(0, 10),
+      ])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'es'));
+
+    const csv = generarCsv(['Nombre', 'Correo', 'Matriculado el'], filas);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', cabeceraDescarga(`${curso.nombre} - estudiantes.csv`));
+    // Sin esto un proxy podría servir la lista de un curso a quien pida la de
+    // otro: la respuesta depende de quién la pide.
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Actualizar curso
 const actualizarCurso = async (req, res, next) => {
   try {
@@ -155,12 +231,22 @@ const actualizarCurso = async (req, res, next) => {
     }
 
     // CAMBIO: aceptar profesor en el PUT
-    const { nombre, descripcion, profesor } = req.body;
+    const { nombre, descripcion, profesor, cupoMaximo, estado } = req.body;
 
     // Construimos el update SOLO con los campos enviados
     const update = {};
+    const quitar = {};
     if (nombre !== undefined) update.nombre = nombre;
     if (descripcion !== undefined) update.descripcion = descripcion;
+    if (estado !== undefined) update.estado = estado;
+
+    // Mandar el cupo a null o a vacío es quitar el límite, y quitarlo es
+    // borrar el campo: dejar un `null` guardado obligaría a comprobar dos
+    // formas de "sin cupo" en cada sitio que lo mire.
+    if (cupoMaximo !== undefined) {
+      if (cupoMaximo === null || cupoMaximo === '') quitar.cupoMaximo = 1;
+      else update.cupoMaximo = cupoMaximo;
+    }
 
     // CAMBIO: si viene "profesor", validarlo y aplicarlo
     if (profesor !== undefined && profesor !== null && profesor !== '') {
@@ -171,7 +257,15 @@ const actualizarCurso = async (req, res, next) => {
       update.profesor = profesor;
     }
 
-    const curso = await Curso.findByIdAndUpdate(req.params.id, update, {
+    // Cómo estaba antes, para el registro. Se toma aquí, con el documento ya
+    // leído y todavía sin tocar.
+    const antes = instantaneaCurso(existente);
+
+    const operacion = Object.keys(quitar).length
+      ? { $set: update, $unset: quitar }
+      : { $set: update };
+
+    const curso = await Curso.findByIdAndUpdate(req.params.id, operacion, {
       new: true,
       runValidators: true,
     }).populate('profesor', 'nombre correo');
@@ -179,6 +273,17 @@ const actualizarCurso = async (req, res, next) => {
     if (!curso) {
       return res.status(404).json({ ok: false, msg: 'Curso no encontrado' });
     }
+
+    registrar({
+      actor: req.usuario,
+      accion: 'curso.editado',
+      tipo: 'curso',
+      id: curso._id,
+      etiqueta: curso.nombre,
+      antes,
+      despues: instantaneaCurso(curso),
+    });
+
     return res.json({ ok: true, curso });
   } catch (err) {
     next(err);
@@ -206,6 +311,17 @@ const borrarCurso = async (req, res, next) => {
     const { deletedCount = 0 } = await Inscripcion.deleteMany({ curso: curso._id });
     await Curso.findByIdAndDelete(curso._id);
 
+    // La etiqueta se guarda porque el curso ya no está: sin ella, el registro
+    // de "curso borrado" apuntaría a un id que no lleva a ningún sitio.
+    registrar({
+      actor: req.usuario,
+      accion: 'curso.borrado',
+      tipo: 'curso',
+      id: curso._id,
+      etiqueta: curso.nombre,
+      antes: { ...instantaneaCurso(curso), inscripcionesEliminadas: deletedCount },
+    });
+
     return res.json({
       ok: true,
       msg: 'Curso eliminado',
@@ -220,6 +336,7 @@ module.exports = {
   crearCurso,
   obtenerCursos,
   obtenerCursoPorId,
+  exportarEstudiantesCsv,
   actualizarCurso,
   borrarCurso,
 };
