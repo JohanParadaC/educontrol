@@ -22,15 +22,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterModule } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { of, forkJoin } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
+import { finalize } from 'rxjs/operators';
 
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { Curso } from '../../data/curso.model';
 import { mensajeDeError } from '../../core/http-error';
 
-import { Inscripcion } from '../../data/inscripcion.model';
 import { idDe } from '../../data/sesion-local';
 import { EstadoVistaComponent } from '../../shared/estado-vista.component';
 import { KpiComponent } from '../../shared/kpi.component';
@@ -66,6 +65,15 @@ export class StudentDashboardComponent implements OnInit {
 
   readonly loadingCursos = signal(false);
   readonly loadingIns = signal(false);
+  /**
+   * Fallo de carga.
+   *
+   * Existe porque antes NO existía: las dos peticiones llevaban
+   * `catchError(() => of([]))` y un servidor caído se pintaba como "aún no
+   * estás matriculado en ningún curso". Son cosas distintas y llevan a
+   * acciones distintas: una se arregla matriculándose, la otra reintentando.
+   */
+  readonly error = signal('');
   /** Controla el "Matriculando…" de la tarjeta que se está enviando. */
   readonly matriculandoId = signal<string | null>(null);
 
@@ -89,13 +97,20 @@ export class StudentDashboardComponent implements OnInit {
   }
 
   /** ------------------- Carga de datos ------------------- */
+  cargar(): void {
+    this.loadData();
+  }
+
   private loadData(): void {
     this.loadingCursos.set(true);
     this.loadingIns.set(true);
+    this.error.set('');
 
     forkJoin({
-      cursos: this.api.listCursos().pipe(catchError(() => of<Curso[]>([]))),
-      inscripciones: this.api.listInscripcionesMe().pipe(catchError(() => of<Inscripcion[]>([]))),
+      // Sin catchError: un fallo tiene que llegar al subscribe y verse. La
+      // versión anterior lo convertía en lista vacía y la pantalla mentía.
+      cursos: this.api.listCursos(),
+      inscripciones: this.api.listInscripcionesMe(),
     })
       .pipe(
         finalize(() => {
@@ -103,20 +118,28 @@ export class StudentDashboardComponent implements OnInit {
           this.loadingIns.set(false);
         })
       )
-      .subscribe(({ cursos, inscripciones }) => {
-        this.cursos.set(cursos ?? []);
+      .subscribe({
+        next: ({ cursos, inscripciones }) => {
+          this.cursos.set(cursos ?? []);
 
-        // La inscripción trae el curso poblado, así que no hace falta cruzar
-        // con el catálogo: se usa el del catálogo solo para tener el mismo
-        // objeto (y el mismo `titulo` del mapper) en las dos listas.
-        const porId = new Map(this.cursos().map(c => [this.idOf(c), c]));
-        const mios = (inscripciones ?? [])
-          .map(i => porId.get(idDe(i.curso)))
-          .filter((c): c is Curso => !!c);
-        this.misCursosCards.set(mios);
+          // La inscripción trae el curso poblado, así que no hace falta cruzar
+          // con el catálogo: se usa el del catálogo solo para tener el mismo
+          // objeto (y el mismo `titulo` del mapper) en las dos listas.
+          const porId = new Map(this.cursos().map(c => [this.idOf(c), c]));
+          const mios = (inscripciones ?? [])
+            .map(i => porId.get(idDe(i.curso)))
+            .filter((c): c is Curso => !!c);
+          this.misCursosCards.set(mios);
 
-        const matriculados = new Set(mios.map(c => this.idOf(c)));
-        this.cursosDisponibles.set(this.cursos().filter(c => !matriculados.has(this.idOf(c))));
+          const matriculados = new Set(mios.map(c => this.idOf(c)));
+          this.cursosDisponibles.set(this.cursos().filter(c => !matriculados.has(this.idOf(c))));
+        },
+        error: err => {
+          this.cursos.set([]);
+          this.misCursosCards.set([]);
+          this.cursosDisponibles.set([]);
+          this.error.set(mensajeDeError(err, 'No se pudieron cargar tus cursos.'));
+        },
       });
   }
 

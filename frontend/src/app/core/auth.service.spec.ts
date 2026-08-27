@@ -34,6 +34,12 @@ describe('AuthService', () => {
     service = TestBed.inject(AuthService);
   });
 
+  // Este fichero guarda token y usuario de verdad. Sin limpiar al salir, el
+  // siguiente arranca con sesión: AuthService dispara la renovación y los
+  // tests que usan HttpTestingController se encuentran una petición que no
+  // esperaban. Ningún test debe depender de en qué orden se ejecuta.
+  afterEach(() => localStorage.clear());
+
   it('login guarda token y usuario en localStorage', done => {
     // ✅ mapea 'rol' al union correcto
     const mockResp: { token: string; usuario: UsuarioLike } = {

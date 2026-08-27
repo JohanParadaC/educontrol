@@ -1,25 +1,101 @@
-<!-- Fila de KPI: tres cifras con contexto donde antes había un saludo enorme. -->
-<section class="kpis" aria-label="Resumen">
-  <app-kpi
-    [valor]="misCursosCards().length"
-    etiqueta="Cursos matriculados"
-    icono="bookmark"
-    tono="estudiante"
-  />
-  <app-kpi [valor]="cursosDisponibles().length" etiqueta="Disponibles para ti" icono="school" />
-  <app-kpi [valor]="cursos().length" etiqueta="Cursos en el catálogo" icono="library_books" />
-</section>
+<!-- Un fallo de carga se pinta como fallo y envuelve a TODA la pantalla: si se
+     dejara pasar, los KPI dirían 0/0/0 y las secciones "aún no tienes cursos",
+     que es exactamente la mentira que este estado viene a evitar. -->
+@if (error()) {
+  <app-estado-vista [error]="error()" (reintentar)="cargar()"></app-estado-vista>
+} @else {
+  <!-- Fila de KPI: tres cifras con contexto donde antes había un saludo enorme. -->
+  <section class="kpis" aria-label="Resumen">
+    <app-kpi
+      [valor]="misCursosCards().length"
+      etiqueta="Cursos matriculados"
+      icono="bookmark"
+      tono="estudiante"
+    />
+    <app-kpi [valor]="cursosDisponibles().length" etiqueta="Disponibles para ti" icono="school" />
+    <app-kpi [valor]="cursos().length" etiqueta="Cursos en el catálogo" icono="library_books" />
+  </section>
 
-<!-- 8 columnas de contenido + 4 de contexto. -->
-<div class="rejilla">
-  <section class="principal" aria-labelledby="titulo-mis-cursos">
-    <h2 id="titulo-mis-cursos" class="seccion">Tus cursos</h2>
+  <!-- 8 columnas de contenido + 4 de contexto. -->
+  <div class="rejilla">
+    <section class="principal" aria-labelledby="titulo-mis-cursos">
+      <h2 id="titulo-mis-cursos" class="seccion">Tus cursos</h2>
 
-    @if (loadingIns()) {
+      @if (loadingIns()) {
+        <app-estado-vista [cargando]="true"></app-estado-vista>
+      } @else if (misCursosCards().length) {
+        <div class="cursos">
+          @for (c of misCursosCards(); track trackCurso($index, c)) {
+            <mat-card class="curso">
+              <mat-card-title>{{ c.titulo }}</mat-card-title>
+              <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
+              <mat-card-content>
+                @if (c.descripcion) {
+                  <p class="desc">{{ c.descripcion }}</p>
+                }
+              </mat-card-content>
+              <mat-card-actions>
+                <!-- A la ficha del curso, no a la lista de matrículas: "Gestionar"
+                   llevaba al mismo sitio que el enlace del menú. -->
+                <a mat-button color="primary" [routerLink]="['/cursos', idOf(c)]">Ver el curso</a>
+              </mat-card-actions>
+            </mat-card>
+          }
+        </div>
+      } @else {
+        <app-estado-vista
+          mensajeVacio="Aún no estás matriculado en ningún curso."
+          ilustracion="cursos"
+        ></app-estado-vista>
+      }
+    </section>
+
+    <aside class="lateral-contenido" aria-labelledby="titulo-siguiente">
+      <mat-card class="panel">
+        <h2 id="titulo-siguiente" class="seccion">Qué hacer ahora</h2>
+
+        <!-- El siguiente paso depende de dónde estás, y sale de los datos: no
+           hay una lista fija de tareas de mentira. -->
+        <p class="sugerencia">{{ siguientePaso() }}</p>
+
+        <nav class="accesos" aria-label="Accesos rápidos">
+          <a class="acceso" routerLink="/cursos">
+            <mat-icon aria-hidden="true">school</mat-icon>
+            <span>
+              <span class="acceso__titulo">Explorar el catálogo</span>
+              <span class="acceso__pie">{{ cursosDisponibles().length }} sin matricular</span>
+            </span>
+          </a>
+
+          <a class="acceso" routerLink="/mis-cursos">
+            <mat-icon aria-hidden="true">bookmark</mat-icon>
+            <span>
+              <span class="acceso__titulo">Mis cursos</span>
+              <span class="acceso__pie">Darte de baja o revisarlos</span>
+            </span>
+          </a>
+
+          <a class="acceso" routerLink="/cuenta">
+            <mat-icon aria-hidden="true">account_circle</mat-icon>
+            <span>
+              <span class="acceso__titulo">Mi cuenta</span>
+              <span class="acceso__pie">Datos y contraseña</span>
+            </span>
+          </a>
+        </nav>
+      </mat-card>
+    </aside>
+  </div>
+
+  <!-- Cursos disponibles, a ancho completo debajo de la rejilla. -->
+  <section class="disponibles" aria-labelledby="titulo-disponibles">
+    <h2 id="titulo-disponibles" class="seccion">Cursos disponibles</h2>
+
+    @if (loadingCursos()) {
       <app-estado-vista [cargando]="true"></app-estado-vista>
-    } @else if (misCursosCards().length) {
+    } @else if (cursosDisponibles().length) {
       <div class="cursos">
-        @for (c of misCursosCards(); track trackCurso($index, c)) {
+        @for (c of cursosDisponibles() | slice: 0 : 6; track trackCurso($index, c)) {
           <mat-card class="curso">
             <mat-card-title>{{ c.titulo }}</mat-card-title>
             <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
@@ -29,99 +105,30 @@
               }
             </mat-card-content>
             <mat-card-actions>
-              <!-- A la ficha del curso, no a la lista de matrículas: "Gestionar"
-                   llevaba al mismo sitio que el enlace del menú. -->
-              <a mat-button color="primary" [routerLink]="['/cursos', idOf(c)]">Ver el curso</a>
+              <button
+                mat-flat-button
+                color="primary"
+                [disabled]="matriculandoId() === idOf(c)"
+                (click)="matricular(c)"
+              >
+                {{ matriculandoId() === idOf(c) ? 'Matriculando…' : 'Matricular' }}
+              </button>
+              <a mat-button [routerLink]="['/cursos', idOf(c)]">Ver el curso</a>
             </mat-card-actions>
           </mat-card>
         }
       </div>
+
+      @if (cursosDisponibles().length > 6) {
+        <a mat-button color="primary" routerLink="/cursos">
+          Ver los {{ cursosDisponibles().length }} cursos
+        </a>
+      }
     } @else {
       <app-estado-vista
-        mensajeVacio="Aún no estás matriculado en ningún curso."
+        mensajeVacio="No hay cursos publicados, o ya estás matriculado en todos."
         ilustracion="cursos"
       ></app-estado-vista>
     }
   </section>
-
-  <aside class="lateral-contenido" aria-labelledby="titulo-siguiente">
-    <mat-card class="panel">
-      <h2 id="titulo-siguiente" class="seccion">Qué hacer ahora</h2>
-
-      <!-- El siguiente paso depende de dónde estás, y sale de los datos: no
-           hay una lista fija de tareas de mentira. -->
-      <p class="sugerencia">{{ siguientePaso() }}</p>
-
-      <nav class="accesos" aria-label="Accesos rápidos">
-        <a class="acceso" routerLink="/cursos">
-          <mat-icon aria-hidden="true">school</mat-icon>
-          <span>
-            <span class="acceso__titulo">Explorar el catálogo</span>
-            <span class="acceso__pie">{{ cursosDisponibles().length }} sin matricular</span>
-          </span>
-        </a>
-
-        <a class="acceso" routerLink="/mis-cursos">
-          <mat-icon aria-hidden="true">bookmark</mat-icon>
-          <span>
-            <span class="acceso__titulo">Mis cursos</span>
-            <span class="acceso__pie">Darte de baja o revisarlos</span>
-          </span>
-        </a>
-
-        <a class="acceso" routerLink="/cuenta">
-          <mat-icon aria-hidden="true">account_circle</mat-icon>
-          <span>
-            <span class="acceso__titulo">Mi cuenta</span>
-            <span class="acceso__pie">Datos y contraseña</span>
-          </span>
-        </a>
-      </nav>
-    </mat-card>
-  </aside>
-</div>
-
-<!-- Cursos disponibles, a ancho completo debajo de la rejilla. -->
-<section class="disponibles" aria-labelledby="titulo-disponibles">
-  <h2 id="titulo-disponibles" class="seccion">Cursos disponibles</h2>
-
-  @if (loadingCursos()) {
-    <app-estado-vista [cargando]="true"></app-estado-vista>
-  } @else if (cursosDisponibles().length) {
-    <div class="cursos">
-      @for (c of cursosDisponibles() | slice: 0 : 6; track trackCurso($index, c)) {
-        <mat-card class="curso">
-          <mat-card-title>{{ c.titulo }}</mat-card-title>
-          <mat-card-subtitle>{{ profName(c.profesor) || '—' }}</mat-card-subtitle>
-          <mat-card-content>
-            @if (c.descripcion) {
-              <p class="desc">{{ c.descripcion }}</p>
-            }
-          </mat-card-content>
-          <mat-card-actions>
-            <button
-              mat-flat-button
-              color="primary"
-              [disabled]="matriculandoId() === idOf(c)"
-              (click)="matricular(c)"
-            >
-              {{ matriculandoId() === idOf(c) ? 'Matriculando…' : 'Matricular' }}
-            </button>
-            <a mat-button [routerLink]="['/cursos', idOf(c)]">Ver el curso</a>
-          </mat-card-actions>
-        </mat-card>
-      }
-    </div>
-
-    @if (cursosDisponibles().length > 6) {
-      <a mat-button color="primary" routerLink="/cursos">
-        Ver los {{ cursosDisponibles().length }} cursos
-      </a>
-    }
-  } @else {
-    <app-estado-vista
-      mensajeVacio="No hay cursos publicados, o ya estás matriculado en todos."
-      ilustracion="cursos"
-    ></app-estado-vista>
-  }
-</section>
+}
