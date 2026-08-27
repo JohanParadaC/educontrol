@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
+const { normalizarCorreo } = require('../utils/correo');
 const Curso = require('../models/Curso');
 const Inscripcion = require('../models/Inscripcion');
 const Auditoria = require('../models/Auditoria');
@@ -56,7 +57,7 @@ const CURSOS = [
 ];
 
 async function crearSiNoExiste({ nombre, correo, rol, hash }) {
-  const existente = await Usuario.findOne({ correo });
+  const existente = await Usuario.findOne({ correo: normalizarCorreo(correo) });
   if (existente) return existente;
   return Usuario.create({ nombre, correo, contraseña: hash, rol });
 }

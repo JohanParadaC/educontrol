@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 const bcrypt = require('bcryptjs');
 const Usuario = require('../models/Usuario');
+const { normalizarCorreo } = require('../utils/correo');
 
 /**
  * Crea el administrador inicial si no existe. Idempotente.
@@ -16,7 +17,17 @@ const Usuario = require('../models/Usuario');
  */
 async function ensureAdminSeed() {
   try {
-    const correo = process.env.ADMIN_EMAIL || 'admin@educontrol.com';
+    // ADMIN_EMAIL lo escribe una persona en un .env o en el compose, y ahí
+    // caben mayúsculas y un espacio de sobra al copiar. Era el único de los
+    // cinco sitios que buscan por correo sin pasar por la regla común.
+    //
+    // Que hoy funcione es de rebote: el esquema declara lowercase y trim, y
+    // Mongoose aplica esos setters también al filtro de la consulta. Es decir,
+    // la idempotencia de este seed depende de un detalle del ORM y no de una
+    // decisión de este código. El día que el campo pierda el lowercase, o que
+    // esta consulta pase por el driver en crudo, se crea un segundo admin —o
+    // revienta contra el índice único— y nadie relacionará las dos cosas.
+    const correo = normalizarCorreo(process.env.ADMIN_EMAIL || 'admin@educontrol.com');
     const plainPassword = process.env.ADMIN_PASSWORD || 'Admin123*';
 
     if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
