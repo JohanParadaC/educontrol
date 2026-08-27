@@ -12,6 +12,8 @@
     "dev:web": "npm start --prefix frontend",
     "test": "npm test --prefix backend",
     "test:web": "npm test --prefix frontend -- --watch=false --browsers=ChromeHeadless",
+    "test:web:cov": "npm run test:cov --prefix frontend",
+    "test:e2e": "playwright test",
     "capturas": "node scripts/capturas.mjs",
     "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
     "lint:fix": "npm run lint:fix --prefix backend && npm run lint:fix --prefix frontend",
@@ -20,6 +22,7 @@
   },
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "prettier": "^3.9.6"
   }
 }
