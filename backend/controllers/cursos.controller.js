@@ -14,7 +14,12 @@ const { escaparRegex } = require('../utils/regex');
  */
 const puedeGestionar = (curso, usuario) => {
   if (usuario?.rol === 'admin') return true;
-  return String(curso.profesor) === String(usuario?._id);
+  // El profesor puede llegar como referencia o ya poblado, y de un documento
+  // poblado `String(doc)` no devuelve su identificador sino su volcado: la
+  // comparación salía siempre falsa y el dueño del curso perdía su propio
+  // curso.
+  const profesor = curso?.profesor?._id ?? curso?.profesor;
+  return String(profesor) === String(usuario?._id);
 };
 
 // Crear un curso
@@ -97,14 +102,41 @@ const obtenerCursos = async (req, res, next) => {
   }
 };
 
-// Obtener un curso por ID
+/**
+ * Un curso por ID, con lo que hace falta para pintar su ficha.
+ *
+ * Devuelve siempre `matriculados` —cuántos hay es un dato del curso, como su
+ * título— y `estudiantes` SOLO si quien pregunta gestiona el curso: su
+ * profesor o un administrador. Un estudiante puede saber que en su clase son
+ * treinta y no quiénes son los otros veintinueve; es la misma regla que filtra
+ * `GET /api/inscripciones`.
+ *
+ * La clave se omite en vez de mandarse vacía: `[]` significaría "no hay
+ * ninguno", que es otra cosa, y la ficha decide con esa diferencia si enseña
+ * la lista o no.
+ */
 const obtenerCursoPorId = async (req, res, next) => {
   try {
     const curso = await Curso.findById(req.params.id).populate('profesor', 'nombre correo');
     if (!curso) {
       return res.status(404).json({ ok: false, msg: 'Curso no encontrado' });
     }
-    return res.json({ ok: true, curso });
+
+    const matriculados = await Inscripcion.countDocuments({ curso: curso._id });
+    const respuesta = { ok: true, curso, matriculados };
+
+    if (puedeGestionar(curso, req.usuario)) {
+      const inscripciones = await Inscripcion.find({ curso: curso._id }).populate(
+        'estudiante',
+        'nombre correo'
+      );
+      respuesta.estudiantes = inscripciones
+        .map(i => i.estudiante)
+        .filter(Boolean)
+        .sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), 'es'));
+    }
+
+    return res.json(respuesta);
   } catch (err) {
     next(err);
   }
