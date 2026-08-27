@@ -2,6 +2,7 @@ const Inscripcion = require('../models/Inscripcion');
 const Curso = require('../models/Curso');
 const Usuario = require('../models/Usuario');
 const { leerPaginacion, metadatos } = require('../utils/paginacion');
+const { normalizarCorreo } = require('../utils/correo');
 
 /**
  * El curso, con su profesor dentro.
@@ -58,6 +59,25 @@ const alcanceDe = async usuario => {
 };
 
 /**
+ * A quién se matricula: por identificador o por correo.
+ *
+ * El identificador es lo que usa el panel de administración, que tiene la
+ * lista de estudiantes delante. El correo existe para el profesor: matricular
+ * a alguien en su propio curso es legítimo, pero para elegirlo de un
+ * desplegable habría que abrirle `GET /api/usuarios`, y eso es entregarle el
+ * nombre y el correo de todos los estudiantes del centro. Por correo hay que
+ * conocerlo de antes, que es justo la diferencia.
+ *
+ * La búsqueda pasa por normalizarCorreo, como todas: el modelo guarda en
+ * minúsculas y "Ana@x.com" no encontraría nada.
+ */
+const resolverEstudiante = ({ estudianteId, correo }) => {
+  if (estudianteId) return Usuario.findById(estudianteId).select('rol');
+  if (correo) return Usuario.findOne({ correo: normalizarCorreo(correo) }).select('rol');
+  return null;
+};
+
+/**
  * Inscribe un estudiante en un curso.
  *
  * Antes no se comprobaba nada del contenido: se podía matricular a un
@@ -67,11 +87,11 @@ const alcanceDe = async usuario => {
  */
 const inscribirEstudiante = async (req, res, next) => {
   try {
-    const { cursoId, estudianteId } = req.body;
+    const { cursoId, estudianteId, correo } = req.body;
 
     const [curso, estudiante] = await Promise.all([
       Curso.findById(cursoId).select('_id'),
-      Usuario.findById(estudianteId).select('rol'),
+      resolverEstudiante({ estudianteId, correo }),
     ]);
 
     // El curso no está: 404, porque el recurso al que apunta no existe.
@@ -82,14 +102,18 @@ const inscribirEstudiante = async (req, res, next) => {
     // El estudiante sí existe pero no es un estudiante: 400, porque el dato
     // que manda el cliente está mal, no falta.
     if (!estudiante) {
-      return res.status(404).json({ ok: false, msg: 'El estudiante no existe' });
+      const msg = estudianteId ? 'El estudiante no existe' : 'No hay ninguna cuenta con ese correo';
+      return res.status(404).json({ ok: false, msg });
     }
     if (estudiante.rol !== 'estudiante') {
       return res.status(400).json({ ok: false, msg: 'Solo se puede matricular a un estudiante' });
     }
 
     try {
-      const inscripcion = await Inscripcion.create({ curso: cursoId, estudiante: estudianteId });
+      const inscripcion = await Inscripcion.create({
+        curso: cursoId,
+        estudiante: estudiante._id,
+      });
       return res.status(201).json({ ok: true, inscripcion });
     } catch (err) {
       // El duplicado lo decide el índice único, no una consulta previa.

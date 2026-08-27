@@ -11,7 +11,7 @@ const {
 
 const router = Router();
 
-// 1) Inscribir estudiante (original)
+// 1) Inscribir estudiante: por `estudianteId` o por `correo`.
 router.post(
   '/',
   [
@@ -20,7 +20,20 @@ router.post(
     // llegaba hasta Mongoose, lanzaba un CastError y salía como 500. Un dato
     // mal formado por el cliente es un 400, no un fallo del servidor.
     check('cursoId', 'El ID de curso no es válido').isMongoId(),
-    check('estudianteId', 'El ID de estudiante no es válido').isMongoId(),
+    // Uno de los dos: el identificador (panel de administración) o el correo
+    // (el profesor, que no tiene lista de estudiantes de la que elegir).
+    check('estudianteId', 'El ID de estudiante no es válido').optional().isMongoId(),
+    // El trim va antes del isEmail: un correo pegado del portapapeles trae
+    // espacios y "Correo no válido" sería mentir sobre lo que pasa.
+    check('correo', 'Correo no válido').optional().trim().isEmail(),
+    check('estudianteId')
+      .custom((valor, { req }) => {
+        if (!valor && !req.body?.correo) {
+          throw new Error('Hace falta el ID del estudiante o su correo');
+        }
+        return true;
+      })
+      .withMessage('Hace falta el ID del estudiante o su correo'),
     validateFields,
   ],
   inscribirEstudiante
