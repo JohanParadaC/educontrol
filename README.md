@@ -6,6 +6,10 @@ Plataforma de gestión de cursos, estudiantes y profesores. Angular 20 en el fro
 
 ![Panel de administración](docs/02-admin.png)
 
+Todo enlace a un curso acaba en su ficha, con las acciones que le tocan a cada rol y la lista de matriculados solo para quien lo imparte o administra:
+
+![Ficha de un curso](docs/08-curso.png)
+
 <p align="center">
   <img src="docs/01-login.png" width="49%" alt="Pantalla de inicio de sesión">
   <img src="docs/04-estudiante.png" width="49%" alt="Panel del estudiante con sus cursos">
@@ -52,8 +56,13 @@ npm run dev:web    # Angular dev server con proxy a la API, puerto 4200
 ## Qué hace
 
 - **Administrador** — gestiona usuarios y sus roles, crea y edita cursos, asigna profesores y matricula estudiantes.
-- **Profesor** — consulta los cursos que imparte y quién está matriculado.
+- **Profesor** — consulta los cursos que imparte, ve quién está matriculado y matricula a alguien por su correo.
 - **Estudiante** — busca en el catálogo, se matricula y ve sus cursos.
+
+Todos los caminos acaban en la **ficha del curso** (`/cursos/:id`): título,
+descripción, profesor, cuántos hay matriculados y las acciones que le tocan a
+cada rol. La lista de matriculados solo la ve quien imparte el curso o
+administra; un estudiante sabe cuántos son, no quiénes.
 
 ## Stack
 
@@ -285,8 +294,8 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 
 - **No hay recuperación de contraseña.** Si un usuario la olvida, solo un administrador puede restablecérsela.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
-- **No hay pantalla de detalle de un curso:** desde las tarjetas se navega al listado, no a una ficha propia.
-- **`POST /api/inscripciones` acepta el `estudianteId` del cuerpo sin comprobar de quién es.** Lo necesita el panel de administración para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
+- **`POST /api/inscripciones` acepta el `estudianteId` (o el `correo`) del cuerpo sin comprobar de quién es.** Lo necesitan el panel de administración y la ficha del curso para matricular a terceros, pero un estudiante autenticado también podría matricular a otro. La regla correcta sería: admin y profesor matriculan a quien sea, un estudiante solo a sí mismo.
+- **El profesor matricula escribiendo un correo, no eligiendo de una lista.** `GET /api/usuarios` es solo de administrador y abrirlo a los profesores repartiría el nombre y el correo de todos los estudiantes del centro. Un buscador que resuelva por prefijo en el servidor sería mejor, pero es otra pieza.
 - **El bundle inicial pesa ~733 kB** (180 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
 
 ## Licencia

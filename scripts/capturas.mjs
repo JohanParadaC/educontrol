@@ -105,6 +105,36 @@ const PANTALLAS = [
     preparar: entrarComo('admin@educontrol.com', 'Admin123*'),
   },
 
+  {
+    // La ficha de un curso, vista por quien lo imparte: es la única pantalla
+    // donde se ve la lista de matriculados.
+    //
+    // No se navega a /cursos/<id> directamente porque el identificador cambia
+    // en cada arranque con la base en memoria: se entra por "Mis clases" y se
+    // pulsa la primera tarjeta, que es como llega una persona.
+    fichero: '08-curso.png',
+    titulo: 'Ficha de curso (profesor)',
+    ruta: '/login',
+    ancho: 1280,
+    alto: 900,
+    preparar: `
+      (async () => {
+        await ${entrarComo('lucia@educontrol.com', 'Demo1234')};
+        const esperar = ms => new Promise(r => setTimeout(r, ms));
+        // Se navega pulsando, no con location.href: una recarga de página mata
+        // este script a la mitad y la captura sale en la pantalla anterior.
+        const menu = Array.from(document.querySelectorAll('a.destino'))
+          .find(a => /Mis clases/.test(a.textContent));
+        menu.click();
+        for (let i = 0; i < 60 && !document.querySelector('a.course'); i++) await esperar(100);
+        document.querySelector('a.course').click();
+        for (let i = 0; i < 60 && !document.querySelector('.ficha'); i++) await esperar(100);
+        await esperar(800);
+        return location.pathname;
+      })()
+    `,
+  },
+
   // --- Assets de la portada ---------------------------------------------
   // El héroe enseña el panel de verdad. Van en webp y a escala 1 porque estas
   // dos sí las descarga quien abre la página —son el LCP de la portada—, y en

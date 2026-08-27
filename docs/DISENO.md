@@ -82,6 +82,30 @@ pinta franja, icono y número— el par se resuelve **una vez** en el elemento q
 lleva el rol escrito, con `[data-rol='…'] { --color-rol; --color-rol-texto }`, y
 de ahí abajo lo hereda todo. La alternativa era repetir cada regla tres veces.
 
+### Color de curso
+
+Un curso no tiene color propio en la base de datos, pero su ficha necesita uno
+para que dos cursos no se confundan de un vistazo. Se deriva del identificador,
+y de él sale **solo el tono**:
+
+| Token               | Claro  | Oscuro | Cuándo                                     |
+| ------------------- | ------ | ------ | ------------------------------------------ |
+| `--curso-tono`      | `220`  | `220`  | Respaldo. La ficha lo sobreescribe con el suyo |
+| `--curso-sat`       | `60%`  | `55%`  | Saturación                                  |
+| `--curso-luz`       | `42%`  | `62%`  | La franja: decorativa, sin texto encima     |
+| `--curso-tinte-luz` | `94%`  | `22%`  | Fondo teñido, con `--texto` encima          |
+
+El componente calcula un número de 0 a 359 y lo pone en `--curso-tono`; la
+saturación y la luminosidad vienen de aquí porque son las que cambian entre
+claro y oscuro. Un color entero calculado en TypeScript no sabría en qué tema
+se va a pintar.
+
+**Encima del tinte se escribe con `--texto` y solo con `--texto`.** Medido para
+los 360 tonos: `--texto` sobre el tinte da como peor caso **14,56** en claro y
+**6,89** en oscuro, mientras que `--texto-suave` sobre el mismo tinte cae a
+**2,95** en oscuro con los amarillos. Es la misma regla de los roles: el color
+tiñe fondos, no escribe.
+
 ### Estado
 
 | Token      | Claro     | Oscuro    |
@@ -216,6 +240,7 @@ Las capturas de esta carpeta están hechas con el sistema aplicado:
 | Login en móvil          | [05-movil-login.png](05-movil-login.png)   |
 | Admin en móvil          | [06-movil-admin.png](06-movil-admin.png)   |
 | **Admin en modo oscuro** | [07-admin-oscuro.png](07-admin-oscuro.png) |
+| Ficha de curso           | [08-curso.png](08-curso.png)               |
 
 Se regeneran con `npm run capturas` (necesita el servidor levantado; recorre
 las pantallas con un Chrome sin interfaz). El script fija el tema en cada

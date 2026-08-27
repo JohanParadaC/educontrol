@@ -29,12 +29,12 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 
 **Frontend**
 
-| Carpeta     | Responsabilidad                                                          |
-| ----------- | ------------------------------------------------------------------------ |
-| `core/`     | Sesión, guards, interceptor, errores HTTP, rutas por rol                 |
-| `data/`     | El contrato con el backend: un servicio por recurso, modelos y el mapper |
-| `features/` | Una carpeta por área: landing, auth, cuenta, admin, profesor, estudiante |
-| `shared/`   | Navbar, diálogos, estado-vista, módulo de Material                       |
+| Carpeta     | Responsabilidad                                                                 |
+| ----------- | ------------------------------------------------------------------------------- |
+| `core/`     | Sesión, guards, interceptor, errores HTTP, rutas por rol                        |
+| `data/`     | El contrato con el backend: un servicio por recurso, modelos y el mapper        |
+| `features/` | Una carpeta por área: landing, auth, cuenta, admin, profesor, estudiante, curso |
+| `shared/`   | Navbar, diálogos, estado-vista, módulo de Material                              |
 
 ## Reglas que no hay que romper
 
@@ -50,6 +50,7 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - **El login no dice qué falló.** Correo inexistente y contraseña mala devuelven el mismo 401 con el mismo texto, y se compara contra un hash señuelo cuando el usuario no existe: sin eso, el tiempo de respuesta delata la rama aunque el mensaje sea idéntico.
 - **El token se firma en un solo sitio**, `utils/jwt.js`, con la duración de `JWT_EXPIRES_IN` (12 h por defecto). Había dos firmas conviviendo con duraciones distintas.
 - **Una sola cabecera de sesión:** `Authorization: Bearer`. La antigua `x-token` ya no se acepta.
+- **La ficha del curso reparte por rol.** `GET /api/cursos/:id` devuelve siempre `matriculados` —cuántos son es un dato del curso— y añade `estudiantes` **solo** para el profesor de ese curso o un admin. La clave se omite, no se manda vacía: `[]` diría "no hay ninguno". Y el frontend pinta la lista porque la clave ha llegado, no porque crea que el rol da derecho: la autorización es del servidor.
 - **Un estudiante se da de baja solo.** `DELETE /api/inscripciones/:id` lo puede usar el dueño de la matrícula o un admin. El profesor todavía no: echar a un alumno de clase es otra cosa y no está decidida.
 - **Borrar arrastra lo que cuelga.** Borrar un curso borra sus inscripciones; borrar un estudiante, las suyas. Borrar un profesor con cursos devuelve **409** diciendo cuántos: en cascada se llevaría por delante las matrículas de todos sus alumnos sin avisar.
 
@@ -64,6 +65,7 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - **El correo se guarda en minúsculas y sin espacios**, y cualquier búsqueda por correo pasa por `utils/correo.js`. Sin eso, `Ana@x.com` y `ana@x.com` eran dos cuentas distintas pese al índice único —para Mongo son valores diferentes— y quien se registraba en mayúsculas no podía entrar escribiendo su correo normal.
 - **Lo que se pinta se acota en el modelo.** `Curso.nombre` 120 y `Curso.descripcion` 500. El panel de administración tenía un `DESC_LARGA = 200` para compactar los botones cuando el texto se desbordaba: un parche visual a un dato que nadie había acotado.
 - **Matricular valida el contenido, no solo el formato.** Que un `ObjectId` esté bien escrito no quiere decir que exista: el curso tiene que estar (404) y el estudiante tiene que ser un estudiante (400). El duplicado lo decide el índice único capturando `E11000`, no un `findOne` previo: entre leer y escribir cabe otra petición.
+- **Matricular por correo es la vía del profesor.** `POST /api/inscripciones` acepta `estudianteId` (el panel de administración, que tiene la lista) o `correo` (el profesor, que no la tiene). No se abre `GET /api/usuarios` a los profesores para llenar un desplegable: eso es repartir el nombre y el correo de todos los estudiantes del centro para resolver un caso en el que ya se conoce a la persona.
 - **El modelo del frontend copia al del backend, no lo inventa.** `data/inscripcion.model.ts` declaraba `estado` y `createdAt`, que no existen en `models/Inscripcion.js`: TypeScript dejaba escribirlos y en tiempo de ejecución eran `undefined`. Un contrato inventado es peor que no tener tipos.
 
 **Superficie HTTP**
@@ -86,6 +88,8 @@ No hace falta instalar MongoDB: si no hay `MONGO_URI` ni un mongod local, el ser
 - Los mensajes de error salen de `core/http-error.ts`, que distingue el fallo de red del rechazo del servidor. Un mensaje que dice "contraseña incorrecta" cuando el servidor está caído manda al usuario a arreglar lo que no está roto.
 - En móvil las tablas se convierten en tarjetas (`lista-tarjetas`), no se encogen.
 - La ruta de inicio de cada rol la decide `core/rutas.ts`. Un solo sitio.
+- **El título de la barra superior sale de la navegación**, de la misma lista que pinta la lateral, para que no puedan desincronizarse. La excepción son las pantallas que no son un destino del menú —la ficha de un curso—: esas lo declaran en `data.titulo` de su ruta. Sin eso la barra decía "EduControl" en una página que sí sabe qué es.
+- **La ficha de un curso (`/cursos/:id`) es el destino de todo enlace a un curso.** No hay ningún "Ir al curso" que lleve a un listado; si aparece uno, está mal.
 - **Los colores y las formas salen de los tokens de `styles.scss`**, nunca escritos a mano. Un `#fff` no existe en modo oscuro y un `rgba(0,0,0,.6)` es invisible ahí. La tabla completa está en `docs/DISENO.md`.
 - **Los tokens se declaran en claro y el bloque oscuro solo redefine.** Un color cuya única definición esté dentro de un `@media` queda `unset` en claro y el componente sale transparente.
 - **El color del rol tiñe fondos; para escribir encima está `--rol-*-texto`.** El ámbar sobre blanco da 2,3:1.

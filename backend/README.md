@@ -181,23 +181,36 @@ Todas las rutas van bajo el prefijo `/api`.
 
 ### Cursos
 
-| Método | Ruta              | Descripción          | Roles               |
-| ------ | ----------------- | -------------------- | ------------------- |
-| GET    | `/api/cursos`     | Listar cursos        | —                   |
-| GET    | `/api/cursos/:id` | Obtener curso por ID | —                   |
-| POST   | `/api/cursos`     | Crear curso          | `profesor`, `admin` |
-| PUT    | `/api/cursos/:id` | Actualizar curso     | `profesor`, `admin` |
-| DELETE | `/api/cursos/:id` | Borrar curso         | `profesor`, `admin` |
+| Método | Ruta              | Descripción      | Roles               |
+| ------ | ----------------- | ---------------- | ------------------- |
+| GET    | `/api/cursos`     | Listar cursos    | —                   |
+| GET    | `/api/cursos/:id` | Ficha del curso  | —                   |
+| POST   | `/api/cursos`     | Crear curso      | `profesor`, `admin` |
+| PUT    | `/api/cursos/:id` | Actualizar curso | `profesor`, `admin` |
+| DELETE | `/api/cursos/:id` | Borrar curso     | `profesor`, `admin` |
+
+`GET /api/cursos/:id` devuelve `{ ok, curso, matriculados }` siempre, y añade
+`estudiantes` **solo** si quien pregunta es el profesor del curso o un
+administrador. La clave se omite en vez de mandarse vacía: `[]` significaría
+"no hay ninguno", que es otra cosa. Un estudiante puede saber cuántos son en su
+clase y no quiénes.
 
 ### Inscripciones
 
-| Método | Ruta                     | Descripción                | Roles        |
-| ------ | ------------------------ | -------------------------- | ------------ |
-| GET    | `/api/inscripciones`     | Listar inscripciones       | —            |
-| GET    | `/api/inscripciones/:id` | Obtener inscripción por ID | —            |
-| POST   | `/api/inscripciones`     | Inscribir estudiante       | —            |
-| PUT    | `/api/inscripciones/:id` | Actualizar inscripción     | —            |
-| DELETE | `/api/inscripciones/:id` | Eliminar inscripción       | Sólo `admin` |
+| Método | Ruta                     | Descripción                | Roles           |
+| ------ | ------------------------ | -------------------------- | --------------- |
+| GET    | `/api/inscripciones`     | Listar inscripciones       | —               |
+| GET    | `/api/inscripciones/:id` | Obtener inscripción por ID | —               |
+| POST   | `/api/inscripciones`     | Inscribir estudiante       | —               |
+| DELETE | `/api/inscripciones/:id` | Eliminar inscripción       | dueño o `admin` |
+
+`POST` acepta `{ cursoId, estudianteId }` o `{ cursoId, correo }`. El correo
+existe para el profesor, que matricula desde la ficha de su curso y no tiene
+—ni debe tener— el listado de usuarios del que sacar un identificador.
+
+`PUT /api/inscripciones/:id` ya no existe: pasaba `req.body` entero a
+`findByIdAndUpdate` sin lista blanca, así que servía para reescribir de quién y
+de qué curso era una matrícula. Para cambiar de curso se cancela y se crea otra.
 
 ### Admin (desarrollo)
 
