@@ -31,8 +31,45 @@ async function ensureAdminSeed() {
     const plainPassword = process.env.ADMIN_PASSWORD || 'Admin123*';
 
     if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_PASSWORD) {
-      console.warn('⚠️  ADMIN_PASSWORD no configurada: se omite el seed del admin.');
-      return;
+      // Sin ADMIN_PASSWORD no se siembra. Ahora bien: si además NO HAY ningún
+      // administrador en la base, lo que queda es un despliegue que arranca
+      // sano, se marca `healthy` y no tiene ninguna puerta por la que entrar —
+      // el registro público solo crea estudiante o profesor, y
+      // /api/admin/seed-admin es 404 en producción—.
+      //
+      // Eso no es un aviso, es un arranque fallido, y así se comporta: un
+      // `console.warn` de una línea entre las de arranque normales tiene el
+      // mismo aspecto que las de éxito y se pierde en cuanto hay logs
+      // agregados. Con administradores ya creados, en cambio, no pasa nada y
+      // basta con avisar.
+      const admins = await Usuario.countDocuments({ rol: 'admin' });
+      if (admins > 0) {
+        console.warn('⚠️  ADMIN_PASSWORD no configurada: se omite el seed del admin.');
+        return;
+      }
+
+      console.error(
+        [
+          '',
+          '❌ ══════════════════════════════════════════════════════════════════',
+          '❌  DESPLIEGUE SIN ADMINISTRADOR: no hay forma de entrar.',
+          '❌',
+          '❌  ADMIN_PASSWORD está vacía y la base no tiene ningún admin, así',
+          '❌  que no se ha sembrado ninguno. El registro público solo crea',
+          '❌  estudiante o profesor, y /api/admin/seed-admin no existe en',
+          '❌  producción: nadie podría administrar esta instalación.',
+          '❌',
+          '❌  Configura ADMIN_PASSWORD y vuelve a arrancar.',
+          '❌ ══════════════════════════════════════════════════════════════════',
+          '',
+        ].join('\n')
+      );
+      throw Object.assign(
+        new Error('ADMIN_PASSWORD no configurada y no hay ningún administrador'),
+        {
+          arranqueImposible: true,
+        }
+      );
     }
 
     const exists = await Usuario.findOne({ correo }).lean();
@@ -54,6 +91,11 @@ async function ensureAdminSeed() {
       console.log(`   contraseña: ${plainPassword}`);
     }
   } catch (err) {
+    // Un fallo escribiendo el admin no debe tumbar el arranque: la aplicación
+    // sirve igual y el problema se ve en el log. La excepción es el despliegue
+    // que se queda SIN NINGUNA forma de entrar, que no es un fallo del
+    // sembrado sino una configuración que no da un sistema utilizable.
+    if (err?.arranqueImposible) throw err;
     console.error('❌ Error creando admin:', err);
   }
 }

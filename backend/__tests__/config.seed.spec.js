@@ -106,14 +106,36 @@ describe('Sembrado del admin inicial', () => {
     expect(salida.error).toEqual([]);
   });
 
-  it('en producción sin ADMIN_PASSWORD no siembra, y lo dice', async () => {
+  it('en producción sin ADMIN_PASSWORD, si YA hay un admin, solo avisa', async () => {
+    await Usuario.create({
+      nombre: 'La jefa',
+      correo: 'jefa@centro.com',
+      ['contraseña']: 'x'.repeat(60),
+      rol: 'admin',
+    });
+
     process.env.NODE_ENV = 'production';
     process.env.ADMIN_EMAIL = 'Admin@Centro.com';
     delete process.env.ADMIN_PASSWORD;
 
     await ensureAdminSeed();
 
-    expect(await Usuario.countDocuments()).toBe(0);
+    // Nadie se queda fuera: hay por dónde entrar, así que basta con avisar.
+    expect(await Usuario.countDocuments()).toBe(1);
     expect(salida.warn.join('\n')).toMatch(/ADMIN_PASSWORD/);
+  });
+
+  it('en producción sin ADMIN_PASSWORD y SIN ningún admin, aborta el arranque', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.ADMIN_EMAIL = 'Admin@Centro.com';
+    delete process.env.ADMIN_PASSWORD;
+
+    // El despliegue arrancaba "sano" —y `healthy` para Docker— sin una sola
+    // puerta por la que entrar: el registro público no da admin y
+    // /api/admin/seed-admin es 404 en producción. Eso no es un aviso.
+    await expect(ensureAdminSeed()).rejects.toThrow(/ADMIN_PASSWORD/);
+
+    expect(await Usuario.countDocuments()).toBe(0);
+    expect(salida.error.join('\n')).toMatch(/SIN ADMINISTRADOR/);
   });
 });
