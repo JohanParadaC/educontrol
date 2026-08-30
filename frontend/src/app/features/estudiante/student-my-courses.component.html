@@ -4,10 +4,18 @@
   <app-estado-vista
     [cargando]="cargando()"
     [error]="error()"
-    mensajeVacio="Aún no tienes cursos."
+    mensajeVacio="Aún no estás matriculado en ningún curso."
     ilustracion="cursos"
     (reintentar)="cargar()"
   >
+    <!-- Solo cuando el vacío es de verdad: durante la carga y en el error, la
+         invitación sobra o miente. -->
+    @if (!cargando() && !error()) {
+      <a salida mat-flat-button color="primary" routerLink="/cursos">
+        <mat-icon>school</mat-icon>
+        Explorar el catálogo
+      </a>
+    }
   </app-estado-vista>
 }
 

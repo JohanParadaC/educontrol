@@ -65,6 +65,11 @@ export const routes: Routes = [
   {
     path: 'estudiante/inicio',
     canActivate: [authGuard],
+    // El menú enlaza a `/dashboard`, que redirige aquí según el rol, así que
+    // esta URL no coincide con ningún destino de la lista y la barra superior
+    // se quedaba diciendo "EduControl" en la pantalla de inicio del
+    // estudiante. Es exactamente el caso para el que existe `data.titulo`.
+    data: { titulo: 'Inicio' },
     loadComponent: () =>
       import('./features/estudiante/student-dashboard.component').then(
         m => m.StudentDashboardComponent

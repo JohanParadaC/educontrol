@@ -84,6 +84,10 @@ import { MatIconModule } from '@angular/material/icon';
         </svg>
 
         <p>{{ mensajeVacio }}</p>
+        <!-- La salida, cuando la hay. Un vacío que solo describe el vacío deja
+             a quien mira sin saber qué hacer: en un despliegue recién montado
+             TODAS las pantallas están así, y es la primera impresión. -->
+        <ng-content select="[salida]"></ng-content>
       </div>
     }
   `,

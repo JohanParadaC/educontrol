@@ -53,7 +53,7 @@ describe('StudentMyCoursesComponent', () => {
 
   it('mientras carga no dice ni que hay ni que no hay', () => {
     expect(componente.cargando()).toBeTrue();
-    expect(texto()).not.toContain('Aún no tienes cursos');
+    expect(texto()).not.toContain('Aún no estás matriculado');
 
     piden().flush({ ok: true, inscripciones: [], total: 0 });
   });
@@ -72,7 +72,10 @@ describe('StudentMyCoursesComponent', () => {
     fixture.detectChanges();
 
     expect(componente.error()).toBe('');
-    expect(texto()).toContain('Aún no tienes cursos');
+    expect(texto()).toContain('Aún no estás matriculado');
+    // Y ofrece la salida: un vacío que solo describe el vacío deja a quien
+    // mira sin saber qué hacer.
+    expect(texto()).toContain('Explorar el catálogo');
   });
 
   it('un fallo se pinta como fallo, nunca como lista vacía', () => {
@@ -83,7 +86,7 @@ describe('StudentMyCoursesComponent', () => {
     expect(componente.inscripciones()).toEqual([]);
     // La diferencia que importa: "no tienes cursos" manda a matricularse,
     // "no he podido preguntarlo" manda a reintentar.
-    expect(texto()).not.toContain('Aún no tienes cursos');
+    expect(texto()).not.toContain('Aún no estás matriculado');
   });
 
   it('darse de baja quita la fila solo si el servidor dice que sí', () => {
