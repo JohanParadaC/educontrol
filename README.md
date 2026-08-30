@@ -369,6 +369,28 @@ docker compose up -d --build
 Levanta dos servicios: la aplicación en el puerto 3000 y un MongoDB con
 **volumen persistente** (`mongo-datos`). `docker compose down` conserva los
 datos; solo `down -v` se los lleva, y eso hay que escribirlo a propósito.
+Comprobado: un curso creado antes del `down` sigue ahí tras el `up`, y `down -v`
+borra el volumen.
+
+Cifras de una construcción real (Windows 11, Docker Desktop con backend WSL2, 12
+CPU y 7,6 GB para el contenedor de Linux):
+
+| Medida                                 | Valor                                  |
+| -------------------------------------- | -------------------------------------- |
+| Construcción desde cero (`--no-cache`) | 60 s                                   |
+| Construcción con la caché caliente     | 2 s                                    |
+| Imagen final                           | 268 MB                                 |
+| Contexto que se envía                  | 3,6 MB (219 ficheros)                  |
+| De la imagen: `node_modules`           | 27,6 MB                                |
+| De la imagen: bundle del frontend      | 2,4 MB                                 |
+| De la imagen: código del backend       | 0,6 MB                                 |
+| `docker compose up -d` en frío         | 40 s (30 los espera Mongo en su sonda) |
+
+El build de Angular dentro del contenedor tardó **8 s** y no hizo falta tocar la
+memoria de WSL2 ni `NODE_OPTIONS`. Si en otra máquina el backend de WSL2 tiene
+menos RAM asignada, ese es el punto donde aparecería un «JavaScript heap out of
+memory»; se sube en `%UserProfile%\.wslconfig` o desde Resources en Docker
+Desktop, y **no** bajando el nivel de optimización del build.
 
 La aplicación **espera a que Mongo esté sano**, no a que exista: el `depends_on`
 usa `condition: service_healthy` y la sonda de Mongo le pregunta con un `ping`,
@@ -409,26 +431,103 @@ un entero mayor o igual que cero cae a 0 y lo avisa al arrancar.
 
 ### Qué comprobar tras el primer arranque
 
-> **Esta sección no se ha ejecutado nunca.** El Dockerfile y el compose están
-> escritos y revisados, pero en la máquina donde se ha desarrollado el proyecto
-> no hay Docker instalado, así que la imagen no se ha construido ni una vez.
-> Todo lo de aquí abajo es lo que _debería_ pasar según el código; la lista es
-> precisamente para comprobarlo la primera vez que alguien lo levante. Si algo
-> no cuadra, el fallo es de estas instrucciones, no tuyo.
+Todo lo de esta sección se ha ejecutado contra el contenedor, y las respuestas
+son las que salieron de verdad.
 
 ```bash
-docker compose ps                       # los dos servicios, y "healthy"
-curl -s localhost:3000/api/health/ready # {"ok":true,"status":"up","mongo":"conectada"}
-curl -s localhost:3000/api/health/live  # responde aunque Mongo esté caído
+docker compose ps                       # app y mongo, los dos "healthy"
+curl -s localhost:3000/api/health/ready # {"ok":true,"status":"up","mongo":"conectada","uptime":36}
+curl -s localhost:3000/api/health/live  # {"ok":true,"status":"live","uptime":36}
+curl -s -o /dev/null -w '%{http_code}' localhost:3000/api/docs   # 404
 ```
 
-1. Que **puedes entrar** con `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Si el sembrado
-   se saltó, el log lo dice con un aviso.
-2. Que `docker compose restart mongo` deja `ready` en **503** unos segundos y
-   luego vuelve a 200: si se queda en 200 todo el rato, la sonda no está
-   comprobando nada.
-3. Que los datos siguen ahí tras `docker compose down && docker compose up -d`.
-4. Que `/api/docs` **no** responde: la documentación es solo para desarrollo.
+1. **Que puedes entrar** con `ADMIN_EMAIL` / `ADMIN_PASSWORD`. El log lo dice al
+   arrancar: `✅ Admin creado: …` la primera vez y `ℹ️ Admin ya existe: …` las
+   siguientes.
+2. **Que un corte de Mongo no reinicia nada.** Con `docker compose stop mongo`,
+   `live` sigue en **200** y `ready` pasa a **503**
+   (`{"status":"degraded","mongo":"desconectada"}`). El `HEALTHCHECK` marca el
+   contenedor como `unhealthy` en unos 20 s, y ahí se queda: medido dos minutos
+   y medio, `RestartCount` seguía en 0 y el estado en `running`. Es lo que se
+   busca — Docker señala el problema, pero no entra en un bucle de reinicios que
+   no arreglaría nada, porque el proceso está bien y lo que falla es la base.
+3. **Que los datos sobreviven.** Un curso creado antes de `docker compose down`
+   sigue estando tras el `up`. Con `down -v` desaparece el volumen
+   `educontrol_mongo-datos` y la base vuelve a arrancar vacía.
+4. **Que el apagado es ordenado.** Con una petición lenta en vuelo —la
+   exportación CSV de un curso con 3000 matriculados, ~460 ms— y un
+   `docker compose stop` a mitad, la petición **terminó completa**: 200 con sus
+   3001 líneas. El `stop` tardó 978 ms, muy lejos del `stop_grace_period` de
+   30 s, y el contenedor salió con código 0 tras escribir
+   `🛑 SIGTERM recibida: cerrando ordenadamente…` y `👋 Cerrado.`. Es la parte
+   que los tests no podían cubrir, porque aquí la señal pasa por dumb-init como
+   PID 1.
+5. **Que la imagen no lleva lo que no debe.** `/api/docs` responde 404 y
+   `docker compose exec app ls backend/node_modules | grep swagger` no encuentra
+   nada: la documentación es una devDependency y no viaja. Dentro hay 132
+   paquetes.
+
+### Los dos fallos que hay que saber reconocer
+
+Ninguno de los dos avisa al lanzar `docker compose up -d`: el comando responde
+`Started` y devuelve el control. Se ven en `docker compose ps` y en los logs.
+
+**Configuración inválida → bucle de reinicios.** Con un `JWT_SECRET` de menos de
+32 caracteres, el proceso sale con código 1 antes de escuchar y
+`restart: unless-stopped` lo vuelve a levantar: a los 25 segundos van ocho
+intentos y `docker compose ps` dice `Restarting (1)`. El log repite en cada
+vuelta exactamente qué falta:
+
+```
+❌ JWT_SECRET no sirve para producción: tiene 8 caracteres y hacen falta 32.
+   Genera uno con: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+Lo mismo con un `JWT_EXPIRES_IN` que `jwt.sign` no acepte. Es el comportamiento
+correcto —arrancar a medias sería peor—, pero **hay que mirar los logs**: el
+contenedor reiniciándose no se distingue de uno arrancando si solo se mira la
+consola del `up`.
+
+**Sin `ADMIN_PASSWORD` en una base vacía → el arranque se aborta.** Este caso era
+peor que un fallo, porque no lo parecía: la aplicación arrancaba, Docker la
+marcaba `healthy`, la SPA se servía… y no había ninguna cuenta por la que entrar.
+El registro público solo crea `estudiante` o `profesor` (400 si se pide `admin`),
+`/api/admin/seed-admin` es 404 en producción y el login del admin devuelve 401.
+Un despliegue verde e inservible.
+
+Ahora, cuando falta la contraseña **y** no hay ningún administrador en la base,
+el arranque para con un bloque imposible de pasar por alto:
+
+```
+❌ ══════════════════════════════════════════════════════════════════
+❌  DESPLIEGUE SIN ADMINISTRADOR: no hay forma de entrar.
+❌  …
+❌  Configura ADMIN_PASSWORD y vuelve a arrancar.
+❌ ══════════════════════════════════════════════════════════════════
+```
+
+Si ya hay administradores creados, no pasa nada: se avisa en una línea y se
+sigue, porque hay por dónde entrar.
+
+### Ver TRUST_PROXY funcionando
+
+`TRUST_PROXY` solo se nota con un proxy delante, así que el compose trae uno
+bajo perfil —no arranca en el despliegue normal:
+
+```bash
+docker compose --profile proxy up -d   # nginx en el 8080, la app en el 3000
+```
+
+Con dos clientes de IP distinta intentando entrar con el mismo correo y una
+contraseña mala (el freno del login son 5 intentos por IP+correo):
+
+| `TRUST_PROXY` | Lo que ve la aplicación    | Cliente A (5 intentos) | Cliente B (2 intentos) |
+| ------------- | -------------------------- | ---------------------- | ---------------------- |
+| `0`           | la IP de nginx en las 7    | 401 × 5                | **429 × 2**            |
+| `1`           | la IP real de cada cliente | 401 × 5                | 401 × 2                |
+
+Con `0` detrás de un proxy, cinco errores de cualquiera dejan fuera a todos los
+demás. Con `1`, cada uno tiene su contador.
 
 ### Cómo está hecha la imagen
 
@@ -459,7 +558,8 @@ Las conexiones ociosas se cierran en un repaso periódico: con `keep-alive`,
 `server.close()` también espera a los sockets que no están haciendo nada, y un
 navegador abierto los mantiene vivos minutos. Sin ese repaso, el apagado
 "ordenado" terminaría siempre en el corte por tiempo. Hay un test que lo
-comprueba con una petición a medias (`backend/__tests__/server.apagado.spec.js`).
+comprueba con una petición a medias (`backend/__tests__/server.apagado.spec.js`),
+y está medido contra el contenedor: ver «Qué comprobar tras el primer arranque».
 
 `stop_grace_period: 30s` en el compose: el valor por defecto de Docker son 10 s,
 justo lo que dura el corte de emergencia del servidor — dejarlo así sería cortar
