@@ -104,7 +104,7 @@ backend/
   scripts/       datos de demostración
   docs.js        Swagger UI en /api/docs, solo fuera de producción
   openapi.yaml   el contrato de la API, escrito a mano y comprobado con un test
-  __tests__/     328 tests, incluidos los de regresión de seguridad
+  __tests__/     338 tests, incluidos los de regresión de seguridad
 
 frontend/src/app/
   core/          sesión, guards, interceptor, errores HTTP, rutas por rol
@@ -153,7 +153,7 @@ producción, que son los que importan.
 ## Tests
 
 ```bash
-npm test          # backend:  328 tests (Jest + Supertest)
+npm test          # backend:  338 tests (Jest + Supertest)
 npm run test:web  # frontend: 220 tests (Karma + Jasmine)
 npm run test:e2e  # extremo a extremo: 13 recorridos (Playwright)
 ```
@@ -176,7 +176,7 @@ lanzando la tanda tres veces seguidas contra el mismo servidor.
 
 ### Cobertura
 
-Cobertura del backend, medida con `npm run test:cov`: **91,7 % sentencias · 84,9 % ramas · 100 % funciones · 92,8 % líneas**. Los umbrales de `jest.config.js` son 89/82/99/90: entre uno y tres puntos por debajo de lo real, lo bastante cerca para que borrar tests duela y lo bastante lejos para que una variación pequeña no tumbe la integración continua. Un umbral que va por detrás de lo que realmente se cubre no protege de nada, así que se revisan cuando la cobertura sube de verdad.
+Cobertura del backend, medida con `npm run test:cov`: **91,9 % sentencias · 85,5 % ramas · 100 % funciones · 93,0 % líneas**. Los umbrales de `jest.config.js` son 89/82/99/90: entre uno y tres puntos por debajo de lo real, lo bastante cerca para que borrar tests duela y lo bastante lejos para que una variación pequeña no tumbe la integración continua. Un umbral que va por detrás de lo que realmente se cubre no protege de nada, así que se revisan cuando la cobertura sube de verdad.
 
 Cobertura del frontend, con `npm run test:web:cov`: **85,8 % sentencias · 67,8 % ramas · 84,9 % funciones · 87,7 % líneas**, con los umbrales de `frontend/karma.conf.js` (83/65/82/85) un par de puntos por debajo. Las ramas iban en el 47 % y ese era el trabajo pendiente: los dos diálogos de administración no tenían un solo test, la barra de navegación tenía un `should create`, y login, register y tres servicios de datos estaban a cero o casi. Cubrirlos las subió veinte puntos.
 
