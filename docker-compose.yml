@@ -64,5 +64,25 @@ services:
     # dejarlo así sería cortar en el peor momento posible.
     stop_grace_period: 30s
 
+  # nginx delante de la aplicación, SOLO para poder ver qué hace TRUST_PROXY.
+  #
+  # Va en un perfil para que `docker compose up` no lo levante: el despliegue
+  # normal publica el puerto directamente y no hay ningún proxy. Se arranca a
+  # propósito con `docker compose --profile proxy up -d`.
+  #
+  # Con `TRUST_PROXY=0`, la aplicación no mira `X-Forwarded-For` y ve a TODOS
+  # los clientes como la IP de nginx: el freno del login los mete en el mismo
+  # contador y cinco intentos de uno dejan fuera al otro. Con `TRUST_PROXY=1`
+  # descuenta un salto y vuelve a distinguirlos.
+  proxy:
+    image: nginx:1.27-alpine
+    profiles: [proxy]
+    depends_on:
+      - app
+    volumes:
+      - ./docker/nginx-proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - '${PUERTO_PROXY:-8080}:8080'
+
 volumes:
   mongo-datos:
