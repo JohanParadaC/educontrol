@@ -306,6 +306,181 @@ describe('AdminDashboardComponent', () => {
     });
   });
 
+  describe('crear y editar cursos', () => {
+    beforeEach(() => {
+      pidenUsuarios().flush(pagina('usuarios', USUARIOS));
+      pidenCursos().flush(pagina('cursos', CURSOS));
+      responderElResto();
+    });
+
+    it('crear con los datos del diálogo manda el alta y recarga', () => {
+      cerrarCon = {
+        titulo: 'Álgebra II',
+        descripcion: 'Matrices',
+        profesor: 'u2',
+        cupoMaximo: 20,
+        estado: 'abierto',
+      };
+
+      componente.abrirDialogNuevoCurso();
+
+      const alta = http.expectOne(r => r.url === '/api/cursos' && r.method === 'POST');
+      expect(alta.request.body).toEqual({
+        nombre: 'Álgebra II',
+        descripcion: 'Matrices',
+        cupoMaximo: 20,
+        estado: 'abierto',
+        profesor: 'u2',
+      });
+      alta.flush({ ok: true, curso: { _id: 'c3', nombre: 'Álgebra II' } });
+
+      // Recarga: el alta la decide el servidor y aquí no se adivina la tabla.
+      pidenUsuarios().flush(pagina('usuarios', USUARIOS));
+      pidenCursos().flush(pagina('cursos', CURSOS));
+      responderOpciones();
+    });
+
+    it('cerrar el diálogo sin guardar no manda nada', () => {
+      cerrarCon = undefined;
+
+      componente.abrirDialogNuevoCurso();
+
+      http.expectNone(r => r.method === 'POST');
+    });
+
+    it('sin profesor no se crea: el curso quedaría sin dueño', () => {
+      cerrarCon = { titulo: 'Álgebra II', descripcion: 'Matrices', profesor: '' };
+
+      componente.abrirDialogNuevoCurso();
+
+      http.expectNone(r => r.method === 'POST');
+    });
+
+    it('editar manda solo el curso tocado y recarga', () => {
+      cerrarCon = {
+        titulo: 'Álgebra revisada',
+        descripcion: 'Vectores',
+        profesor: 'u2',
+        cupoMaximo: null,
+        estado: 'cerrado',
+      };
+
+      componente.abrirDialogEditarCurso(componente.cursos()[0]);
+
+      const edicion = http.expectOne(r => r.url === '/api/cursos/c1' && r.method === 'PUT');
+      expect(edicion.request.body.nombre).toBe('Álgebra revisada');
+      // `null` viaja tal cual: es como se quita el límite de plazas.
+      expect(edicion.request.body.cupoMaximo).toBeNull();
+      edicion.flush({ ok: true, curso: { _id: 'c1', nombre: 'Álgebra revisada' } });
+
+      pidenUsuarios().flush(pagina('usuarios', USUARIOS));
+      pidenCursos().flush(pagina('cursos', CURSOS));
+      responderOpciones();
+    });
+
+    it('cancelar la edición no manda nada', () => {
+      cerrarCon = undefined;
+
+      componente.abrirDialogEditarCurso(componente.cursos()[0]);
+
+      http.expectNone(r => r.method === 'PUT');
+    });
+  });
+
+  describe('matricular desde el panel', () => {
+    beforeEach(() => {
+      pidenUsuarios().flush(pagina('usuarios', USUARIOS));
+      pidenCursos().flush(pagina('cursos', CURSOS));
+      responderElResto();
+    });
+
+    it('la lista de estudiantes se pide al abrir, no al cargar la página', () => {
+      cerrarCon = { estudianteId: 'u1' };
+
+      componente.abrirDialogMatricular(componente.cursos()[0]);
+
+      // Cien usuarios que la mayoría de las visitas no llega a usar no se piden
+      // al entrar: se piden cuando hacen falta.
+      const opciones = http.expectOne(
+        r => r.url === '/api/usuarios' && r.params.get('rol') === 'estudiante'
+      );
+      opciones.flush(pagina('usuarios', [USUARIOS[0]]));
+
+      const alta = http.expectOne(r => r.url === '/api/inscripciones' && r.method === 'POST');
+      expect(alta.request.body).toEqual({ cursoId: 'c1', estudianteId: 'u1' });
+      alta.flush({ ok: true, inscripcion: { _id: 'i1' } });
+    });
+
+    it('la segunda vez no la vuelve a pedir', () => {
+      cerrarCon = { estudianteId: 'u1' };
+
+      componente.abrirDialogMatricular(componente.cursos()[0]);
+      http
+        .expectOne(r => r.url === '/api/usuarios' && r.params.get('rol') === 'estudiante')
+        .flush(pagina('usuarios', [USUARIOS[0]]));
+      http.expectOne(r => r.url === '/api/inscripciones').flush({ ok: true });
+
+      componente.abrirDialogMatricular(componente.cursos()[1]);
+
+      http.expectNone(r => r.url === '/api/usuarios' && r.params.get('rol') === 'estudiante');
+      http.expectOne(r => r.url === '/api/inscripciones').flush({ ok: true });
+    });
+
+    it('cerrar sin elegir a nadie no matricula', () => {
+      cerrarCon = undefined;
+
+      componente.abrirDialogMatricular(componente.cursos()[0]);
+      http
+        .expectOne(r => r.url === '/api/usuarios' && r.params.get('rol') === 'estudiante')
+        .flush(pagina('usuarios', []));
+
+      http.expectNone(r => r.url === '/api/inscripciones');
+    });
+  });
+
+  describe('asignar profesor (acción rápida)', () => {
+    beforeEach(() => {
+      pidenUsuarios().flush(pagina('usuarios', USUARIOS));
+      pidenCursos().flush(pagina('cursos', CURSOS));
+      responderElResto();
+    });
+
+    it('sin curso o sin profesor no sale a la red', () => {
+      componente.asignarProfesor();
+
+      http.expectNone(r => r.method === 'PUT');
+      expect(componente.isAssigning()).toBeFalse();
+    });
+
+    it('con los dos elegidos asigna y recarga', () => {
+      componente.onCursoSel({ value: 'c1' } as never);
+      componente.onProfesorSel({ value: 'u2' } as never);
+
+      componente.asignarProfesor();
+
+      const req = http.expectOne(r => r.url === '/api/cursos/c1' && r.method === 'PUT');
+      expect(req.request.body).toEqual({ profesor: 'u2' });
+      req.flush({ ok: true, curso: CURSOS[0] });
+
+      expect(componente.isAssigning()).toBeFalse();
+      pidenUsuarios().flush(pagina('usuarios', USUARIOS));
+      pidenCursos().flush(pagina('cursos', CURSOS));
+      responderOpciones();
+    });
+
+    it('si el servidor lo rechaza, se suelta el bloqueo y se puede reintentar', () => {
+      componente.onCursoSel({ value: 'c1' } as never);
+      componente.onProfesorSel({ value: 'u2' } as never);
+
+      componente.asignarProfesor();
+      http
+        .expectOne(r => r.url === '/api/cursos/c1')
+        .flush({ ok: false, msg: 'No se pudo' }, { status: 409, statusText: 'Conflict' });
+
+      expect(componente.isAssigning()).toBeFalse();
+    });
+  });
+
   describe('eliminar un curso', () => {
     beforeEach(() => {
       pidenUsuarios().flush(pagina('usuarios', []));

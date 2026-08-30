@@ -12,12 +12,13 @@
 // de puntos por debajo de la cobertura real. Lo bastante cerca para que borrar
 // tests duela, lo bastante lejos para no saltar por ruido.
 //
-// Medido con `npm run test:cov` sobre 108 tests:
-//   71,57 sentencias · 47,13 ramas · 66,75 funciones · 73,64 líneas.
+// Medido con `npm run test:web:cov` sobre 220 tests:
+//   85,83 sentencias · 67,84 ramas · 84,94 funciones · 87,73 líneas.
 //
-// Las ramas van muy por detrás del resto, y no es casualidad: cada `?? ''`,
-// cada `| null` y cada estado que la interfaz no llega a pintar es una rama.
-// Subirlas es el siguiente trabajo, no un número que se pueda inventar aquí.
+// Las ramas eran las que iban muy por detrás —47 %— y ese sí era el siguiente
+// trabajo: los dos diálogos de administración no tenían un solo test, la barra
+// de navegación tenía un `should create`, y login, register y tres servicios de
+// datos estaban a cero o casi. Cubrirlos subió las ramas veinte puntos.
 // ---------------------------------------------------------------------------
 const { join } = require('node:path');
 
@@ -44,10 +45,10 @@ module.exports = function (config) {
       reporters: [{ type: 'html' }, { type: 'text-summary' }, { type: 'json-summary' }],
       check: {
         global: {
-          statements: 70,
-          branches: 45,
-          functions: 65,
-          lines: 72,
+          statements: 83,
+          branches: 65,
+          functions: 82,
+          lines: 85,
         },
       },
     },

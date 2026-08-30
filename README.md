@@ -154,7 +154,7 @@ producción, que son los que importan.
 
 ```bash
 npm test          # backend:  328 tests (Jest + Supertest)
-npm run test:web  # frontend: 110 tests (Karma + Jasmine)
+npm run test:web  # frontend: 220 tests (Karma + Jasmine)
 npm run test:e2e  # extremo a extremo: 13 recorridos (Playwright)
 ```
 
@@ -178,7 +178,7 @@ lanzando la tanda tres veces seguidas contra el mismo servidor.
 
 Cobertura del backend, medida con `npm run test:cov`: **91,7 % sentencias · 84,9 % ramas · 100 % funciones · 92,8 % líneas**. Los umbrales de `jest.config.js` son 89/82/99/90: entre uno y tres puntos por debajo de lo real, lo bastante cerca para que borrar tests duela y lo bastante lejos para que una variación pequeña no tumbe la integración continua. Un umbral que va por detrás de lo que realmente se cubre no protege de nada, así que se revisan cuando la cobertura sube de verdad.
 
-Cobertura del frontend, con `npm run test:web:cov`: **71,8 % sentencias · 47,8 % ramas · 66,9 % funciones · 73,8 % líneas**, y los umbrales de `frontend/karma.conf.js` (70/45/65/72) un par de puntos por debajo. Las ramas van muy por detrás del resto y no es casualidad: cada `?? ''`, cada `| null` y cada estado que la interfaz no llega a pintar es una rama. Subirlas es el siguiente trabajo, no un número que se pueda escribir en el fichero.
+Cobertura del frontend, con `npm run test:web:cov`: **85,8 % sentencias · 67,8 % ramas · 84,9 % funciones · 87,7 % líneas**, con los umbrales de `frontend/karma.conf.js` (83/65/82/85) un par de puntos por debajo. Las ramas iban en el 47 % y ese era el trabajo pendiente: los dos diálogos de administración no tenían un solo test, la barra de navegación tenía un `should create`, y login, register y tres servicios de datos estaban a cero o casi. Cubrirlos las subió veinte puntos.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
