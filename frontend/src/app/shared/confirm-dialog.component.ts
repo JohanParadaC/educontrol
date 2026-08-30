@@ -1,5 +1,5 @@
 // src/app/shared/confirm-dialog.component.ts
-import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -53,10 +53,9 @@ type ConfirmData = {
   ],
 })
 export class ConfirmDialogComponent {
-  constructor(
-    private ref: MatDialogRef<ConfirmDialogComponent, boolean>,
-    @Inject(MAT_DIALOG_DATA) public data: ConfirmData
-  ) {}
+  private ref = inject<MatDialogRef<ConfirmDialogComponent, boolean>>(MatDialogRef);
+  readonly data = inject<ConfirmData>(MAT_DIALOG_DATA);
+
   close(v: boolean) {
     this.ref.close(v);
   }

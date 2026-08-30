@@ -140,19 +140,31 @@ export class ProfessorDashboardComponent implements OnInit {
 
   // === Helpers usados en el template ===
 
-  /** Obtiene el ID de un objeto o string, tolerante a varios nombres */
-  idOf(x: any): string {
-    return typeof x === 'string' ? x : (x?._id ?? x?.id ?? x?.uid ?? x?._uid ?? '');
+  /** Id de un documento que puede venir poblado o como cadena. */
+  idOf(x: unknown): string {
+    return idDe(x);
   }
 
-  /** Título del curso (acepta nombre o titulo) */
-  courseTitle(c: any): string {
-    return c?.nombre || c?.titulo || '';
+  /**
+   * Título del curso.
+   *
+   * Miraba también `titulo`, y de eso ya se encarga `curso.mapper`: es el
+   * único sitio donde `nombre` se traduce, y repetirlo aquí es exactamente el
+   * `?? nombre` de nueve sitios que el mapper vino a borrar.
+   */
+  courseTitle(c: Curso): string {
+    return c?.titulo || '';
   }
 
-  /** Descripción corta del curso (si existe) */
-  courseDesc(c: any): string {
-    return c?.descripcion || c?.descripcionCorta || c?.desc || '';
+  /**
+   * Descripción del curso.
+   *
+   * Aceptaba además `descripcionCorta` y `desc`, que no existen en
+   * `models/Curso.js` ni en ninguna respuesta: eran ramas muertas escritas por
+   * si acaso, y con `any` el compilador no podía decirlo.
+   */
+  courseDesc(c: Curso): string {
+    return c?.descripcion || '';
   }
 
   /** Cuántas matrículas de sus cursos son de los últimos siete días. */
@@ -209,5 +221,5 @@ export class ProfessorDashboardComponent implements OnInit {
   }
 
   /** Identidad estable para el `track` de @for */
-  trackById = (_: number, item: any) => this.idOf(item) || _;
+  trackById = (_: number, item: unknown) => this.idOf(item) || _;
 }

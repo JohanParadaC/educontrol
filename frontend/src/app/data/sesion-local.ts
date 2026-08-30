@@ -6,9 +6,10 @@
 // cualquier servicio que las necesitara viviera en el mismo fichero. Sacarlas
 // es lo que permite partir ApiService por recurso.
 // ---------------------------------------------------------------------------
+import { Usuario } from './usuario.model';
 
 /** Usuario de la sesión actual, tal y como lo dejó AuthService. */
-export function usuarioLocal(): any | null {
+export function usuarioLocal(): Usuario | null {
   try {
     return JSON.parse(localStorage.getItem('usuario') || 'null');
   } catch {
@@ -28,11 +29,18 @@ export function tokenLocal(): string {
   return localStorage.getItem('token') || localStorage.getItem('jwt') || '';
 }
 
-/** Id de un documento que puede llegar poblado, como string, o no llegar. */
-export function idDe(x: any): string {
+/**
+ * Id de un documento que puede llegar poblado, como string, o no llegar.
+ *
+ * El parámetro es `unknown` y no `any`: aquí entra literalmente cualquier cosa
+ * —eso es lo que hace útil a la función—, pero `unknown` obliga a mirar qué es
+ * antes de tocarla, y `any` no obligaba a nada.
+ */
+export function idDe(x: unknown): string {
   if (!x) return '';
   if (typeof x === 'string') return x;
-  return (x._id ?? x.id ?? '') as string;
+  const doc = x as { _id?: string; id?: string };
+  return doc._id ?? doc.id ?? '';
 }
 
 /** Compara nombres ignorando tildes y mayúsculas. */

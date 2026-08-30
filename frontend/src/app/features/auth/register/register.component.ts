@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, inject } from '@angular/core';
 
 import {
   FormBuilder,
@@ -72,12 +72,12 @@ export class RegisterComponent {
   // Declaramos el tipo y lo inicializamos en el constructor
   form!: FormGroup;
 
-  constructor(
-    private fb: FormBuilder,
-    private api: ApiService,
-    private router: Router,
-    private snack: MatSnackBar
-  ) {
+  private fb = inject(FormBuilder);
+  private api = inject(ApiService);
+  private router = inject(Router);
+  private snack = inject(MatSnackBar);
+
+  constructor() {
     // ✅ crear el form aquí evita "Property 'fb' is used before its initialization"
     this.form = this.fb.group(
       {

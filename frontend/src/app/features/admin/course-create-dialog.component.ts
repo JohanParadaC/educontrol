@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import {
@@ -149,11 +149,12 @@ export class CourseCreateDialogComponent {
     estado: FormControl<EstadoCurso>;
   }>;
 
-  constructor(
-    public dialogRef: MatDialogRef<CourseCreateDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: DialogData,
-    private fb: FormBuilder
-  ) {
+  readonly dialogRef = inject<MatDialogRef<CourseCreateDialogComponent>>(MatDialogRef);
+  readonly data = inject<DialogData>(MAT_DIALOG_DATA);
+  private fb = inject(FormBuilder);
+
+  constructor() {
+    const data = this.data;
     this.soyAdmin = !!data.soyAdmin;
     this.profesores = Array.isArray(data.profesores) ? data.profesores : [];
 

@@ -9,7 +9,7 @@ import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import { Usuario } from './usuario.model';
-import { Pagina, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
+import { Pagina, Sobre, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
 
 @Injectable({ providedIn: 'root' })
 export class UsuariosApi {
@@ -50,7 +50,7 @@ export class UsuariosApi {
   listUsuariosPaginado(pagina = 1, limite = LIMITE_PAGINA): Observable<Pagina<Usuario>> {
     const params = new HttpParams().set('page', pagina).set('limit', limite);
     return this.http
-      .get<any>(this.base, { params })
+      .get<Sobre>(this.base, { params })
       .pipe(map(r => aPagina<Usuario>(r, 'usuarios', pagina, limite)));
   }
 
@@ -62,7 +62,7 @@ export class UsuariosApi {
   listUsuariosPorRol(rol: 'estudiante' | 'profesor' | 'admin'): Observable<Usuario[]> {
     const params = new HttpParams().set('rol', rol).set('limit', LIMITE_MAXIMO_PAGINA);
     return this.http
-      .get<any>(this.base, { params })
+      .get<Sobre>(this.base, { params })
       .pipe(map(r => aPagina<Usuario>(r, 'usuarios', 1, LIMITE_MAXIMO_PAGINA).items));
   }
 }

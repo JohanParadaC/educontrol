@@ -3,7 +3,7 @@
    ------------------------------------------------------------------------ */
 // src/app/auth/login/login.component.ts
 
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
 import { FormBuilder, Validators, ReactiveFormsModule, UntypedFormGroup } from '@angular/forms';
 
@@ -50,11 +50,11 @@ export class LoginComponent {
     { etiqueta: 'Estudiante', correo: 'ana@educontrol.com', password: 'Demo1234' },
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private auth: AuthService,
-    private router: Router
-  ) {
+  private fb = inject(FormBuilder);
+  private auth = inject(AuthService);
+  private router = inject(Router);
+
+  constructor() {
     // construimos el formulario (no strict)
     this.form = this.fb.group({
       correo: ['', [Validators.required, Validators.email]],

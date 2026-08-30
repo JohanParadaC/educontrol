@@ -8,6 +8,15 @@
 export const LIMITE_PAGINA = 20;
 export const LIMITE_MAXIMO_PAGINA = 100;
 
+/**
+ * Una respuesta JSON del backend antes de saber qué trae dentro.
+ *
+ * Es `unknown` por valor y no `any`: leer una clave sigue siendo posible, pero
+ * hay que decir de qué tipo se espera, que es justo la comprobación que un
+ * `any` se saltaba.
+ */
+export type Sobre = Record<string, unknown>;
+
 /** Una página de resultados con lo que necesita un paginador. */
 export interface Pagina<T> {
   items: T[];
@@ -23,17 +32,18 @@ export interface Pagina<T> {
  * todavía no pagina.
  */
 export function aPagina<T>(
-  respuesta: any,
+  respuesta: Sobre | T[] | null | undefined,
   clave: string,
   pagina: number,
   limite: number
 ): Pagina<T> {
-  const items: T[] = Array.isArray(respuesta) ? respuesta : (respuesta?.[clave] ?? []);
+  const sobre = Array.isArray(respuesta) ? null : respuesta;
+  const items: T[] = Array.isArray(respuesta) ? respuesta : ((sobre?.[clave] as T[]) ?? []);
   return {
     items,
-    total: respuesta?.total ?? items.length,
-    pagina: respuesta?.pagina ?? pagina,
-    limite: respuesta?.limite ?? limite,
-    paginas: respuesta?.paginas ?? 1,
+    total: (sobre?.['total'] as number) ?? items.length,
+    pagina: (sobre?.['pagina'] as number) ?? pagina,
+    limite: (sobre?.['limite'] as number) ?? limite,
+    paginas: (sobre?.['paginas'] as number) ?? 1,
   };
 }

@@ -11,16 +11,27 @@
 // conversión ocurre aquí y en ningún otro sitio.
 // ---------------------------------------------------------------------------
 import { Curso, CursoEditable } from './curso.model';
+import { idDe } from './sesion-local';
+
+/**
+ * Un curso tal y como sale del backend, o el sobre que lo envuelve.
+ *
+ * Los dos casos existen de verdad: `GET /api/cursos/:id` responde
+ * `{ ok, curso, matriculados }` y el listado devuelve los cursos pelados. Por
+ * eso `aCurso` acepta las dos formas, y por eso el tipo las declara en vez de
+ * dejarlo en `any`.
+ */
+export type CursoCrudo = Partial<Curso> & { ok?: boolean; curso?: Partial<Curso> };
 
 /** API → aplicación. Tolera respuestas envueltas en { curso: ... }. */
-export function aCurso(origen: any): Curso {
+export function aCurso(origen?: CursoCrudo | null): Curso {
   const c = origen?.curso ?? origen ?? {};
   return { ...c, titulo: c.titulo ?? c.nombre ?? '' } as Curso;
 }
 
 /** API → aplicación, para listas. */
-export function aCursos(origen: any[] | null | undefined): Curso[] {
-  return (origen ?? []).map(aCurso);
+export function aCursos(origen: CursoCrudo[] | null | undefined): Curso[] {
+  return (origen ?? []).map(c => aCurso(c));
 }
 
 /**
@@ -28,8 +39,8 @@ export function aCursos(origen: any[] | null | undefined): Curso[] {
  * Solo incluye las claves presentes, para no pisar campos con `undefined` en
  * las actualizaciones parciales.
  */
-export function deCurso(body: CursoEditable): Record<string, any> {
-  const salida: Record<string, any> = {};
+export function deCurso(body: CursoEditable): Record<string, unknown> {
+  const salida: Record<string, unknown> = {};
 
   const nombre = body.nombre ?? body.titulo;
   if (nombre !== undefined) salida['nombre'] = nombre;
@@ -44,8 +55,7 @@ export function deCurso(body: CursoEditable): Record<string, any> {
 
   // El backend espera el id del profesor, no el objeto poblado.
   if (body.profesor !== undefined) {
-    const p: any = body.profesor;
-    salida['profesor'] = typeof p === 'string' ? p : (p?._id ?? p?.id ?? null);
+    salida['profesor'] = idDe(body.profesor) || null;
   }
 
   return salida;

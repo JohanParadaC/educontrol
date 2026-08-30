@@ -39,13 +39,13 @@ export class AuthApi {
     rol?: 'estudiante' | 'profesor';
     profesorClave?: string;
   }): Observable<{ ok: boolean; usuario: Usuario }> {
-    const payload: any = {
+    const payload: Record<string, string> = {
       nombre: body.nombre,
       correo: body.correo,
       ['contraseña']: body.password,
       rol: body.rol ?? 'estudiante',
     };
-    if (body.profesorClave) payload.profesorClave = body.profesorClave;
+    if (body.profesorClave) payload['profesorClave'] = body.profesorClave;
 
     return this.http.post<{ ok: boolean; usuario: Usuario }>(`${this.base}/usuarios`, payload);
   }

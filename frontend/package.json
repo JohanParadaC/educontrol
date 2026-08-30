@@ -9,7 +9,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:cov": "ng test --watch=false --browsers=ChromeHeadless --code-coverage",
-    "lint": "eslint . --max-warnings=58",
+    "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {

@@ -10,7 +10,7 @@ import { map } from 'rxjs/operators';
 
 import { environment } from '../../environments/environment';
 import { AccionAuditada, RegistroAuditoria } from './auditoria.model';
-import { Pagina, aPagina, LIMITE_PAGINA } from './paginacion';
+import { Pagina, Sobre, aPagina, LIMITE_PAGINA } from './paginacion';
 
 export interface FiltroAuditoria {
   accion?: AccionAuditada | '';
@@ -32,7 +32,7 @@ export class AuditoriaApi {
     if (filtros.buscar?.trim()) params = params.set('buscar', filtros.buscar.trim());
 
     return this.http
-      .get<unknown>(this.base, { params })
+      .get<Sobre>(this.base, { params })
       .pipe(map(r => aPagina<RegistroAuditoria>(r, 'registros', pagina, limite)));
   }
 }

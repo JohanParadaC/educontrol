@@ -1,5 +1,5 @@
 // src/app/admin/admin-dashboard.component.ts
-import { Component, OnInit, ChangeDetectionStrategy, signal } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 
 import { FormsModule, ReactiveFormsModule, FormControl } from '@angular/forms';
 
@@ -119,11 +119,9 @@ export class AdminDashboardComponent implements OnInit {
 
   /** 🔢 Umbral para considerar descripción “larga” y compactar acciones */
 
-  constructor(
-    private api: ApiService,
-    private snack: MatSnackBar,
-    private dialog: MatDialog
-  ) {}
+  private api = inject(ApiService);
+  private snack = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
 
   ngOnInit(): void {
     this.cargarTodo();

@@ -11,14 +11,17 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Curso, CursoDetalle, CursoEditable } from './curso.model';
 import { Usuario } from './usuario.model';
-import { aCurso, aCursos, deCurso } from './curso.mapper';
-import { Pagina, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
+import { CursoCrudo, aCurso, aCursos, deCurso } from './curso.mapper';
+import { Pagina, Sobre, aPagina, LIMITE_PAGINA, LIMITE_MAXIMO_PAGINA } from './paginacion';
 
 /** Filtros del listado de cursos. `profesor: 'me'` es el atajo del backend. */
 export interface FiltroCursos {
   profesor?: string;
   buscar?: string;
 }
+
+/** La ficha tal y como llega: el curso, y el contexto que el servidor decida mandar. */
+type CursoDetalleCrudo = CursoCrudo & Partial<Omit<CursoDetalle, 'curso'>>;
 
 @Injectable({ providedIn: 'root' })
 export class CursosApi {
@@ -27,12 +30,12 @@ export class CursosApi {
 
   getCursos(): Observable<Curso[]> {
     return this.http
-      .get<any>(this.base)
+      .get<CursoCrudo[] | { cursos?: CursoCrudo[] }>(this.base)
       .pipe(map(r => aCursos(Array.isArray(r) ? r : (r?.cursos ?? []))));
   }
 
   getCurso(id: string): Observable<Curso> {
-    return this.http.get<any>(`${this.base}/${id}`).pipe(map(aCurso));
+    return this.http.get<CursoCrudo>(`${this.base}/${id}`).pipe(map(r => aCurso(r)));
   }
 
   /**
@@ -43,12 +46,13 @@ export class CursosApi {
    * ha decidido que puede verlos, quiénes.
    */
   getCursoDetalle(id: string): Observable<CursoDetalle> {
-    return this.http.get<any>(`${this.base}/${id}`).pipe(
+    return this.http.get<CursoDetalleCrudo>(`${this.base}/${id}`).pipe(
       map(r => ({
         curso: aCurso(r),
         matriculados: Number(r?.matriculados ?? 0),
         // Ausente si el servidor no la manda. No se sustituye por [].
         estudiantes: Array.isArray(r?.estudiantes) ? r.estudiantes : undefined,
+        estudiantesTruncados: r?.estudiantesTruncados,
       }))
     );
   }
@@ -85,16 +89,16 @@ export class CursosApi {
     let params = new HttpParams().set('page', pagina).set('limit', limite);
     if (filtros.profesor) params = params.set('profesor', filtros.profesor);
     if (filtros.buscar?.trim()) params = params.set('buscar', filtros.buscar.trim());
-    return this.http.get<any>(this.base, { params }).pipe(
+    return this.http.get<Sobre>(this.base, { params }).pipe(
       map(r => {
-        const p = aPagina<any>(r, 'cursos', pagina, limite);
+        const p = aPagina<CursoCrudo>(r, 'cursos', pagina, limite);
         return { ...p, items: aCursos(p.items) };
       })
     );
   }
 
   createCurso(body: CursoEditable): Observable<Curso> {
-    return this.http.post<any>(this.base, deCurso(body)).pipe(map(aCurso));
+    return this.http.post<CursoCrudo>(this.base, deCurso(body)).pipe(map(r => aCurso(r)));
   }
 
   /**
@@ -107,7 +111,7 @@ export class CursosApi {
    * cambio sin enterarte—.
    */
   updateCurso(id: string, body: CursoEditable): Observable<Curso> {
-    return this.http.put<any>(`${this.base}/${id}`, deCurso(body)).pipe(map(aCurso));
+    return this.http.put<CursoCrudo>(`${this.base}/${id}`, deCurso(body)).pipe(map(r => aCurso(r)));
   }
 
   deleteCurso(id: string): Observable<void> {

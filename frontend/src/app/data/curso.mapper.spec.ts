@@ -1,4 +1,5 @@
 import { aCurso, aCursos, deCurso } from './curso.mapper';
+import { Usuario } from './usuario.model';
 
 /**
  * El backend llama `nombre` a lo que la interfaz llama `titulo`. Antes eso
@@ -25,10 +26,11 @@ describe('curso.mapper', () => {
     });
 
     it('conserva el resto de campos', () => {
-      const c = aCurso({ _id: '1', nombre: 'X', descripcion: 'desc', profesor: { nombre: 'Ana' } });
+      const profesor = { _id: 'p1', nombre: 'Ana', correo: 'ana@x.com', rol: 'profesor' as const };
+      const c = aCurso({ _id: '1', nombre: 'X', descripcion: 'desc', profesor });
       expect(c._id).toBe('1');
       expect(c.descripcion).toBe('desc');
-      expect((c.profesor as any).nombre).toBe('Ana');
+      expect((c.profesor as Usuario).nombre).toBe('Ana');
     });
 
     it('aCursos tolera null y undefined', () => {

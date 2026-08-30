@@ -24,16 +24,31 @@ import { Inscripcion } from './inscripcion.model';
 import { aCurso } from './curso.mapper';
 import { LIMITE_MAXIMO_PAGINA } from './paginacion';
 import { usuarioLocal, idDe } from './sesion-local';
+import { CursoCrudo } from './curso.mapper';
 
 /**
  * El curso llega poblado del backend, o sea con `nombre`. La interfaz lo llama
  * `titulo`, y esa traducción vive en curso.mapper y solo ahí: sin pasar por
  * él, "Mis cursos" pintaba un guión en lugar del título.
  */
-const conCursoTraducido = (i: any): Inscripcion => ({
-  ...i,
-  curso: i?.curso && typeof i.curso === 'object' ? aCurso(i.curso) : i?.curso,
-});
+const conCursoTraducido = (i: InscripcionCruda): Inscripcion =>
+  ({
+    ...i,
+    curso: i?.curso && typeof i.curso === 'object' ? aCurso(i.curso) : i?.curso,
+  }) as Inscripcion;
+
+/** Una matrícula recién llegada: el curso puede venir poblado (con `nombre`) o como id. */
+type InscripcionCruda = Omit<Inscripcion, 'curso'> & { curso?: string | CursoCrudo };
+
+/**
+ * Lo que responde el backend al matricular: la matrícula, dentro de un sobre o
+ * pelada. Las dos formas están vivas, así que se declaran las dos en vez de
+ * dejarlo en `any` y confiar en el `??`.
+ */
+type RespuestaMatricula = Inscripcion | { inscripcion?: Inscripcion };
+
+const deLaRespuesta = (r: RespuestaMatricula): Inscripcion =>
+  'inscripcion' in r && r.inscripcion ? r.inscripcion : (r as Inscripcion);
 
 /** Filtros que acepta el listado. Se aplican siempre dentro de lo que el rol permite. */
 export interface FiltroInscripciones {
@@ -58,14 +73,14 @@ export class InscripcionesApi {
     if (filtros.estudiante) params = params.set('estudiante', filtros.estudiante);
 
     return this.http
-      .get<any>(this.base, { params })
+      .get<InscripcionCruda[] | { inscripciones?: InscripcionCruda[] }>(this.base, { params })
       .pipe(map(r => (Array.isArray(r) ? r : (r?.inscripciones ?? [])).map(conCursoTraducido)));
   }
 
   createInscripcion(body: { curso: string; estudiante: string }): Observable<Inscripcion> {
     // El backend espera cursoId/estudianteId, no curso/estudiante.
     const payload = { cursoId: body.curso, estudianteId: body.estudiante };
-    return this.http.post<any>(this.base, payload).pipe(map(r => r?.inscripcion ?? r));
+    return this.http.post<RespuestaMatricula>(this.base, payload).pipe(map(deLaRespuesta));
   }
 
   /**
@@ -79,8 +94,8 @@ export class InscripcionesApi {
    */
   matricularPorCorreo(cursoId: string, correo: string): Observable<Inscripcion> {
     return this.http
-      .post<any>(this.base, { cursoId, correo: correo.trim() })
-      .pipe(map(r => r?.inscripcion ?? r));
+      .post<RespuestaMatricula>(this.base, { cursoId, correo: correo.trim() })
+      .pipe(map(deLaRespuesta));
   }
 
   /** Matricula al usuario de la sesión actual en un curso. */

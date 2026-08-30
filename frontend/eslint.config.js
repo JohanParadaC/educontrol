@@ -5,11 +5,15 @@
 // Dos bloques: uno para TypeScript y otro para las plantillas HTML (incluidas
 // las inline, gracias a `processInlineTemplates`).
 //
-// Sobre `no-explicit-any`: hoy quedan usos heredados repartidos por data/ y
-// features/. Está como aviso, no como error, con un tope de avisos en el
-// script `lint` para que el número solo pueda bajar: cualquier `any` nuevo
-// rompe la build. Cuando la limpieza del contrato los elimine, el tope baja
-// a cero y la regla pasa a error.
+// Sobre `no-explicit-any` y `prefer-inject`: los dos eran avisos con un tope de
+// 58 en el script `lint`, y un tope sin explicación solo sabe subir. Ya no
+// queda ninguno de los dos, así que van como ERROR y el script lleva
+// `--max-warnings=0`: la deuda no se tolera en masa, se arregla o se silencia
+// una a una con el motivo escrito al lado.
+//
+// En los `*.spec.ts` `no-explicit-any` está apagada (bloque de abajo). Un doble
+// de test tipado a medias es ruido, no deuda: contarlo hinchaba el número y
+// escondía los `any` de producción, que son los que importan.
 // ---------------------------------------------------------------------------
 const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
@@ -35,11 +39,8 @@ module.exports = tseslint.config(
         'error',
         { type: 'element', prefix: 'app', style: 'kebab-case' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
-      // 27 componentes siguen inyectando por constructor. Migrarlos a inject()
-      // es trabajo de la fase "Angular al día"; hasta entonces cuenta como
-      // aviso y entra en el tope, no como error que bloquea.
-      '@angular-eslint/prefer-inject': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@angular-eslint/prefer-inject': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -49,6 +50,16 @@ module.exports = tseslint.config(
           ignoreRestSiblings: true,
         },
       ],
+    },
+  },
+
+  {
+    // Los dobles de test no describen el contrato de nadie: se montan a mano
+    // para provocar una situación y se tiran. Exigirles tipos completos no
+    // añade seguridad, solo ruido en el recuento.
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 

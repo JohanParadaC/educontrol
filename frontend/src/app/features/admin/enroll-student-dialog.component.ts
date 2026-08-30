@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import {
@@ -97,12 +97,13 @@ export class EnrollStudentDialogComponent {
 
   form!: FormGroup<{ estudianteId: FormControl<string>; correo: FormControl<string> }>;
 
-  constructor(
-    @Inject(MAT_DIALOG_DATA) public data: DatosMatricula,
-    public dialogRef: MatDialogRef<EnrollStudentDialogComponent, MatriculaPedida | undefined>,
-    private fb: FormBuilder
-  ) {
-    this.porLista = Array.isArray(data.estudiantes);
+  readonly data = inject<DatosMatricula>(MAT_DIALOG_DATA);
+  readonly dialogRef =
+    inject<MatDialogRef<EnrollStudentDialogComponent, MatriculaPedida | undefined>>(MatDialogRef);
+  private fb = inject(FormBuilder);
+
+  constructor() {
+    this.porLista = Array.isArray(this.data.estudiantes);
 
     this.form = this.fb.nonNullable.group({
       estudianteId: [''],
