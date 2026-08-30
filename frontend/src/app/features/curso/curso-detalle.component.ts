@@ -117,11 +117,18 @@ export class CursoDetalleComponent {
    *
    * Enseñar 100 de 340 sin avisar es la misma clase de mentira que pintar un
    * error como una lista vacía. El aviso lleva al CSV, que sí los trae todos.
+   *
+   * Y dice CUÁLES son esos 100. "Los primeros", con la tabla ordenada por
+   * nombre justo debajo, se lee como "de la A a la M": quien busque a Zoe
+   * Álvarez y no la encuentre no podría distinguir "no está matriculada" de
+   * "se matriculó la última". Son los primeros en MATRICULARSE —el nombre vive
+   * en otra colección y Mongo no puede ordenar por él antes de cortar—, así
+   * que eso es lo que se escribe.
    */
   readonly listaTruncada = computed(() => !!this.detalle()?.estudiantesTruncados);
   readonly avisoTruncado = computed(() =>
     this.listaTruncada()
-      ? `Mostrando los primeros ${this.estudiantes().length} de ${this.matriculados()}.`
+      ? `Mostrando ${this.estudiantes().length} de ${this.matriculados()}: los primeros en matricularse.`
       : ''
   );
 

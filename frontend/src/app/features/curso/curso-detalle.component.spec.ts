@@ -223,7 +223,9 @@ describe('CursoDetalleComponent', () => {
     });
 
     expect(componente.listaTruncada()).toBeTrue();
-    expect(texto()).toContain('Mostrando los primeros 100 de 340');
+    // Dice cuáles son esos 100: "los primeros" a secas, con la tabla ordenada
+    // por nombre debajo, se leería como "de la A a la M".
+    expect(texto()).toContain('Mostrando 100 de 340: los primeros en matricularse');
     // El encabezado dice el total, no lo que ha cabido.
     expect(texto()).toContain('Estudiantes (340)');
 
@@ -252,7 +254,7 @@ describe('CursoDetalleComponent', () => {
 
     expect(componente.listaTruncada()).toBeFalse();
     expect(fixture.nativeElement.querySelector('.alumnos__aviso')).toBeNull();
-    expect(texto()).not.toContain('Mostrando los primeros');
+    expect(texto()).not.toContain('Mostrando 100 de');
   });
 
   it('el profesor ajeno no puede gestionar el curso', () => {
