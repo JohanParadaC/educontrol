@@ -11,6 +11,7 @@
 /** Las mismas que el enum del modelo. Si no está aquí, no se audita. */
 export type AccionAuditada =
   | 'rol.cambiado'
+  | 'usuario.correo'
   | 'usuario.borrado'
   | 'curso.creado'
   | 'curso.editado'

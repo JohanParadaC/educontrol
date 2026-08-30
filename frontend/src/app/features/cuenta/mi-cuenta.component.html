@@ -31,6 +31,27 @@
         }
       </mat-form-field>
 
+      <!-- El correo es el identificador con el que se entra, así que cambiarlo
+           pide la contraseña igual que cambiarla a ella. Cambiarse el nombre,
+           no: por eso el campo aparece solo cuando el correo difiere. -->
+      @if (cambiaElCorreo()) {
+        <mat-form-field appearance="outline" class="full">
+          <mat-label>Tu contraseña actual</mat-label>
+          <input
+            matInput
+            formControlName="contraseñaActual"
+            type="password"
+            autocomplete="current-password"
+          />
+          <mat-hint>
+            El correo es con lo que entras: lo pedimos para asegurarnos de que eres tú.
+          </mat-hint>
+          @if (perfil.get('contraseñaActual')?.hasError('required')) {
+            <mat-error>Escribe tu contraseña actual para cambiar el correo</mat-error>
+          }
+        </mat-form-field>
+      }
+
       @if (errorPerfil()) {
         <div class="error" role="alert">{{ errorPerfil() }}</div>
       }

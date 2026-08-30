@@ -146,32 +146,57 @@ const updateUsuario = async (req, res, next) => {
     if (nombre !== undefined) cambios.nombre = nombre;
     if (correo !== undefined) cambios.correo = correo;
 
-    if (contraseña) {
-      // 🔒 Reautenticación: cambiar tu propia contraseña exige demostrar que
-      // conoces la actual. Sin esto, una sesión olvidada abierta un minuto es
-      // suficiente para que un tercero se quede la cuenta para siempre.
-      //
-      // Un admin actuando sobre OTRA cuenta queda exento: es una acción
-      // administrativa (restablecer el acceso de alguien), no un cambio propio.
-      if (soyElMismo) {
-        if (!contraseñaActual) {
-          return res.status(400).json({
-            ok: false,
-            msg: 'Indica tu contraseña actual para poder cambiarla',
-          });
-        }
+    // La cuenta, leída una sola vez y solo cuando hay algo que comprobar contra
+    // ella: el hash para reautenticar, y el correo de ahora para saber si el que
+    // llega lo cambia de verdad.
+    //
+    // req.usuario viene sin el hash (validateJWT hace select('-contraseña')),
+    // así que hay que pedirla explícitamente.
+    let cuenta = null;
+    if (soyElMismo && (contraseña || correo !== undefined)) {
+      cuenta = await Usuario.findById(id);
+      if (!cuenta) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
+    }
 
-        // req.usuario viene sin el hash (validateJWT hace select('-contraseña')),
-        // así que lo pedimos explícitamente.
-        const cuenta = await Usuario.findById(id);
-        if (!cuenta) return res.status(404).json({ ok: false, msg: 'Usuario no encontrado' });
+    // Mandar el mismo correo que ya tienes no es cambiarlo. El formulario de
+    // "Mi cuenta" envía nombre y correo juntos, así que sin esto cambiarse el
+    // nombre pediría la contraseña.
+    const cambiaMiCorreo =
+      cuenta !== null &&
+      correo !== undefined &&
+      normalizarCorreo(correo) !== normalizarCorreo(cuenta.correo);
 
-        const coincide = await bcrypt.compare(String(contraseñaActual), cuenta.contraseña);
-        if (!coincide) {
-          return res.status(403).json({ ok: false, msg: 'La contraseña actual no es correcta' });
-        }
+    // 🔒 Reautenticación: tocar tu propia contraseña —o tu propio correo—
+    // exige demostrar que conoces la actual. Sin esto, una sesión olvidada
+    // abierta un minuto es suficiente para que un tercero se quede la cuenta
+    // para siempre.
+    //
+    // El correo entra por la misma puerta que la contraseña porque ES el
+    // identificador de acceso: quien lo cambia decide con qué se entra a partir
+    // de entonces. Hoy el daño está acotado porque no hay recuperación por
+    // correo; el día que la haya, cambiarlo es quedarse la cuenta, y para
+    // entonces esta comprobación ya tiene que estar puesta.
+    //
+    // Un admin actuando sobre OTRA cuenta queda exento en los dos casos: es una
+    // acción administrativa —restablecer el acceso de alguien—, no un cambio
+    // propio. Por eso queda registrada más abajo y esta no.
+    if (soyElMismo && (contraseña || cambiaMiCorreo)) {
+      if (!contraseñaActual) {
+        return res.status(400).json({
+          ok: false,
+          msg: contraseña
+            ? 'Indica tu contraseña actual para poder cambiarla'
+            : 'Indica tu contraseña actual para poder cambiar el correo',
+        });
       }
 
+      const coincide = await bcrypt.compare(String(contraseñaActual), cuenta.contraseña);
+      if (!coincide) {
+        return res.status(403).json({ ok: false, msg: 'La contraseña actual no es correcta' });
+      }
+    }
+
+    if (contraseña) {
       const salt = await bcrypt.genSalt(10);
       cambios.contraseña = await bcrypt.hash(contraseña, salt);
     }
@@ -191,10 +216,12 @@ const updateUsuario = async (req, res, next) => {
       cambios.rol = rol;
     }
 
-    // El rol de antes, leído mientras todavía es el de antes.
-    const rolPrevio = soyElMismo
-      ? solicitante.rol
-      : (await Usuario.findById(id).select('rol'))?.rol;
+    // El rol y el correo de antes, leídos mientras todavía son los de antes.
+    const previo = soyElMismo
+      ? { rol: solicitante.rol, correo: cuenta?.correo ?? solicitante.correo }
+      : await Usuario.findById(id).select('rol correo');
+    const rolPrevio = previo?.rol;
+    const correoPrevio = previo?.correo;
 
     // Degradar al último administrador deja el sistema sin ninguno, y de eso no
     // se sale desde la aplicación: hay que reiniciar el proceso con
@@ -218,6 +245,25 @@ const updateUsuario = async (req, res, next) => {
     // Se registra el cambio de rol y solo el cambio de rol: cambiar de nombre
     // o de contraseña es cosa de cada cual, pero quién puede hacer qué en la
     // plataforma es exactamente lo que hay que poder reconstruir después.
+    // Y el cambio de correo, por lo mismo: es el identificador con el que se
+    // entra. Cambiar el de una cuenta ajena es exactamente el tipo de acción
+    // que un historial existe para recordar, y el propio también se registra
+    // —quedarse una cuenta empieza justo así—.
+    if (
+      cambios.correo &&
+      normalizarCorreo(cambios.correo) !== normalizarCorreo(correoPrevio ?? '')
+    ) {
+      registrar({
+        actor: solicitante,
+        accion: 'usuario.correo',
+        tipo: 'usuario',
+        id: updated._id,
+        etiqueta: updated.nombre,
+        antes: { correo: correoPrevio },
+        despues: { correo: updated.correo },
+      });
+    }
+
     if (cambios.rol && cambios.rol !== rolPrevio) {
       registrar({
         actor: solicitante,

@@ -182,40 +182,41 @@ Cobertura del frontend, con `npm run test:web:cov`: **71,8 % sentencias · 47,8 
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
-| Comprobación                                            | Resultado esperado                    |
-| ------------------------------------------------------- | ------------------------------------- |
-| `DELETE /api/admin/purge` sin token                     | 401                                   |
-| `DELETE /api/admin/purge` con token de estudiante       | 403                                   |
-| `POST /api/admin/seed-admin` sobre una cuenta existente | no la modifica                        |
-| `POST /api/admin/seed-admin` sin contraseña             | 400, no se inventa ninguna            |
-| `POST /api/usuarios` con `rol: admin`                   | 400                                   |
-| `PUT /api/usuarios/:id` de un tercero                   | 403, sin efecto                       |
-| Auto-ascenso a profesor sin clave                       | 403                                   |
-| Cambiar la propia contraseña sin indicar la actual      | 400                                   |
-| Cambiarla con una contraseña actual equivocada          | 403, la antigua sigue valiendo        |
-| `?limit=999999` en un listado                           | recortado al máximo permitido         |
-| `PUT`/`DELETE /api/cursos/:id` de un curso ajeno        | 403, el curso intacto                 |
-| `GET /api/inscripciones` como estudiante                | solo las suyas, sin correos ajenos    |
-| `GET /api/inscripciones?curso=` de un curso ajeno       | lista vacía, no 403 explicativo       |
-| `GET /api/inscripciones/:id` de una matrícula ajena     | 404, ni confirma que existe           |
-| `GET /api/usuarios/:id` de un tercero                   | 404, aunque sea alumno tuyo           |
-| `DELETE` de un curso o un estudiante                    | se van también sus inscripciones      |
-| `DELETE` de un profesor con cursos                      | 409 diciendo cuántos, sin borrar nada |
-| Degradar o borrar al único administrador que queda      | 409, y sigue siendo admin             |
-| `DELETE` de una cuenta                                  | queda en el historial, con su nombre  |
-| `POST /api/inscripciones` de un estudiante a otro       | 403, y el otro no queda matriculado   |
-| Ídem con el `correo` de un tercero                      | 403 idéntico, exista ese correo o no  |
-| `POST /api/inscripciones` de un profesor en curso ajeno | 403, sin matricular a nadie           |
-| Login con correo inexistente vs. contraseña mala        | misma respuesta, palabra por palabra  |
-| Sexto intento fallido de login                          | 429                                   |
-| `CastError` y `E11000` que llegan al manejador          | 400 y 409, sin texto de Mongo         |
-| Cabecera legacy `x-token`                               | 401: solo vale `Authorization`        |
-| `DELETE /api/inscripciones/:id` de una matrícula ajena  | 403, sigue matriculado                |
-| `?buscar=C++` en el catálogo                            | texto literal, no patrón              |
-| Dos correos que solo difieren en mayúsculas             | colisionan: es la misma cuenta        |
-| Matricular en un curso inexistente                      | 404, no se crea nada                  |
-| Matricular a un profesor o a un admin                   | 400                                   |
-| Dos matrículas iguales a la vez                         | una 201 y otra 400, nunca un 500      |
+| Comprobación                                            | Resultado esperado                     |
+| ------------------------------------------------------- | -------------------------------------- |
+| `DELETE /api/admin/purge` sin token                     | 401                                    |
+| `DELETE /api/admin/purge` con token de estudiante       | 403                                    |
+| `POST /api/admin/seed-admin` sobre una cuenta existente | no la modifica                         |
+| `POST /api/admin/seed-admin` sin contraseña             | 400, no se inventa ninguna             |
+| `POST /api/usuarios` con `rol: admin`                   | 400                                    |
+| `PUT /api/usuarios/:id` de un tercero                   | 403, sin efecto                        |
+| Auto-ascenso a profesor sin clave                       | 403                                    |
+| Cambiar la propia contraseña sin indicar la actual      | 400                                    |
+| Cambiar el propio correo sin indicar la actual          | 400, y el correo sigue siendo el viejo |
+| Cambiarla con una contraseña actual equivocada          | 403, la antigua sigue valiendo         |
+| `?limit=999999` en un listado                           | recortado al máximo permitido          |
+| `PUT`/`DELETE /api/cursos/:id` de un curso ajeno        | 403, el curso intacto                  |
+| `GET /api/inscripciones` como estudiante                | solo las suyas, sin correos ajenos     |
+| `GET /api/inscripciones?curso=` de un curso ajeno       | lista vacía, no 403 explicativo        |
+| `GET /api/inscripciones/:id` de una matrícula ajena     | 404, ni confirma que existe            |
+| `GET /api/usuarios/:id` de un tercero                   | 404, aunque sea alumno tuyo            |
+| `DELETE` de un curso o un estudiante                    | se van también sus inscripciones       |
+| `DELETE` de un profesor con cursos                      | 409 diciendo cuántos, sin borrar nada  |
+| Degradar o borrar al único administrador que queda      | 409, y sigue siendo admin              |
+| `DELETE` de una cuenta                                  | queda en el historial, con su nombre   |
+| `POST /api/inscripciones` de un estudiante a otro       | 403, y el otro no queda matriculado    |
+| Ídem con el `correo` de un tercero                      | 403 idéntico, exista ese correo o no   |
+| `POST /api/inscripciones` de un profesor en curso ajeno | 403, sin matricular a nadie            |
+| Login con correo inexistente vs. contraseña mala        | misma respuesta, palabra por palabra   |
+| Sexto intento fallido de login                          | 429                                    |
+| `CastError` y `E11000` que llegan al manejador          | 400 y 409, sin texto de Mongo          |
+| Cabecera legacy `x-token`                               | 401: solo vale `Authorization`         |
+| `DELETE /api/inscripciones/:id` de una matrícula ajena  | 403, sigue matriculado                 |
+| `?buscar=C++` en el catálogo                            | texto literal, no patrón               |
+| Dos correos que solo difieren en mayúsculas             | colisionan: es la misma cuenta         |
+| Matricular en un curso inexistente                      | 404, no se crea nada                   |
+| Matricular a un profesor o a un admin                   | 400                                    |
+| Dos matrículas iguales a la vez                         | una 201 y otra 400, nunca un 500       |
 
 Los tests no solo comprueban el código de estado: verifican también que el efecto no ocurrió. Tras un 403 al intentar cambiar la contraseña del administrador, la contraseña original sigue siendo válida y la del atacante no.
 

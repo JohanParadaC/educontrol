@@ -23,6 +23,7 @@ const mongoose = require('mongoose');
 /** Las acciones que se registran. Cerrado a propósito: si no está, no se audita. */
 const ACCIONES = [
   'rol.cambiado',
+  'usuario.correo',
   'usuario.borrado',
   'curso.creado',
   'curso.editado',

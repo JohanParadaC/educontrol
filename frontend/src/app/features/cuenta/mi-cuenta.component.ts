@@ -10,7 +10,8 @@
 // Además recoge el cambio de contraseña, que el backend soportaba desde hace
 // tiempo y no tenía ninguna pantalla.
 // ---------------------------------------------------------------------------
-import { Component, inject, ChangeDetectionStrategy, signal } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, computed, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 import { Router } from '@angular/router';
 import {
@@ -33,6 +34,9 @@ import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { mensajeDeError } from '../../core/http-error';
 import { idDe } from '../../data/sesion-local';
+
+/** Mismo criterio que `utils/correo.js` en el backend: minúsculas y sin espacios. */
+const normalizarCorreo = (correo: string | null | undefined) => (correo ?? '').trim().toLowerCase();
 
 /** La nueva contraseña y su repetición tienen que coincidir. */
 function coinciden(grupo: AbstractControl): ValidationErrors | null {
@@ -87,6 +91,26 @@ export class MiCuentaComponent {
   perfil: FormGroup = this.fb.group({
     nombre: ['', [Validators.required, Validators.minLength(2)]],
     correo: ['', [Validators.required, Validators.email]],
+    // Sin validador fijo: se vuelve obligatoria solo si el correo cambia.
+    contraseñaActual: [''],
+  });
+
+  /** El correo tal y como está escrito ahora mismo. */
+  private readonly correoEscrito = toSignal(this.perfil.controls['correo'].valueChanges, {
+    initialValue: '',
+  });
+
+  /**
+   * Si el correo escrito es distinto del de la cuenta.
+   *
+   * El correo es el identificador con el que se entra, así que cambiarlo exige
+   * la contraseña actual —el servidor responde 400 si falta—. Pero este mismo
+   * formulario manda nombre y correo juntos, y pedir la contraseña para
+   * cambiarse el nombre sería cobrar un peaje que nadie debe.
+   */
+  readonly cambiaElCorreo = computed(() => {
+    const escrito = normalizarCorreo(this.correoEscrito());
+    return !!escrito && escrito !== normalizarCorreo(this.auth.usuario()?.correo);
   });
 
   password: FormGroup = this.fb.group(
@@ -105,6 +129,23 @@ export class MiCuentaComponent {
   constructor() {
     const u = this.auth.usuario();
     if (u) this.perfil.patchValue({ nombre: u.nombre, correo: u.correo });
+
+    this.perfil.controls['correo'].valueChanges
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.exigirContraseñaSiCambiaElCorreo());
+  }
+
+  /** El campo solo es obligatorio mientras el correo esté cambiando. */
+  private exigirContraseñaSiCambiaElCorreo(): void {
+    const control = this.perfil.controls['contraseñaActual'];
+
+    if (this.cambiaElCorreo()) {
+      control.addValidators(Validators.required);
+    } else {
+      control.removeValidators(Validators.required);
+      control.setValue('', { emitEvent: false });
+    }
+    control.updateValueAndValidity({ emitEvent: false });
   }
 
   get usuario() {
@@ -133,11 +174,19 @@ export class MiCuentaComponent {
     }
     if (this.guardandoPerfil()) return;
 
+    // La contraseña solo viaja si hay algo que autorizar con ella. Mandarla
+    // siempre la pasearía por la red para cambiarse el nombre.
+    const { nombre, correo, contraseñaActual } = this.perfil.getRawValue();
+    const cambios = this.cambiaElCorreo()
+      ? { nombre, correo, contraseñaActual }
+      : { nombre, correo };
+
     this.guardandoPerfil.set(true);
-    this.api.updateUsuario(this.miId, this.perfil.value).subscribe({
+    this.api.updateUsuario(this.miId, cambios).subscribe({
       next: resp => {
         this.guardandoPerfil.set(false);
         if (resp?.usuario) this.auth.actualizarUsuario(resp.usuario);
+        this.perfil.controls['contraseñaActual'].setValue('');
         this.snack.open('Datos actualizados', 'OK', { duration: 2500 });
       },
       error: err => {
