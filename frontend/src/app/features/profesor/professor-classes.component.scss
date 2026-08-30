@@ -3,9 +3,13 @@
   font: var(--mat-sys-headline-small);
 }
 
+/* Las tarjetas llevan dentro nombres y correos, así que piden más ancho que
+   los 300 px de antes; con `auto-fill` y una pantalla grande salían columnas
+   estrechas y media pantalla en blanco. `auto-fit` reparte el ancho sobrante
+   entre las que hay en vez de dejar huecos de columnas vacías. */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: var(--sp-4);
 }
 
@@ -104,4 +108,80 @@
 .chip--lleno {
   background: color-mix(in srgb, var(--aviso) 16%, transparent);
   color: var(--aviso-texto);
+}
+
+/* El aviso de recuentos incompletos. Mismo tratamiento que el de la ficha:
+   ámbar de fondo y `--aviso-texto` para escribir encima, que es el medido. */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--aviso);
+  border-radius: var(--radio-md);
+  background: color-mix(in srgb, var(--aviso) 12%, transparent);
+  color: var(--aviso-texto);
+  font: var(--mat-sys-body-medium);
+
+  mat-icon {
+    flex: none;
+  }
+}
+
+/* Los primeros alumnos del curso. Una lista, no una tabla: en una tarjeta la
+   tabla obliga a un scroll horizontal propio y no cabe en móvil. */
+.alumnos {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-1);
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    padding: var(--sp-1) 0;
+    border-bottom: 1px solid var(--borde);
+    font: var(--mat-sys-body-medium);
+  }
+
+  li:last-child {
+    border-bottom: 0;
+  }
+}
+
+.alumnos__nombre {
+  color: var(--texto);
+}
+
+/* El correo es el dato secundario: se recorta antes que el nombre. */
+.alumnos__correo {
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.alumnos__mas {
+  justify-self: start;
+  color: var(--acento);
+  font: var(--mat-sys-label-large);
+}
+
+.alumnos__vacio {
+  margin: var(--sp-2) 0 0;
+  color: var(--texto-suave);
+  font: var(--mat-sys-body-medium);
+}
+
+/* En pantallas estrechas el correo debajo del nombre, no a su lado. */
+@media (max-width: 419px) {
+  .alumnos li {
+    flex-direction: column;
+    gap: 0;
+  }
 }

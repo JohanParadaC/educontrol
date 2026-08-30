@@ -41,9 +41,12 @@
             <mat-card-title>{{ courseTitle(c) }}</mat-card-title>
             <mat-card-subtitle>{{ courseDesc(c) || '—' }}</mat-card-subtitle>
             <mat-card-content>
-              <span class="chip" matTooltip="Total de alumnos inscritos">
+              <!-- Misma forma que en "Mis clases" y en la ficha: matriculados,
+                   barra y techo. Esta tarjeta era el tercer sitio donde el
+                   mismo dato se escribía de otra manera. -->
+              <span class="chip" matTooltip="Matriculados y plazas del curso">
                 <mat-icon aria-hidden="true">group</mat-icon>
-                {{ inscritosPorCurso().get(idOf(c)) || 0 }} estudiantes
+                {{ ocupacion(c) }}
               </span>
             </mat-card-content>
             <mat-card-actions>

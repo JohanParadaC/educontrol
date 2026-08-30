@@ -139,6 +139,26 @@ export class CursoDetalleComponent {
   readonly lleno = computed(() => !!this.cupoMaximo() && this.matriculados() >= this.cupoMaximo());
 
   /**
+   * El recuento de matriculados, siempre con la misma forma.
+   *
+   * Con cupo decía "12 / 30 plazas" y sin él "12 estudiantes": la misma métrica
+   * escrita de dos maneras, que es justo lo que impide compararla de un
+   * vistazo. Mismo texto que en las tarjetas de "Mis clases".
+   */
+  readonly ocupacion = computed(() =>
+    this.cupoMaximo()
+      ? `${this.matriculados()} / ${this.cupoMaximo()} plazas`
+      : `${this.matriculados()} / sin límite de plazas`
+  );
+
+  /** El dato secundario: cuántas quedan, o que no hay techo que agotar. */
+  readonly plazasLibres = computed(() => {
+    if (!this.cupoMaximo()) return 'sin límite de plazas';
+    if (this.lleno()) return 'sin plazas libres';
+    return `${this.cupoMaximo() - this.matriculados()} libres`;
+  });
+
+  /**
    * Por qué no se puede uno matricular, o cadena vacía si sí se puede.
    *
    * Es un texto y no un booleano porque se pinta: un botón apagado sin motivo

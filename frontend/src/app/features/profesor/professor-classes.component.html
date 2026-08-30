@@ -12,9 +12,23 @@
 }
 
 @if (!loading() && !error() && cursos().length) {
-  <!-- El título lleva a la ficha del curso. Antes cada tarjeta llevaba dentro
-       la tabla de alumnos: esa tabla vive ahora en la ficha, que es donde se
-       puede hacer algo con ella. -->
+  <!-- El título lleva a la ficha del curso, donde está la lista completa y lo
+       que se puede hacer con ella. Aquí van los primeros nombres: es lo que un
+       profesor viene a mirar, y llenar la pantalla con eso vale más que
+       repartir el aire entre tarjetas más anchas. -->
+
+  <!-- El tope del backend es global, no por curso: si se ha llegado a él, los
+       recuentos de abajo se quedan cortos y hay que decirlo. -->
+  @if (listaRecortada()) {
+    <p class="aviso">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>
+        Tienes más matrículas de las que caben en una respuesta, así que estos recuentos pueden
+        quedarse cortos. La ficha de cada curso trae el número exacto.
+      </span>
+    </p>
+  }
+
   <ul class="cards">
     @for (c of cursos(); track trackCurso($index, c)) {
       <li class="course">
@@ -27,15 +41,30 @@
 
         <p class="desc">{{ c.descripcion || 'Sin descripción.' }}</p>
 
+        <!-- Una sola forma para el mismo dato, con cupo y sin él: dos
+             gramáticas en la misma fila de tarjetas no se comparan. -->
         <span class="chip" [class.chip--lleno]="lleno(c)">
           <mat-icon aria-hidden="true">group</mat-icon>
-          @if (c.cupoMaximo) {
-            {{ inscritos().get(idOf(c)) || 0 }} / {{ c.cupoMaximo }} plazas
-          } @else {
-            {{ inscritos().get(idOf(c)) || 0 }}
-            {{ (inscritos().get(idOf(c)) || 0) === 1 ? 'estudiante' : 'estudiantes' }}
-          }
+          {{ ocupacion(c) }}
         </span>
+
+        @if (primeros(c).length) {
+          <ul class="alumnos">
+            @for (a of primeros(c); track a._id) {
+              <li>
+                <span class="alumnos__nombre">{{ a.nombre }}</span>
+                <span class="alumnos__correo">{{ a.correo }}</span>
+              </li>
+            }
+          </ul>
+          @if (restantes(c)) {
+            <a class="alumnos__mas" [routerLink]="['/cursos', idOf(c)]">
+              y {{ restantes(c) }} más…
+            </a>
+          }
+        } @else {
+          <p class="alumnos__vacio">Todavía no hay nadie matriculado.</p>
+        }
 
         <div class="acciones">
           <a mat-button color="primary" [routerLink]="['/cursos', idOf(c)]">Ver la ficha</a>

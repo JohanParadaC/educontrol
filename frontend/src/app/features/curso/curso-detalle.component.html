@@ -76,25 +76,20 @@
       </div>
 
       <div class="meta">
-        <dt>{{ cupoMaximo() ? 'Plazas' : 'Matriculados' }}</dt>
+        <dt>Plazas</dt>
         <dd>
           <span class="avatar avatar--neutro" aria-hidden="true">
             <mat-icon>group</mat-icon>
           </span>
+          <!-- La misma forma con cupo y sin él: primero el recuento, luego la
+               barra y el techo. Dos gramáticas para la misma métrica no se
+               comparan de un vistazo, y esta ficha tenía el mismo par que las
+               tarjetas de "Mis clases". -->
           <span class="meta__texto">
-            @if (cupoMaximo()) {
-              <span class="meta__principal" [class.meta__principal--lleno]="lleno()">
-                {{ matriculados() }} / {{ cupoMaximo() }} plazas
-              </span>
-              <span class="meta__secundario">
-                {{ lleno() ? 'sin plazas libres' : cupoMaximo() - matriculados() + ' libres' }}
-              </span>
-            } @else {
-              <span class="meta__principal">{{ matriculados() }}</span>
-              <span class="meta__secundario">
-                {{ matriculados() === 1 ? 'estudiante' : 'estudiantes' }}
-              </span>
-            }
+            <span class="meta__principal" [class.meta__principal--lleno]="lleno()">
+              {{ ocupacion() }}
+            </span>
+            <span class="meta__secundario">{{ plazasLibres() }}</span>
           </span>
         </dd>
       </div>

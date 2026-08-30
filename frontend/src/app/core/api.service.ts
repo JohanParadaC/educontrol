@@ -135,6 +135,9 @@ export class ApiService {
    * suyas, un profesor las de sus cursos y un administrador todas. Los filtros
    * se cruzan con esa regla en el servidor.
    */
+  listInscripcionesPaginado(filtros: FiltroInscripciones = {}): Observable<Pagina<Inscripcion>> {
+    return this.inscripciones.listInscripcionesPaginado(filtros);
+  }
   listInscripciones(filtros: FiltroInscripciones = {}): Observable<Inscripcion[]> {
     return this.inscripciones.listInscripciones(filtros);
   }

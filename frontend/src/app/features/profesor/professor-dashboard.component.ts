@@ -146,6 +146,20 @@ export class ProfessorDashboardComponent implements OnInit {
   }
 
   /**
+   * Matriculados y plazas, con la misma gramática que el resto del producto.
+   *
+   * Aquí ponía "N estudiantes" y en "Mis clases", con cupo, "2 / 20 plazas":
+   * el mismo dato con dos formas no se compara de un vistazo, y este era el
+   * tercer sitio donde se escribía distinto.
+   */
+  ocupacion(c: Curso): string {
+    const matriculados = this.inscritosPorCurso().get(idDe(c)) ?? 0;
+    return c.cupoMaximo
+      ? `${matriculados} / ${c.cupoMaximo} plazas`
+      : `${matriculados} / sin límite de plazas`;
+  }
+
+  /**
    * Título del curso.
    *
    * Miraba también `titulo`, y de eso ya se encarga `curso.mapper`: es el

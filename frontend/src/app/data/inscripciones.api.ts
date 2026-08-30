@@ -22,7 +22,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Inscripcion } from './inscripcion.model';
 import { aCurso } from './curso.mapper';
-import { LIMITE_MAXIMO_PAGINA } from './paginacion';
+import { Pagina, Sobre, aPagina, LIMITE_MAXIMO_PAGINA } from './paginacion';
 import { usuarioLocal, idDe } from './sesion-local';
 import { CursoCrudo } from './curso.mapper';
 
@@ -67,14 +67,35 @@ export class InscripcionesApi {
    * las pantallas que lo usan tiene todavía paginador propio; pasadas las 100
    * matrículas de un curso, esto necesita paginación de verdad.
    */
-  listInscripciones(filtros: FiltroInscripciones = {}): Observable<Inscripcion[]> {
-    let params = new HttpParams().set('limit', String(filtros.limite ?? LIMITE_MAXIMO_PAGINA));
+  /**
+   * Igual que `listInscripciones`, pero sin tirar los metadatos.
+   *
+   * Los necesita quien tenga que saber si lo que ha recibido es todo: el
+   * backend recorta en 100, y un recuento hecho sobre una lista recortada es un
+   * número más bajo que el de verdad sin decirlo.
+   */
+  listInscripcionesPaginado(filtros: FiltroInscripciones = {}): Observable<Pagina<Inscripcion>> {
+    return this.http.get<Sobre>(this.base, { params: this.parametros(filtros) }).pipe(
+      map(r => {
+        const p = aPagina<InscripcionCruda>(r, 'inscripciones', 1, this.limiteDe(filtros));
+        return { ...p, items: p.items.map(conCursoTraducido) };
+      })
+    );
+  }
+
+  private limiteDe(filtros: FiltroInscripciones): number {
+    return filtros.limite ?? LIMITE_MAXIMO_PAGINA;
+  }
+
+  private parametros(filtros: FiltroInscripciones): HttpParams {
+    let params = new HttpParams().set('limit', String(this.limiteDe(filtros)));
     if (filtros.curso) params = params.set('curso', filtros.curso);
     if (filtros.estudiante) params = params.set('estudiante', filtros.estudiante);
+    return params;
+  }
 
-    return this.http
-      .get<InscripcionCruda[] | { inscripciones?: InscripcionCruda[] }>(this.base, { params })
-      .pipe(map(r => (Array.isArray(r) ? r : (r?.inscripciones ?? [])).map(conCursoTraducido)));
+  listInscripciones(filtros: FiltroInscripciones = {}): Observable<Inscripcion[]> {
+    return this.listInscripcionesPaginado(filtros).pipe(map(p => p.items));
   }
 
   createInscripcion(body: { curso: string; estudiante: string }): Observable<Inscripcion> {

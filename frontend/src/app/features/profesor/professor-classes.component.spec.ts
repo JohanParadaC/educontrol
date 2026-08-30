@@ -23,8 +23,8 @@ const CURSOS = [
 ];
 
 const INSCRIPCIONES = [
-  { _id: 'i1', curso: CURSOS[0], estudiante: { nombre: 'Ana' } },
-  { _id: 'i2', curso: CURSOS[0], estudiante: { nombre: 'Diego' } },
+  { _id: 'i1', curso: CURSOS[0], estudiante: { _id: 'e1', nombre: 'Ana', correo: 'ana@x.com' } },
+  { _id: 'i2', curso: CURSOS[0], estudiante: { _id: 'e2', nombre: 'Diego', correo: 'd@x.com' } },
 ];
 
 describe('ProfessorClassesComponent', () => {
@@ -88,6 +88,81 @@ describe('ProfessorClassesComponent', () => {
     // Sin cupo nunca está lleno, por muchos que haya.
     expect(componente.lleno(componente.cursos()[1])).toBeFalse();
     expect(texto()).toContain('2 / 2 plazas');
+  });
+
+  it('la tarjeta enseña a los alumnos, con nombre y correo', () => {
+    pidenCursos().flush({ ok: true, cursos: CURSOS, total: 2 });
+    pidenInscripciones().flush({ ok: true, inscripciones: INSCRIPCIONES, total: 2 });
+    fixture.detectChanges();
+
+    // No cuesta ninguna petición extra: el estudiante ya venía poblado y esta
+    // pantalla lo estaba tirando para quedarse solo con el número.
+    expect(texto()).toContain('Ana');
+    expect(texto()).toContain('ana@x.com');
+    expect(texto()).toContain('Diego');
+    // Y el curso sin nadie lo dice, en vez de quedarse en blanco.
+    expect(texto()).toContain('Todavía no hay nadie matriculado');
+  });
+
+  it('ordena los alumnos por nombre, llegue como llegue la lista', () => {
+    pidenCursos().flush({ ok: true, cursos: CURSOS, total: 2 });
+    pidenInscripciones().flush({
+      ok: true,
+      inscripciones: [INSCRIPCIONES[1], INSCRIPCIONES[0]],
+      total: 2,
+    });
+    fixture.detectChanges();
+
+    expect(componente.primeros(componente.cursos()[0]).map(a => a.nombre)).toEqual([
+      'Ana',
+      'Diego',
+    ]);
+  });
+
+  it('con más alumnos de los que caben, ofrece el resto en la ficha', () => {
+    const muchos = Array.from({ length: 9 }, (_, i) => ({
+      _id: `i${i}`,
+      curso: CURSOS[1],
+      estudiante: { _id: `e${i}`, nombre: `Alumno ${i}`, correo: `a${i}@x.com` },
+    }));
+
+    pidenCursos().flush({ ok: true, cursos: CURSOS, total: 2 });
+    pidenInscripciones().flush({ ok: true, inscripciones: muchos, total: 9 });
+    fixture.detectChanges();
+
+    expect(componente.primeros(componente.cursos()[1]).length).toBe(6);
+    expect(componente.restantes(componente.cursos()[1])).toBe(3);
+    expect(texto()).toContain('y 3 más');
+  });
+
+  it('un dato, una gramática: con cupo y sin él se escriben igual', () => {
+    pidenCursos().flush({ ok: true, cursos: CURSOS, total: 2 });
+    pidenInscripciones().flush({ ok: true, inscripciones: INSCRIPCIONES, total: 2 });
+    fixture.detectChanges();
+
+    // Antes: "2 / 2 plazas" en una tarjeta y "0 estudiantes" en la de al lado.
+    expect(componente.ocupacion(componente.cursos()[0])).toBe('2 / 2 plazas');
+    expect(componente.ocupacion(componente.cursos()[1])).toBe('0 / sin límite de plazas');
+    expect(texto()).not.toContain('0 estudiantes');
+  });
+
+  it('si el listado viene recortado, lo dice: los recuentos se quedan cortos', () => {
+    pidenCursos().flush({ ok: true, cursos: CURSOS, total: 2 });
+    // El tope del backend es global, no por curso.
+    pidenInscripciones().flush({ ok: true, inscripciones: INSCRIPCIONES, total: 140 });
+    fixture.detectChanges();
+
+    expect(componente.listaRecortada()).toBeTrue();
+    expect(texto()).toContain('recuentos pueden quedarse cortos');
+  });
+
+  it('sin recorte no hay aviso', () => {
+    pidenCursos().flush({ ok: true, cursos: CURSOS, total: 2 });
+    pidenInscripciones().flush({ ok: true, inscripciones: INSCRIPCIONES, total: 2 });
+    fixture.detectChanges();
+
+    expect(componente.listaRecortada()).toBeFalse();
+    expect(texto()).not.toContain('recuentos pueden quedarse cortos');
   });
 
   it('sin cursos lo dice, y no es un error', () => {
