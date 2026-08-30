@@ -104,7 +104,7 @@ backend/
   scripts/       datos de demostración
   docs.js        Swagger UI en /api/docs, solo fuera de producción
   openapi.yaml   el contrato de la API, escrito a mano y comprobado con un test
-  __tests__/     338 tests, incluidos los de regresión de seguridad
+  __tests__/     341 tests, incluidos los de regresión de seguridad
 
 frontend/src/app/
   core/          sesión, guards, interceptor, errores HTTP, rutas por rol
@@ -153,7 +153,7 @@ producción, que son los que importan.
 ## Tests
 
 ```bash
-npm test          # backend:  338 tests (Jest + Supertest)
+npm test          # backend:  341 tests (Jest + Supertest)
 npm run test:web  # frontend: 220 tests (Karma + Jasmine)
 npm run test:e2e  # extremo a extremo: 13 recorridos (Playwright)
 ```

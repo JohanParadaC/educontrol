@@ -65,15 +65,64 @@ async function arrancar({ puerto = process.env.PORT || 3000, aplicacion = app } 
     await require('./scripts/seedDemo')();
   }
 
-  servidor = await new Promise(resolve => {
-    const s = aplicacion.listen(puerto, () => resolve(s));
-  });
+  servidor = await escuchar(aplicacion, puerto);
 
   const puertoReal = servidor.address().port;
   console.log(`🟢 Servidor corriendo en http://localhost:${puertoReal}`);
   if (aplicacion.hayBuildFrontend) console.log('🖥️  Frontend servido en la misma URL');
 
   return servidor;
+}
+
+/**
+ * Traduce los fallos de `listen()` a algo que se pueda leer.
+ *
+ * Sin esto, el puerto ocupado —el caso más común de todos— salía como
+ * `TypeError: Cannot read properties of null (reading 'port')`, que no nombra
+ * ni el puerto ni el problema. Es exactamente el síntoma lejos de la causa que
+ * `config/env.js` existe para evitar, y aquí estaba entrando por otra puerta.
+ */
+function errorDeEscucha(err, puerto) {
+  if (err?.code === 'EADDRINUSE') {
+    return Object.assign(
+      new Error(
+        `El puerto ${puerto} ya está en uso. Cierra lo que lo esté ocupando ` +
+          `—otra instancia, o el contenedor con \`docker compose down\`— o arranca ` +
+          `con otro: PORT=3001 npm start.`
+      ),
+      { code: err.code }
+    );
+  }
+  if (err?.code === 'EACCES') {
+    return Object.assign(
+      new Error(
+        `Sin permiso para escuchar en el puerto ${puerto}. Prueba con uno por encima de 1024.`
+      ),
+      { code: err.code }
+    );
+  }
+  return err;
+}
+
+/**
+ * Levanta el servidor y espera a que esté escuchando DE VERDAD.
+ *
+ * En Windows, `listen()` sobre un puerto ocupado llama igualmente al callback
+ * de `listening` y deja `address()` en `null`; el `'error'` llega después. Por
+ * eso no basta con resolver en el callback: hay que comprobar que hay
+ * dirección, y enganchar `'error'` antes de que nadie lo escuche —un `'error'`
+ * sin manejador en un EventEmitter tumba el proceso—.
+ */
+function escuchar(aplicacion, puerto) {
+  return new Promise((resolver, rechazar) => {
+    const s = aplicacion.listen(puerto);
+    s.once('error', err => rechazar(errorDeEscucha(err, puerto)));
+    s.once('listening', () => {
+      if (s.address()) resolver(s);
+      // Sin dirección no está escuchando: el 'error' viene de camino y es el
+      // que sabe por qué.
+    });
+  });
 }
 
 /**
@@ -156,7 +205,12 @@ function escucharSenales() {
 if (require.main === module) {
   escucharSenales();
   arrancar().catch(err => {
-    console.error('❌ Error al arrancar:', err);
+    // Los fallos de configuración —puerto ocupado, permisos, entorno mal
+    // puesto— ya vienen con un mensaje que dice qué hacer: la traza solo
+    // esconde ese mensaje entre líneas de node_modules. El resto sí se
+    // imprime entero, porque ahí la traza es lo único que hay.
+    if (err?.code) console.error(`❌ Error al arrancar: ${err.message}`);
+    else console.error('❌ Error al arrancar:', err);
     process.exit(1);
   });
 }
