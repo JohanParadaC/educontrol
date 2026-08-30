@@ -51,6 +51,22 @@ interface Grupo {
 
 const CLAVE_COLAPSADA = 'lateral-colapsada';
 
+/**
+ * Con esta cantidad de destinos o menos, la lateral arranca colapsada.
+ *
+ * Tres es lo que ve un profesor —Inicio, Mis clases y Mi cuenta— repartidos en
+ * tres grupos con su título cada uno: más cromo que contenido.
+ */
+const DESTINOS_PARA_COLAPSAR = 3;
+
+/** Lo que eligió el usuario, o `null` si nunca tocó el botón. */
+function eleccionGuardada(): boolean | null {
+  const guardado = localStorage.getItem(CLAVE_COLAPSADA);
+  if (guardado === 'si') return true;
+  if (guardado === 'no') return false;
+  return null;
+}
+
 @Component({
   selector: 'app-navbar',
   standalone: true,
@@ -88,10 +104,29 @@ export class NavbarComponent {
   readonly cajonCerrado = computed(() => !this.esEscritorio() && !this.menuAbierto());
 
   /**
-   * Lateral colapsada a 64 px. Se recuerda entre visitas: es una preferencia
-   * de quien mira, y perderla en cada recarga molesta más que ayuda.
+   * La elección explícita sobre la lateral, si alguien ha tocado el botón.
+   *
+   * `null` significa "nadie ha dicho nada todavía", que no es lo mismo que
+   * "expandida": sin esa distinción no se puede tener un valor por defecto que
+   * dependa del rol y a la vez respetar a quien lo cambia.
    */
-  readonly colapsada = signal(localStorage.getItem(CLAVE_COLAPSADA) === 'si');
+  private readonly eleccion = signal<boolean | null>(eleccionGuardada());
+
+  /**
+   * Lateral colapsada a 64 px.
+   *
+   * Por defecto va colapsada cuando el rol tiene tres destinos o menos: 260 px
+   * de ancho y casi todo el alto vacío para enseñar dos enlaces y uno es un
+   * cuarto de pantalla pagado por nada. Con más destinos arranca abierta, que
+   * es cuando la lista se lee como una lista.
+   *
+   * Y si alguien la abre o la cierra a mano, gana su elección y se recuerda
+   * entre visitas: es una preferencia de quien mira, y perderla en cada recarga
+   * molesta más que ayuda.
+   */
+  readonly colapsada = computed(
+    () => this.eleccion() ?? this.planos().length <= DESTINOS_PARA_COLAPSAR
+  );
 
   /** Ruta actual, para marcar la sección activa y titular la barra superior. */
   private readonly url = signal(this.router.url);
@@ -259,10 +294,9 @@ export class NavbarComponent {
   }
 
   alternarColapso(): void {
-    this.colapsada.update(v => {
-      localStorage.setItem(CLAVE_COLAPSADA, v ? 'no' : 'si');
-      return !v;
-    });
+    const siguiente = !this.colapsada();
+    localStorage.setItem(CLAVE_COLAPSADA, siguiente ? 'si' : 'no');
+    this.eleccion.set(siguiente);
   }
 
   /** Escape cierra el cajón, como se espera de cualquier panel desplegable. */
