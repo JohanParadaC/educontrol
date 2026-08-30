@@ -56,8 +56,12 @@ const crearUsuario = async (req, res, next) => {
     const usuario = new Usuario({ nombre, correo, contraseña: passHash, rol: rolSolicitado });
     await usuario.save();
 
-    const { contraseña: _, ...data } = usuario.toObject();
-    res.status(201).json({ ok: true, usuario: data });
+    // `toJSON()` y no `toObject()`: el modelo tiene un toJSON que quita `__v`
+    // y la contraseña y renombra `_id` a `id`. Con `toObject()` esta ruta
+    // devolvía `_id` y `__v` mientras el listado devolvía `id`: el mismo
+    // recurso con dos formas según el endpoint, y `openapi.yaml` documentando
+    // solo una de ellas.
+    res.status(201).json({ ok: true, usuario: usuario.toJSON() });
   } catch (err) {
     next(err);
   }

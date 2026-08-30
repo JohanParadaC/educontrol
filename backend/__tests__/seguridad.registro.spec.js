@@ -70,4 +70,15 @@ describe('POST /api/usuarios (registro público)', () => {
 
     expect(res.body.usuario).not.toHaveProperty('contraseña');
   });
+
+  it('devuelve el usuario con la misma forma que el listado', async () => {
+    const res = await registrar(base());
+
+    // El alta usaba `toObject()` y el listado `toJSON()`, así que el mismo
+    // recurso salía con `_id` y `__v` por una puerta y con `id` y sin `__v`
+    // por la otra. `openapi.yaml` documenta una sola forma: la del listado.
+    expect(res.body.usuario).toHaveProperty('id');
+    expect(res.body.usuario).not.toHaveProperty('_id');
+    expect(res.body.usuario).not.toHaveProperty('__v');
+  });
 });
