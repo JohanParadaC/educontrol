@@ -104,7 +104,7 @@ backend/
   scripts/       datos de demostración
   docs.js        Swagger UI en /api/docs, solo fuera de producción
   openapi.yaml   el contrato de la API, escrito a mano y comprobado con un test
-  __tests__/     272 tests, incluidos los de regresión de seguridad
+  __tests__/     328 tests, incluidos los de regresión de seguridad
 
 frontend/src/app/
   core/          sesión, guards, interceptor, errores HTTP, rutas por rol
@@ -139,19 +139,22 @@ Cada push y cada pull request pasan por `.github/workflows/ci.yml`, en cuatro
 trabajos: lint y formato, los tests del backend con cobertura, los del frontend
 con cobertura y el build de producción, y los recorridos de extremo a extremo.
 
-Dos reglas de ESLint están como aviso y no como error, porque su deuda es
-anterior: `no-explicit-any` (usos heredados) y `prefer-inject` (27 componentes
-que aún inyectan por constructor). El script de lint del frontend lleva
-`--max-warnings=58`, el número exacto de hoy: los avisos solo pueden bajar, y
-cualquier `any` nuevo rompe la build.
+`no-explicit-any` y `prefer-inject` llevaban tiempo como aviso, con un tope de
+58 en el script de lint del frontend. Ya no queda ninguno de los dos: los seis
+componentes que inyectaban por constructor usan `inject()`, y los `any` de
+producción están tipados —`Sobre`, `CursoCrudo`, `InscripcionCruda`— en vez de
+tolerados. Las dos reglas son ahora **error** y el script lleva
+`--max-warnings=0`. En los `*.spec.ts`, `no-explicit-any` está apagada: un doble
+de test tipado a medias es ruido, no deuda, y contarlo escondía los `any` de
+producción, que son los que importan.
 
 ---
 
 ## Tests
 
 ```bash
-npm test          # backend:  272 tests (Jest + Supertest)
-npm run test:web  # frontend: 108 tests (Karma + Jasmine)
+npm test          # backend:  328 tests (Jest + Supertest)
+npm run test:web  # frontend: 110 tests (Karma + Jasmine)
 npm run test:e2e  # extremo a extremo: 13 recorridos (Playwright)
 ```
 
@@ -173,9 +176,9 @@ lanzando la tanda tres veces seguidas contra el mismo servidor.
 
 ### Cobertura
 
-Cobertura del backend, medida con `npm run test:cov`: **85,7 % sentencias · 76,9 % ramas · 97,8 % funciones · 87,1 % líneas**. Los umbrales de `jest.config.js` van medio punto por debajo de esas cifras, no muy por debajo: un umbral que va por detrás de lo que realmente se cubre no protege de nada.
+Cobertura del backend, medida con `npm run test:cov`: **91,7 % sentencias · 84,9 % ramas · 100 % funciones · 92,8 % líneas**. Los umbrales de `jest.config.js` son 89/82/99/90: entre uno y tres puntos por debajo de lo real, lo bastante cerca para que borrar tests duela y lo bastante lejos para que una variación pequeña no tumbe la integración continua. Un umbral que va por detrás de lo que realmente se cubre no protege de nada, así que se revisan cuando la cobertura sube de verdad.
 
-Cobertura del frontend, con `npm run test:web:cov`: **71,6 % sentencias · 47,1 % ramas · 66,8 % funciones · 73,6 % líneas**, y los umbrales de `frontend/karma.conf.js` un par de puntos por debajo. Las ramas van muy por detrás del resto y no es casualidad: cada `?? ''`, cada `| null` y cada estado que la interfaz no llega a pintar es una rama. Subirlas es el siguiente trabajo, no un número que se pueda escribir en el fichero.
+Cobertura del frontend, con `npm run test:web:cov`: **71,8 % sentencias · 47,8 % ramas · 66,9 % funciones · 73,8 % líneas**, y los umbrales de `frontend/karma.conf.js` (70/45/65/72) un par de puntos por debajo. Las ramas van muy por detrás del resto y no es casualidad: cada `?? ''`, cada `| null` y cada estado que la interfaz no llega a pintar es una rama. Subirlas es el siguiente trabajo, no un número que se pueda escribir en el fichero.
 
 El backend cubre el CRUD completo, la validación de payloads, el manejo de errores y **la autorización**. Este último bloque nació de dos auditorías del propio proyecto: siete fallos de control de acceso, y cada arreglo fijado con tests de regresión que fallan contra el código anterior.
 
@@ -285,6 +288,15 @@ ruta que puede visitar sin sesión.
 | Lighthouse `/login` — LCP          | 0,9 s  | 0,9-1,1 s |
 | Lighthouse `/login` — TBT          | 50 ms  | 10-40 ms  |
 
+Esa columna «Después» es la foto de aquella pasada, no la de hoy. **Hoy el
+bundle inicial mide 736,41 kB en crudo y 179,24 kB transferidos** (`npm run
+build`, 29 de agosto de 2026): ha crecido unos 36 kB con la ficha de curso, el
+historial de actividad y la portada nueva, y sigue por debajo del presupuesto
+que vigila la propia build (aviso a 800 kB, error a 900 kB, en
+`frontend/angular.json`). Las cifras de Lighthouse son de aquella
+medición y no se han vuelto a tomar desde entonces; con un bundle 36 kB mayor,
+tómalas como una referencia con fecha y no como el estado actual.
+
 Sobre Lighthouse: la diferencia está dentro del ruido de la máquina —tres
 ejecuciones seguidas del mismo build dan 98-99, 0,9-1,1 s y 10-40 ms—, y era
 de esperar: ninguno de los cambios toca la pantalla de login. Lo que sí se
@@ -309,7 +321,7 @@ El objetivo era 90 de rendimiento: se cumple en escritorio y no en móvil. El
 motivo no está en la portada. Con la CPU cuatro veces más lenta y la red de un
 4G malo, lo que manda es el bundle inicial —Angular con Material— y la hoja de
 estilos, que bloquea el pintado porque `inlineCritical` está desactivado por la
-CSP. La portada pone 14,6 kB de chunk propio y 44 kB de captura; el resto lo
+CSP. La portada pone 14,45 kB de chunk propio y 44 kB de captura; el resto lo
 paga igual cualquier otra ruta. Bajarlo es otro trabajo, no un retoque de esta
 pantalla.
 
@@ -396,6 +408,13 @@ un entero mayor o igual que cero cae a 0 y lo avisa al arrancar.
 
 ### Qué comprobar tras el primer arranque
 
+> **Esta sección no se ha ejecutado nunca.** El Dockerfile y el compose están
+> escritos y revisados, pero en la máquina donde se ha desarrollado el proyecto
+> no hay Docker instalado, así que la imagen no se ha construido ni una vez.
+> Todo lo de aquí abajo es lo que _debería_ pasar según el código; la lista es
+> precisamente para comprobarlo la primera vez que alguien lo levante. Si algo
+> no cuadra, el fallo es de estas instrucciones, no tuyo.
+
 ```bash
 docker compose ps                       # los dos servicios, y "healthy"
 curl -s localhost:3000/api/health/ready # {"ok":true,"status":"up","mongo":"conectada"}
@@ -469,7 +488,7 @@ Escrito a propósito: son cosas detectadas y priorizadas, no sorpresas.
 - **Los desplegables de profesor y estudiante cargan como mucho 100 opciones.** Por encima de eso harían falta un buscador con filtro en servidor.
 - **El cupo se comprueba contando, y contar no es atómico.** Entre el recuento y la inserción cabe otra petición, así que dos matrículas simultáneas sobre la última plaza pueden entrar las dos. Cerrarlo de verdad pide una transacción y este Mongo es de un solo nodo. Pasarse de uno en una plaza es preferible a fingir que no pasa.
 - **El profesor matricula escribiendo un correo, no eligiendo de una lista.** `GET /api/usuarios` es solo de administrador y abrirlo a los profesores repartiría el nombre y el correo de todos los estudiantes del centro. Un buscador que resuelva por prefijo en el servidor sería mejor, pero es otra pieza. Solo puede hacerlo en **sus** cursos: en los de otro profesor recibe un 403, igual que si intentara editarlos.
-- **El bundle inicial pesa ~733 kB** (180 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
+- **El bundle inicial pesa 736,41 kB** (179,24 kB transferidos). Es lo que cuesta Angular con Material; el presupuesto del build está en 800 kB para que avise de regresiones reales en vez de saltar siempre. Los números, en la sección de rendimiento.
 
 ## Licencia
 

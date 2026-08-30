@@ -6,8 +6,8 @@ Plataforma de gestión académica: Angular 20 en el frontend, Express 5 y Mongoo
 
 ```bash
 npm run install:all && npm run serve   # build del frontend + servidor en :3000
-npm test                               # backend, 272 tests
-npm run test:web                       # frontend, 108 tests
+npm test                               # backend, 328 tests
+npm run test:web                       # frontend, 110 tests
 npm run test:e2e                       # extremo a extremo, 13 recorridos
 docker compose up -d --build           # despliegue: la app y su Mongo persistente
 ```
