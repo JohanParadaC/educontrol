@@ -54,11 +54,14 @@ test.describe('Estudiante', () => {
       .click();
 
     await expect(page.getByRole('heading', { name: CURSO })).toBeVisible();
-    await expect(page.locator('.meta__principal').last()).toHaveText('0');
+    // El recuento se escribe igual con cupo y sin él: primero los
+    // matriculados, luego la barra y el techo. Sin cupo, el techo es que no
+    // hay techo.
+    await expect(page.locator('.meta__principal').last()).toHaveText('0 / sin límite de plazas');
 
     await page.getByRole('button', { name: 'Matricularme' }).click();
     await expect(page.getByRole('button', { name: 'Cancelar matrícula' })).toBeVisible();
-    await expect(page.locator('.meta__principal').last()).toHaveText('1');
+    await expect(page.locator('.meta__principal').last()).toHaveText('1 / sin límite de plazas');
 
     // Un estudiante ve cuántos son, no quiénes: la lista no existe para él.
     await expect(page.locator('.alumnos')).toHaveCount(0);
