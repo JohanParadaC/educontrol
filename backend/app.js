@@ -8,7 +8,12 @@
 // sembrado del admin y el servido de estáticos.
 // ---------------------------------------------------------------------------
 
-require('dotenv').config();
+// `quiet: true` porque en un contenedor NO hay .env —las variables las pasa el
+// compose por entorno— y dotenv escribía igualmente una línea de propaganda
+// distinta en cada arranque ("injecting env (0) from .env (tip: …)"). Con un
+// fallo de configuración eso es un bucle de reinicios donde el mensaje que
+// importa aparece intercalado con avisos que no dicen nada.
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const compression = require('compression');
 const morgan = require('morgan');
